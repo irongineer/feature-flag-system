@@ -1,0 +1,262 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { FeatureFlagCache } from '../src/cache';
+import { FEATURE_FLAGS } from '../src/models';
+
+describe('FeatureFlagCache', () => {
+  let cache: FeatureFlagCache;
+
+  beforeEach(() => {
+    cache = new FeatureFlagCache({ ttl: 100 }); // 100ms TTL for testing
+  });
+
+  describe('basic operations', () => {
+    const tenantId = 'tenant-123';
+    const flagKey = FEATURE_FLAGS.BILLING_V2;
+
+    it('should store and retrieve values', () => {
+      cache.set(tenantId, flagKey, true);
+      const result = cache.get(tenantId, flagKey);
+      expect(result).toBe(true);
+    });
+
+    it('should return undefined for non-existent keys', () => {
+      const result = cache.get('non-existent-tenant', flagKey);
+      expect(result).toBeUndefined();
+    });
+
+    it('should overwrite existing values', () => {
+      cache.set(tenantId, flagKey, true);
+      cache.set(tenantId, flagKey, false);
+      const result = cache.get(tenantId, flagKey);
+      expect(result).toBe(false);
+    });
+
+    it('should handle multiple tenants', () => {
+      cache.set('tenant-1', flagKey, true);
+      cache.set('tenant-2', flagKey, false);
+      
+      expect(cache.get('tenant-1', flagKey)).toBe(true);
+      expect(cache.get('tenant-2', flagKey)).toBe(false);
+    });
+
+    it('should handle multiple flags for same tenant', () => {
+      cache.set(tenantId, FEATURE_FLAGS.BILLING_V2, true);
+      cache.set(tenantId, FEATURE_FLAGS.NEW_DASHBOARD, false);
+      
+      expect(cache.get(tenantId, FEATURE_FLAGS.BILLING_V2)).toBe(true);
+      expect(cache.get(tenantId, FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
+    });
+  });
+
+  describe('TTL functionality', () => {
+    const tenantId = 'tenant-123';
+    const flagKey = FEATURE_FLAGS.BILLING_V2;
+
+    it('should expire entries after TTL', async () => {
+      cache.set(tenantId, flagKey, true);
+      expect(cache.get(tenantId, flagKey)).toBe(true);
+      
+      // Wait for TTL to expire
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      expect(cache.get(tenantId, flagKey)).toBeUndefined();
+    });
+
+    it('should not expire entries before TTL', async () => {
+      cache.set(tenantId, flagKey, true);
+      expect(cache.get(tenantId, flagKey)).toBe(true);
+      
+      // Wait for half TTL
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      expect(cache.get(tenantId, flagKey)).toBe(true);
+    });
+
+    it('should handle different TTL values', () => {
+      const shortTTLCache = new FeatureFlagCache({ ttl: 10 });
+      const longTTLCache = new FeatureFlagCache({ ttl: 1000 });
+
+      shortTTLCache.set(tenantId, flagKey, true);
+      longTTLCache.set(tenantId, flagKey, false);
+
+      expect(shortTTLCache.get(tenantId, flagKey)).toBe(true);
+      expect(longTTLCache.get(tenantId, flagKey)).toBe(false);
+    });
+  });
+
+  describe('cache invalidation', () => {
+    const tenantId = 'tenant-123';
+    const flagKey = FEATURE_FLAGS.BILLING_V2;
+
+    it('should invalidate specific entries', () => {
+      cache.set(tenantId, flagKey, true);
+      cache.set(tenantId, FEATURE_FLAGS.NEW_DASHBOARD, false);
+      
+      expect(cache.get(tenantId, flagKey)).toBe(true);
+      expect(cache.get(tenantId, FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
+      
+      cache.invalidate(tenantId, flagKey);
+      
+      expect(cache.get(tenantId, flagKey)).toBeUndefined();
+      expect(cache.get(tenantId, FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
+    });
+
+    it('should invalidate all entries', () => {
+      cache.set('tenant-1', FEATURE_FLAGS.BILLING_V2, true);
+      cache.set('tenant-2', FEATURE_FLAGS.NEW_DASHBOARD, false);
+      cache.set('tenant-3', FEATURE_FLAGS.ADVANCED_ANALYTICS, true);
+      
+      expect(cache.get('tenant-1', FEATURE_FLAGS.BILLING_V2)).toBe(true);
+      expect(cache.get('tenant-2', FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
+      expect(cache.get('tenant-3', FEATURE_FLAGS.ADVANCED_ANALYTICS)).toBe(true);
+      
+      cache.invalidateAll();
+      
+      expect(cache.get('tenant-1', FEATURE_FLAGS.BILLING_V2)).toBeUndefined();
+      expect(cache.get('tenant-2', FEATURE_FLAGS.NEW_DASHBOARD)).toBeUndefined();
+      expect(cache.get('tenant-3', FEATURE_FLAGS.ADVANCED_ANALYTICS)).toBeUndefined();
+    });
+
+    it('should handle invalidation of non-existent entries', () => {
+      // Should not throw error
+      expect(() => {
+        cache.invalidate('non-existent-tenant', flagKey);
+      }).not.toThrow();
+    });
+  });
+
+  describe('cache statistics', () => {
+    it('should track cache size', () => {
+      const tenantId = 'tenant-123';
+      
+      expect(cache.size()).toBe(0);
+      
+      cache.set(tenantId, FEATURE_FLAGS.BILLING_V2, true);
+      expect(cache.size()).toBe(1);
+      
+      cache.set(tenantId, FEATURE_FLAGS.NEW_DASHBOARD, false);
+      expect(cache.size()).toBe(2);
+      
+      cache.invalidate(tenantId, FEATURE_FLAGS.BILLING_V2);
+      expect(cache.size()).toBe(1);
+      
+      cache.invalidateAll();
+      expect(cache.size()).toBe(0);
+    });
+
+    it('should provide cache key information', () => {
+      const tenantId = 'tenant-123';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      cache.set(tenantId, flagKey, true);
+      
+      const keys = cache.keys();
+      expect(keys).toContain(`${tenantId}:${flagKey}`);
+      expect(keys).toHaveLength(1);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle empty string values', () => {
+      const tenantId = '';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      cache.set(tenantId, flagKey, true);
+      expect(cache.get(tenantId, flagKey)).toBe(true);
+    });
+
+    it('should handle special characters in tenant ID', () => {
+      const tenantId = 'tenant-with-special-chars-@#$%';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      cache.set(tenantId, flagKey, true);
+      expect(cache.get(tenantId, flagKey)).toBe(true);
+    });
+
+    it('should handle boolean false values correctly', () => {
+      const tenantId = 'tenant-123';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      cache.set(tenantId, flagKey, false);
+      expect(cache.get(tenantId, flagKey)).toBe(false);
+      expect(cache.get(tenantId, flagKey)).not.toBeUndefined();
+    });
+
+    it('should handle concurrent operations', () => {
+      const tenantId = 'tenant-123';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      // Simulate concurrent set operations
+      cache.set(tenantId, flagKey, true);
+      cache.set(tenantId, flagKey, false);
+      cache.set(tenantId, flagKey, true);
+      
+      expect(cache.get(tenantId, flagKey)).toBe(true);
+    });
+  });
+
+  describe('memory management', () => {
+    it('should clean up expired entries automatically', async () => {
+      const tenantId = 'tenant-123';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      cache.set(tenantId, flagKey, true);
+      expect(cache.size()).toBe(1);
+      
+      // Wait for expiration
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // Access the cache to trigger cleanup
+      cache.get(tenantId, flagKey);
+      expect(cache.size()).toBe(0);
+    });
+
+    it('should handle large number of entries', () => {
+      const numEntries = 1000;
+      
+      for (let i = 0; i < numEntries; i++) {
+        cache.set(`tenant-${i}`, FEATURE_FLAGS.BILLING_V2, i % 2 === 0);
+      }
+      
+      expect(cache.size()).toBe(numEntries);
+      
+      // Verify some entries
+      expect(cache.get('tenant-0', FEATURE_FLAGS.BILLING_V2)).toBe(true);
+      expect(cache.get('tenant-1', FEATURE_FLAGS.BILLING_V2)).toBe(false);
+      expect(cache.get('tenant-999', FEATURE_FLAGS.BILLING_V2)).toBe(false);
+    });
+  });
+
+  describe('configuration', () => {
+    it('should use default TTL when not specified', () => {
+      const defaultCache = new FeatureFlagCache();
+      const tenantId = 'tenant-123';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      defaultCache.set(tenantId, flagKey, true);
+      expect(defaultCache.get(tenantId, flagKey)).toBe(true);
+    });
+
+    it('should handle zero TTL', () => {
+      const zeroTTLCache = new FeatureFlagCache({ ttl: 0 });
+      const tenantId = 'tenant-123';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      zeroTTLCache.set(tenantId, flagKey, true);
+      // With 0 TTL, entry should not be stored
+      expect(zeroTTLCache.get(tenantId, flagKey)).toBeUndefined();
+      expect(zeroTTLCache.size()).toBe(0);
+    });
+
+    it('should handle negative TTL', () => {
+      const negativeTTLCache = new FeatureFlagCache({ ttl: -1 });
+      const tenantId = 'tenant-123';
+      const flagKey = FEATURE_FLAGS.BILLING_V2;
+      
+      negativeTTLCache.set(tenantId, flagKey, true);
+      // With negative TTL, entry should not be stored
+      expect(negativeTTLCache.get(tenantId, flagKey)).toBeUndefined();
+      expect(negativeTTLCache.size()).toBe(0);
+    });
+  });
+});
