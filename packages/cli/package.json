@@ -1,0 +1,29 @@
+{
+  "name": "@feature-flag/cli",
+  "version": "1.0.0",
+  "description": "Feature flag management CLI tool",
+  "main": "dist/index.js",
+  "bin": {
+    "feature-flag": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts"
+  },
+  "dependencies": {
+    "@feature-flag/core": "^1.0.0",
+    "commander": "^11.0.0",
+    "inquirer": "^9.0.0",
+    "chalk": "^4.1.0",
+    "ora": "^5.4.0",
+    "table": "^6.8.0",
+    "aws-sdk": "^2.1500.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/inquirer": "^9.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}

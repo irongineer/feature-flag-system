@@ -1,0 +1,28 @@
+{
+  "name": "feature-flag-infrastructure",
+  "version": "1.0.0",
+  "description": "AWS CDK infrastructure for feature flag system",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "deploy:dev": "cdk deploy --profile dev FeatureFlagDevStack",
+    "deploy:prod": "cdk deploy --profile prod FeatureFlagProdStack",
+    "destroy:dev": "cdk destroy --profile dev FeatureFlagDevStack",
+    "destroy:prod": "cdk destroy --profile prod FeatureFlagProdStack",
+    "diff": "cdk diff",
+    "synth": "cdk synth"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^22.0.0",
+    "jest": "^29.5.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.100.0",
+    "constructs": "^10.0.0"
+  }
+}

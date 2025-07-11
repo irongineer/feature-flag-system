@@ -1,0 +1,942 @@
+openapi: 3.0.3
+info:
+  title: Feature Flag Management API
+  description: |
+    Multi-tenant SaaS Feature Flag System API
+    
+    This API provides endpoints for managing feature flags, tenant overrides, and emergency controls (kill switches).
+  version: 1.0.0
+  contact:
+    name: Feature Flag System Team
+  license:
+    name: MIT
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://dev-api.example.com/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /flags:
+    get:
+      summary: List all feature flags
+      description: Retrieve a list of all feature flags with their metadata
+      tags:
+        - Feature Flags
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of flags to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of flags to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: owner
+          in: query
+          description: Filter by flag owner
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of feature flags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FeatureFlag'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a new feature flag
+      description: Create a new feature flag with specified configuration
+      tags:
+        - Feature Flags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeatureFlagRequest'
+      responses:
+        '201':
+          description: Feature flag created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlag'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /flags/{flagKey}:
+    get:
+      summary: Get feature flag details
+      description: Retrieve details of a specific feature flag
+      tags:
+        - Feature Flags
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+      responses:
+        '200':
+          description: Feature flag details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlag'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update feature flag
+      description: Update an existing feature flag's configuration
+      tags:
+        - Feature Flags
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFeatureFlagRequest'
+      responses:
+        '200':
+          description: Feature flag updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlag'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete feature flag
+      description: Delete a feature flag and all its associated tenant overrides
+      tags:
+        - Feature Flags
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+      responses:
+        '204':
+          description: Feature flag deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /flags/{flagKey}/evaluate:
+    post:
+      summary: Evaluate feature flag
+      description: Evaluate a feature flag for a specific tenant and context
+      tags:
+        - Flag Evaluation
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationRequest'
+      responses:
+        '200':
+          description: Flag evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /flags/{flagKey}/tenants:
+    get:
+      summary: List tenant overrides for a flag
+      description: Get all tenant-specific overrides for a feature flag
+      tags:
+        - Tenant Overrides
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+        - name: limit
+          in: query
+          description: Maximum number of overrides to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of overrides to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of tenant overrides
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  overrides:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TenantOverride'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationInfo'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /flags/{flagKey}/tenants/{tenantId}:
+    get:
+      summary: Get tenant override
+      description: Get a specific tenant's override for a feature flag
+      tags:
+        - Tenant Overrides
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+        - name: tenantId
+          in: path
+          required: true
+          description: The unique identifier of the tenant
+          schema:
+            type: string
+            example: "tenant-123"
+      responses:
+        '200':
+          description: Tenant override details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantOverride'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Set tenant override
+      description: Set or update a tenant-specific override for a feature flag
+      tags:
+        - Tenant Overrides
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+        - name: tenantId
+          in: path
+          required: true
+          description: The unique identifier of the tenant
+          schema:
+            type: string
+            example: "tenant-123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetTenantOverrideRequest'
+      responses:
+        '200':
+          description: Tenant override updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantOverride'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Remove tenant override
+      description: Remove a tenant-specific override for a feature flag
+      tags:
+        - Tenant Overrides
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+        - name: tenantId
+          in: path
+          required: true
+          description: The unique identifier of the tenant
+          schema:
+            type: string
+            example: "tenant-123"
+      responses:
+        '204':
+          description: Tenant override removed successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /emergency/kill-switch:
+    get:
+      summary: Get global kill switch status
+      description: Get the current status of the global kill switch
+      tags:
+        - Emergency Controls
+      responses:
+        '200':
+          description: Global kill switch status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillSwitchStatus'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Activate global kill switch
+      description: Activate the global kill switch to disable all feature flags
+      tags:
+        - Emergency Controls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateKillSwitchRequest'
+      responses:
+        '200':
+          description: Global kill switch activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillSwitchStatus'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Deactivate global kill switch
+      description: Deactivate the global kill switch to restore normal operation
+      tags:
+        - Emergency Controls
+      responses:
+        '204':
+          description: Global kill switch deactivated successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /emergency/kill-switch/flags/{flagKey}:
+    get:
+      summary: Get flag-specific kill switch status
+      description: Get the kill switch status for a specific feature flag
+      tags:
+        - Emergency Controls
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+      responses:
+        '200':
+          description: Flag-specific kill switch status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillSwitchStatus'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Activate flag-specific kill switch
+      description: Activate kill switch for a specific feature flag
+      tags:
+        - Emergency Controls
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateKillSwitchRequest'
+      responses:
+        '200':
+          description: Flag-specific kill switch activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillSwitchStatus'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Deactivate flag-specific kill switch
+      description: Deactivate kill switch for a specific feature flag
+      tags:
+        - Emergency Controls
+      parameters:
+        - name: flagKey
+          in: path
+          required: true
+          description: The unique key of the feature flag
+          schema:
+            type: string
+            example: "billing_v2_enable"
+      responses:
+        '204':
+          description: Flag-specific kill switch deactivated successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the API
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from AWS Cognito
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for service-to-service authentication
+
+  schemas:
+    FeatureFlag:
+      type: object
+      properties:
+        flagKey:
+          type: string
+          description: Unique identifier for the feature flag
+          example: "billing_v2_enable"
+        description:
+          type: string
+          description: Human-readable description of the flag
+          example: "Enable new billing system v2"
+        defaultEnabled:
+          type: boolean
+          description: Default state of the flag
+          example: false
+        owner:
+          type: string
+          description: Owner of the feature flag
+          example: "billing-team"
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:00:00Z"
+        expiresAt:
+          type: string
+          format: date-time
+          description: Expiration timestamp (optional)
+          example: "2024-12-31T23:59:59Z"
+      required:
+        - flagKey
+        - description
+        - defaultEnabled
+        - owner
+        - createdAt
+
+    CreateFeatureFlagRequest:
+      type: object
+      properties:
+        flagKey:
+          type: string
+          description: Unique identifier for the feature flag
+          example: "billing_v2_enable"
+          pattern: "^[a-z0-9_]+$"
+        description:
+          type: string
+          description: Human-readable description of the flag
+          example: "Enable new billing system v2"
+          maxLength: 500
+        defaultEnabled:
+          type: boolean
+          description: Default state of the flag
+          example: false
+          default: false
+        owner:
+          type: string
+          description: Owner of the feature flag
+          example: "billing-team"
+          maxLength: 100
+        expiresAt:
+          type: string
+          format: date-time
+          description: Expiration timestamp (optional)
+          example: "2024-12-31T23:59:59Z"
+      required:
+        - flagKey
+        - description
+        - owner
+
+    UpdateFeatureFlagRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          description: Human-readable description of the flag
+          example: "Enable new billing system v2"
+          maxLength: 500
+        defaultEnabled:
+          type: boolean
+          description: Default state of the flag
+          example: false
+        owner:
+          type: string
+          description: Owner of the feature flag
+          example: "billing-team"
+          maxLength: 100
+        expiresAt:
+          type: string
+          format: date-time
+          description: Expiration timestamp (optional)
+          example: "2024-12-31T23:59:59Z"
+
+    TenantOverride:
+      type: object
+      properties:
+        tenantId:
+          type: string
+          description: Unique identifier for the tenant
+          example: "tenant-123"
+        flagKey:
+          type: string
+          description: Feature flag key
+          example: "billing_v2_enable"
+        enabled:
+          type: boolean
+          description: Override value for the tenant
+          example: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:00:00Z"
+        updatedBy:
+          type: string
+          description: User who made the update
+          example: "admin@example.com"
+      required:
+        - tenantId
+        - flagKey
+        - enabled
+        - updatedAt
+        - updatedBy
+
+    SetTenantOverrideRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Override value for the tenant
+          example: true
+      required:
+        - enabled
+
+    EvaluationRequest:
+      type: object
+      properties:
+        tenantId:
+          type: string
+          description: Unique identifier for the tenant
+          example: "tenant-123"
+        userId:
+          type: string
+          description: User identifier (optional)
+          example: "user-456"
+        environment:
+          type: string
+          description: Environment context (optional)
+          example: "production"
+        metadata:
+          type: object
+          description: Additional context metadata (optional)
+          example:
+            userTier: "premium"
+            region: "us-east-1"
+      required:
+        - tenantId
+
+    EvaluationResponse:
+      type: object
+      properties:
+        flagKey:
+          type: string
+          description: Feature flag key
+          example: "billing_v2_enable"
+        enabled:
+          type: boolean
+          description: Evaluation result
+          example: true
+        reason:
+          type: string
+          description: Reason for the evaluation result
+          enum: ["default", "tenant_override", "kill_switch"]
+          example: "tenant_override"
+        evaluatedAt:
+          type: string
+          format: date-time
+          description: Evaluation timestamp
+          example: "2024-01-15T10:00:00Z"
+      required:
+        - flagKey
+        - enabled
+        - reason
+        - evaluatedAt
+
+    KillSwitchStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Whether the kill switch is active
+          example: false
+        reason:
+          type: string
+          description: Reason for activation (if enabled)
+          example: "Critical security vulnerability detected"
+        activatedAt:
+          type: string
+          format: date-time
+          description: Activation timestamp (if enabled)
+          example: "2024-01-15T10:00:00Z"
+        activatedBy:
+          type: string
+          description: User who activated the kill switch (if enabled)
+          example: "admin@example.com"
+      required:
+        - enabled
+
+    ActivateKillSwitchRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Reason for activation
+          example: "Critical security vulnerability detected"
+          maxLength: 500
+      required:
+        - reason
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["healthy", "unhealthy"]
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:00:00Z"
+        version:
+          type: string
+          example: "1.0.0"
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: ["ok", "error"]
+              example: "ok"
+            cache:
+              type: string
+              enum: ["ok", "error"]
+              example: "ok"
+      required:
+        - status
+        - timestamp
+        - version
+
+    PaginationInfo:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of items
+          example: 100
+        limit:
+          type: integer
+          description: Maximum number of items per page
+          example: 20
+        offset:
+          type: integer
+          description: Number of items skipped
+          example: 0
+        hasNext:
+          type: boolean
+          description: Whether there are more items
+          example: true
+      required:
+        - total
+        - limit
+        - offset
+        - hasNext
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "ValidationError"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid request parameters"
+        details:
+          type: object
+          description: Additional error details
+          example:
+            field: "flagKey"
+            code: "invalid_format"
+        requestId:
+          type: string
+          description: Unique request identifier for debugging
+          example: "req_123456789"
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-01-15T10:00:00Z"
+      required:
+        - error
+        - message
+        - requestId
+        - timestamp
+
+  responses:
+    BadRequestError:
+      description: Bad request - invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "ValidationError"
+            message: "Invalid request parameters"
+            details:
+              field: "flagKey"
+              code: "invalid_format"
+            requestId: "req_123456789"
+            timestamp: "2024-01-15T10:00:00Z"
+
+    UnauthorizedError:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "AuthenticationError"
+            message: "Authentication required"
+            requestId: "req_123456789"
+            timestamp: "2024-01-15T10:00:00Z"
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NotFoundError"
+            message: "Feature flag not found"
+            requestId: "req_123456789"
+            timestamp: "2024-01-15T10:00:00Z"
+
+    ConflictError:
+      description: Conflict - resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "ConflictError"
+            message: "Feature flag already exists"
+            requestId: "req_123456789"
+            timestamp: "2024-01-15T10:00:00Z"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "InternalServerError"
+            message: "An unexpected error occurred"
+            requestId: "req_123456789"
+            timestamp: "2024-01-15T10:00:00Z"
+
+tags:
+  - name: Feature Flags
+    description: Operations for managing feature flags
+  - name: Tenant Overrides
+    description: Operations for managing tenant-specific overrides
+  - name: Flag Evaluation
+    description: Operations for evaluating feature flags
+  - name: Emergency Controls
+    description: Operations for emergency kill switches
+  - name: System
+    description: System health and monitoring operations
