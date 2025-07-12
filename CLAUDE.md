@@ -386,7 +386,7 @@ npx feature-flag kill-switch --activate --reason "Critical bug found"
    - Definition of Done の設定
    - 見積もり（ストーリーポイント）
 
-### 💻 フェーズ 3: 開発（t-wada として）（t-wada として）
+### 💻 フェーズ 3: 開発（t-wada として）
 
 7. **開発環境構築**
 
