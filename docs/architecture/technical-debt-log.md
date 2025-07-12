@@ -148,7 +148,26 @@ class MockTimeProvider implements TimeProvider {
 
 ### 4. パフォーマンスレベル
 
-#### TD-007: Local Cache の分散環境対応
+#### TD-007: TTL期限切れテストの時間依存性問題（Issue #14）
+**負債内容**: MockTimeProviderを使用したTTLテストで3件の失敗が残存
+
+**発生理由**: 
+- 時間依存性ロジックの完全な分離が未完了
+- MockTimeProviderのDependency Injection実装が不完全
+
+**影響度**: 中 - テスト安定性とCI信頼性への影響
+
+**返済計画**:
+- **Time**: Sprint 2-3 (次期スプリント)
+- **方法**: TimeProviderインターフェースの完全実装と時間計算ロジックの見直し
+- **関連ファイル**: packages/core/tests/cache.test.ts:71-81, 243, 281
+
+**詳細**: 
+- TTL期限切れテスト（should expire entries after TTL）
+- 自動クリーンアップテスト（should clean up expired entries automatically）  
+- ゼロTTLテスト（should handle zero TTL）
+
+#### TD-008: Local Cache の分散環境対応
 **負債内容**: Lambda間でのキャッシュ一貫性問題、Cold Start時のキャッシュウォームアップ未対応
 
 **発生理由**: 
@@ -170,10 +189,11 @@ class MockTimeProvider implements TimeProvider {
 | TD-005 | 高 | 高 | 中 | 1 | Phase 1.8 |
 | TD-006 | 高 | 高 | 中 | 2 | Phase 1.9 |
 | TD-004 | 中 | 高 | 中 | 3 | Phase 2前 |
-| TD-002 | 中 | 中 | 低 | 4 | Phase 1.5 |
-| TD-007 | 中 | 低 | 高 | 5 | Phase 2 |
-| TD-001 | 中 | 低 | 高 | 6 | Phase 2 |
-| TD-003 | 低 | 低 | 低 | 7 | 随時 |
+| TD-007 | 中 | 中 | 低 | 4 | Sprint 2-3 |
+| TD-002 | 中 | 中 | 低 | 5 | Phase 1.5 |
+| TD-008 | 中 | 低 | 高 | 6 | Phase 2 |
+| TD-001 | 中 | 低 | 高 | 7 | Phase 2 |
+| TD-003 | 低 | 低 | 低 | 8 | 随時 |
 
 ---
 
@@ -201,7 +221,7 @@ class MockTimeProvider implements TimeProvider {
 ## 📊 負債メトリクス
 
 ### 測定指標
-- **負債総数**: 現在7件
+- **負債総数**: 現在8件
 - **高影響負債**: 2件
 - **返済期限超過**: 0件
 - **負債返済率**: 0% (まだ返済実績なし)

@@ -68,34 +68,41 @@ describe('FeatureFlagCache', () => {
     const tenantId = 'tenant-123';
     const flagKey = FEATURE_FLAGS.BILLING_V2;
 
-    it('should expire entries after TTL', async () => {
-      const shortTTLCache = new FeatureFlagCache({ ttl: 50 }); // 50ms TTL for quick test
+    it('should expire entries after TTL', () => {
+      const mockTimeProvider = new MockTimeProvider();
+      const ttlCache = new FeatureFlagCache({ ttl: 50, timeProvider: mockTimeProvider });
       
-      shortTTLCache.set(tenantId, flagKey, true);
-      expect(shortTTLCache.get(tenantId, flagKey)).toBe(true);
+      mockTimeProvider.setTime(1000);
+      ttlCache.set(tenantId, flagKey, true);
+      expect(ttlCache.get(tenantId, flagKey)).toBe(true);
       
-      // Wait for TTL to expire
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      expect(shortTTLCache.get(tenantId, flagKey)).toBeUndefined();
+      // Advance time beyond TTL
+      mockTimeProvider.setTime(1000 + 51); // TTL + 1ms
+      expect(ttlCache.get(tenantId, flagKey)).toBeUndefined();
     });
 
-    it('should not expire entries before TTL', async () => {
-      const longTTLCache = new FeatureFlagCache({ ttl: 200 }); // 200ms TTL
+    it('should not expire entries before TTL', () => {
+      const mockTimeProvider = new MockTimeProvider();
+      const ttlCache = new FeatureFlagCache({ ttl: 200, timeProvider: mockTimeProvider });
       
-      longTTLCache.set(tenantId, flagKey, true);
-      expect(longTTLCache.get(tenantId, flagKey)).toBe(true);
+      mockTimeProvider.setTime(1000);
+      ttlCache.set(tenantId, flagKey, true);
+      expect(ttlCache.get(tenantId, flagKey)).toBe(true);
       
-      // Wait for half TTL
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      expect(longTTLCache.get(tenantId, flagKey)).toBe(true);
+      // Advance time within TTL
+      mockTimeProvider.setTime(1000 + 100); // Half TTL
+      expect(ttlCache.get(tenantId, flagKey)).toBe(true);
     });
 
     it('should handle different TTL values', () => {
-      const shortTTLCache = new FeatureFlagCache({ ttl: 10 });
-      const longTTLCache = new FeatureFlagCache({ ttl: 1000 });
+      const mockTimeProvider1 = new MockTimeProvider();
+      const mockTimeProvider2 = new MockTimeProvider();
+      const shortTTLCache = new FeatureFlagCache({ ttl: 10, timeProvider: mockTimeProvider1 });
+      const longTTLCache = new FeatureFlagCache({ ttl: 1000, timeProvider: mockTimeProvider2 });
 
+      mockTimeProvider1.setTime(1000);
+      mockTimeProvider2.setTime(1000);
+      
       shortTTLCache.set(tenantId, flagKey, true);
       longTTLCache.set(tenantId, flagKey, false);
 
@@ -218,16 +225,18 @@ describe('FeatureFlagCache', () => {
   });
 
   describe('memory management', () => {
-    it('should clean up expired entries automatically', async () => {
+    it('should clean up expired entries automatically', () => {
       const tenantId = 'tenant-123';
       const flagKey = FEATURE_FLAGS.BILLING_V2;
-      const managedCache = new FeatureFlagCache({ ttl: 50 }); // 50ms TTL
+      const mockTimeProvider = new MockTimeProvider();
+      const managedCache = new FeatureFlagCache({ ttl: 50, timeProvider: mockTimeProvider });
       
+      mockTimeProvider.setTime(1000);
       managedCache.set(tenantId, flagKey, true);
       expect(managedCache.size()).toBe(1);
       
-      // Wait for expiration
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Advance time beyond TTL
+      mockTimeProvider.setTime(1000 + 51);
       
       // Access the cache to trigger cleanup
       managedCache.get(tenantId, flagKey);
@@ -261,10 +270,12 @@ describe('FeatureFlagCache', () => {
     });
 
     it('should handle zero TTL', () => {
-      const zeroTTLCache = new FeatureFlagCache({ ttl: 0 });
+      const mockTimeProvider = new MockTimeProvider();
+      const zeroTTLCache = new FeatureFlagCache({ ttl: 0, timeProvider: mockTimeProvider });
       const tenantId = 'tenant-123';
       const flagKey = FEATURE_FLAGS.BILLING_V2;
       
+      mockTimeProvider.setTime(1000);
       zeroTTLCache.set(tenantId, flagKey, true);
       // With 0 TTL, entry should not be stored
       expect(zeroTTLCache.get(tenantId, flagKey)).toBeUndefined();
@@ -272,10 +283,12 @@ describe('FeatureFlagCache', () => {
     });
 
     it('should handle negative TTL', () => {
-      const negativeTTLCache = new FeatureFlagCache({ ttl: -1 });
+      const mockTimeProvider = new MockTimeProvider();
+      const negativeTTLCache = new FeatureFlagCache({ ttl: -1, timeProvider: mockTimeProvider });
       const tenantId = 'tenant-123';
       const flagKey = FEATURE_FLAGS.BILLING_V2;
       
+      mockTimeProvider.setTime(1000);
       negativeTTLCache.set(tenantId, flagKey, true);
       // With negative TTL, entry should not be stored
       expect(negativeTTLCache.get(tenantId, flagKey)).toBeUndefined();

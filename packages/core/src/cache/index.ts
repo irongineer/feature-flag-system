@@ -4,9 +4,25 @@ export interface TimeProvider {
   now(): number;
 }
 
-class RealTimeProvider implements TimeProvider {
+export class RealTimeProvider implements TimeProvider {
   now(): number {
     return Date.now();
+  }
+}
+
+export class MockTimeProvider implements TimeProvider {
+  private currentTime = 0;
+
+  now(): number {
+    return this.currentTime;
+  }
+
+  setTime(time: number): void {
+    this.currentTime = time;
+  }
+
+  advanceTime(milliseconds: number): void {
+    this.currentTime += milliseconds;
   }
 }
 
