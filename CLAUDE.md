@@ -386,7 +386,7 @@ npx feature-flag kill-switch --activate --reason "Critical bug found"
    - Definition of Done の設定
    - 見積もり（ストーリーポイント）
 
-### 💻 フェーズ 3: 開発（t-wada として）
+### 💻 フェーズ 3: 開発（Expert Review Process）
 
 7. **開発環境構築**
 
@@ -407,10 +407,11 @@ npx feature-flag kill-switch --activate --reason "Critical bug found"
    - E2E テスト
    - パフォーマンステスト
 
-10. **コードレビュー**（t-wada レビュー）
-    - PR 作成とレビュー
+10. **コードレビュー**（Expert Review by Eric Evans, Martin Fowler, 和田卓人）
+    - PR 作成とレビュー（2名以上のApprove必須）
     - 設計レビュー
     - セキュリティレビュー
+    - Definition of Done達成確認
 
 ### 🧪 フェーズ 4: 品質保証
 
@@ -506,6 +507,242 @@ npx feature-flag kill-switch --activate --reason "Critical bug found"
 - 段階的ロールアウト
 - モニタリング強化
 - 運用引き継ぎ
+
+## 📋 開発プロセス詳細
+
+### 🎯 INVEST原則によるタスク分割
+
+すべてのユーザーストーリーとタスクは以下のINVEST原則に従って分割する：
+
+#### **I - Independent（独立性）**
+- 他のストーリー/タスクに依存しない
+- 単独でテスト・デプロイ可能
+- 並行開発可能な設計
+
+#### **N - Negotiable（交渉可能）**
+- 実装方法は柔軟に調整可能
+- 要件の詳細化は実装時に決定
+- ステークホルダーとの対話重視
+
+#### **V - Valuable（価値提供）**
+- ユーザーまたはシステムに明確な価値
+- ビジネス価値または技術的価値の明確化
+- ROI（投資対効果）の説明可能
+
+#### **E - Estimable（見積もり可能）**
+- 適切なサイズでの分割（1-13 Story Points）
+- 技術的複雑性の理解
+- 実装工数の予測可能
+
+#### **S - Small（小さい）**
+- 1スプリント（1-2週間）で完了可能
+- PRサイズ200行以下（理想）
+- レビュー可能な適切なサイズ
+
+#### **T - Testable（テスト可能）**
+- 明確な受入条件定義
+- 自動テスト実装可能
+- Definition of Done達成可能
+
+### 🔄 GitHubフロー戦略
+
+#### ブランチ戦略
+```
+main (保護ブランチ)
+├── feature/18-enhance-development-process  # Issue #18対応
+├── feature/19-implement-web-ui           # Issue #19対応
+└── hotfix/20-critical-security-fix       # 緊急修正
+```
+
+#### ブランチ命名規則
+- **Feature**: `feature/{issue-number}-{brief-description}`
+- **Hotfix**: `hotfix/{issue-number}-{brief-description}`
+- **Release**: `release/v{version}`
+
+#### プロテクションルール
+- main ブランチへの直接pushは禁止
+- PR必須（2名以上のApprove）
+- CI/CD全チェック通過必須
+- DoD達成確認必須
+
+### 📝 Conventional Commits
+
+#### コミットメッセージフォーマット
+```
+<type>[optional scope]: <description> (#<issue-number>)
+
+[optional body]
+
+[optional footer(s)]
+```
+
+#### Type一覧
+- **feat**: 新機能追加
+- **fix**: バグ修正
+- **docs**: ドキュメント更新
+- **style**: コードスタイル変更（機能に影響なし）
+- **refactor**: リファクタリング
+- **test**: テスト追加・修正
+- **chore**: その他の変更（ビルド、ツール等）
+
+#### コミット例
+```bash
+# 機能追加
+feat(evaluator): add percentage-based rollout support (#19)
+
+# バグ修正  
+fix(cache): resolve TTL memory leak issue (#14)
+
+# ドキュメント更新
+docs(readme): update installation instructions (#25)
+
+# テスト追加
+test(api): add integration tests for flag management (#22)
+```
+
+#### Issue-Commit紐づけ
+- コミットメッセージに必ずIssue番号を記載: `(#issue-number)`
+- PRタイトルにもIssue番号を含める: `feat: Web管理画面実装 (#19)`
+- GitHub自動リンク機能でトレーサビリティ確保
+
+### 👥 Expert Review Process
+
+#### レビュアー構成
+- **Eric Evans**: ドメイン駆動設計（DDD）観点
+- **Martin Fowler**: アーキテクチャ・リファクタリング観点  
+- **和田卓人**: テスト駆動開発（TDD）・品質観点
+
+#### レビュー基準
+##### 設計レビュー（Eric Evans）
+- [ ] ドメインモデルの適切性
+- [ ] 境界コンテキストの明確性
+- [ ] ユビキタス言語の一貫性
+- [ ] ドメインロジックの純粋性
+- [ ] **可読性**: ドメイン概念の理解しやすさ
+- [ ] **変更容易性**: ドメイン変更への対応容易性
+
+##### アーキテクチャレビュー（Martin Fowler）
+- [ ] レイヤードアーキテクチャ準拠
+- [ ] 責務分離の適切性
+- [ ] 拡張性・保守性の考慮
+- [ ] パフォーマンス影響評価
+- [ ] **可読性**: アーキテクチャ意図の明確性
+- [ ] **変更容易性**: 機能追加・修正の容易性
+
+##### 品質レビュー（和田卓人）
+- [ ] TDD実践状況
+- [ ] テストカバレッジ（90%以上）
+- [ ] テストの可読性・保守性
+- [ ] リファクタリング品質
+- [ ] **可読性**: コードの理解しやすさ・自己文書化
+- [ ] **変更容易性**: 安全なリファクタリング可能性
+
+#### レビュープロセス
+1. **PR作成**: 実装者がPR作成・レビュー依頼
+2. **自動チェック**: CI/CD実行・品質ゲート通過確認
+3. **Expert Review**: 3名のExpertによる並行レビュー
+4. **修正対応**: フィードバック対応・再レビュー
+5. **Approve**: 2名以上のApprove取得
+6. **DoD確認**: Definition of Done達成確認
+7. **マージ**: mainブランチへマージ・Issue自動クローズ
+
+### 🚀 PR作成・管理プロセス
+
+#### PR作成要件
+- [ ] **1 Issue = 1 PR原則**: 複数Issue混在禁止
+- [ ] **適切なサイズ**: コード変更200行以下（理想）
+- [ ] **完全な実装**: 半完成状態でのPR禁止
+- [ ] **テスト完備**: カバレッジ90%以上
+- [ ] **DoD達成**: 全DoD項目クリア
+
+#### PRテンプレート活用
+```markdown
+## 📋 Summary
+[PR概要]
+
+## 🎯 Issues  
+Closes #XX
+
+## 📝 主な変更内容
+[実装内容詳細]
+
+## ✅ DoD確認
+- [ ] 機能実装完了
+- [ ] テスト実装（カバレッジ90%以上）
+- [ ] ドキュメント更新
+- [ ] TypeScript型安全性100%
+- [ ] CI/CD全チェック通過
+
+## 🔍 レビューポイント
+[レビュー観点]
+```
+
+#### マージ条件
+1. **2名以上Expert Approve**: Eric Evans, Martin Fowler, 和田卓人のうち2名以上
+2. **CI/CD全通過**: テスト・品質・セキュリティチェック
+3. **DoD達成**: 全Definition of Done項目クリア
+4. **コンフリクト解決**: 最新mainとのマージ準備完了
+
+### 📊 品質メトリクス監視
+
+#### 必須メトリクス
+| メトリクス | 基準値 | 自動化 |
+|-----------|-------|--------|
+| テストカバレッジ | 90%以上 | ✅ Vitest |
+| TypeScript型安全性 | 100% | ✅ tsc --noEmit |
+| ESLint違反 | 0件 | ✅ ESLint CI |
+| セキュリティ脆弱性 | 0件（High/Critical） | ✅ CodeQL |
+| PRサイズ | 200行以下（理想） | 🔍 Manual |
+
+#### プロセスメトリクス
+- レビュー完了時間: 2営業日以内
+- PR修正サイクル: 平均3回以内  
+- Issue-PR-Merge完了時間: 1週間以内
+- Expert Approve取得率: 100%
+
+### 🔧 開発ツール統合
+
+#### 必須ツール設定
+- **Husky**: pre-commit hooks（lint, test）
+- **lint-staged**: 差分ファイルのみlint実行
+- **Prettier**: 自動コードフォーマット
+- **ESLint**: コード品質チェック
+- **Vitest**: 高速テスト実行
+
+#### IDE設定推奨
+- **VSCode Extensions**: ESLint, Prettier, GitLens
+- **TypeScript Strict Mode**: 最大限の型安全性
+- **Auto Save**: ファイル保存時自動lint実行
+
+### 🚨 禁止事項・回避ルール
+
+#### 絶対禁止
+- [ ] **マルチIssue PR**: 複数Issueを1PRで処理
+- [ ] **巨大PR**: 500行超（例外時は事前Expert相談）
+- [ ] **レビュー省略**: 緊急時でもExpert Review必須
+- [ ] **DoD妥協**: いかなる理由でもDoD未達成マージ禁止
+- [ ] **型安全性妥協**: `any`使用禁止（`unknown`推奨）
+
+#### エスケープハッチ
+緊急時（Production Down等）のみ以下手順で例外対応可能：
+1. **緊急Issue作成**: 影響・対処法明記
+2. **Hotfixブランチ**: `hotfix/{issue-number}`で作成
+3. **最小修正**: 問題解決に必要最小限の変更
+4. **Expert緊急レビュー**: 24時間以内のレビュー
+5. **事後対応**: 根本対策のIssue・PR作成
+
+### 📚 参考資料・ガイドライン
+
+#### 外部参考資料
+- [Conventional Commits](https://www.conventionalcommits.org/)
+- [INVEST Principles](https://en.wikipedia.org/wiki/INVEST_(mnemonic))
+- [GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow)
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+
+#### プロジェクト内資料
+- [Definition of Done](docs/development/definition-of-done.md)
+- [Technical Debt Log](docs/architecture/technical-debt-log.md)
+- [ADR Documentation](docs/architecture/design-decisions.md)
 
 ## 質問・相談先
 
