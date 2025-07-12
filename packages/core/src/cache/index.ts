@@ -1,12 +1,24 @@
 import { CacheEntry, FeatureFlagKey } from '../models';
 
+export interface TimeProvider {
+  now(): number;
+}
+
+class RealTimeProvider implements TimeProvider {
+  now(): number {
+    return Date.now();
+  }
+}
+
 export class FeatureFlagCache {
   private cache: Map<string, CacheEntry>;
   private defaultTtl: number;
+  private timeProvider: TimeProvider;
 
-  constructor(options: { ttl?: number } = {}) {
+  constructor(options: { ttl?: number; timeProvider?: TimeProvider } = {}) {
     this.cache = new Map();
-    this.defaultTtl = options.ttl || 300; // 5分
+    this.defaultTtl = options.ttl || 300000; // 5分 (300秒 * 1000ms)
+    this.timeProvider = options.timeProvider || new RealTimeProvider();
   }
 
   get(tenantId: string, flagKey: FeatureFlagKey): boolean | undefined {
@@ -18,7 +30,7 @@ export class FeatureFlagCache {
     }
     
     // TTL チェック
-    if (Date.now() > entry.timestamp + entry.ttl * 1000) {
+    if (this.timeProvider.now() > entry.timestamp + entry.ttl) {
       this.cache.delete(key);
       return undefined;
     }
@@ -37,7 +49,7 @@ export class FeatureFlagCache {
     
     const entry: CacheEntry = {
       value,
-      timestamp: Date.now(),
+      timestamp: this.timeProvider.now(),
       ttl: effectiveTtl,
     };
     
@@ -56,7 +68,7 @@ export class FeatureFlagCache {
   isExpired(): boolean {
     // 簡易実装: 最初のエントリが期限切れかチェック
     for (const [, entry] of this.cache) {
-      return Date.now() > entry.timestamp + entry.ttl * 1000;
+      return this.timeProvider.now() > entry.timestamp + entry.ttl;
     }
     return false;
   }
@@ -73,9 +85,9 @@ export class FeatureFlagCache {
   }
 
   private cleanup(): void {
-    const now = Date.now();
+    const now = this.timeProvider.now();
     for (const [key, entry] of this.cache.entries()) {
-      if (now > entry.timestamp + entry.ttl * 1000) {
+      if (now > entry.timestamp + entry.ttl) {
         this.cache.delete(key);
       }
     }
