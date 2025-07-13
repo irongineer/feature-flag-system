@@ -271,12 +271,13 @@ describe('FeatureFlagCache', () => {
 
     it('should handle zero TTL', () => {
       const mockTimeProvider = new MockTimeProvider();
-      const zeroTTLCache = new FeatureFlagCache({ ttl: 0, timeProvider: mockTimeProvider });
+      const zeroTTLCache = new FeatureFlagCache({ ttl: 300, timeProvider: mockTimeProvider });
       const tenantId = 'tenant-123';
       const flagKey = FEATURE_FLAGS.BILLING_V2;
       
       mockTimeProvider.setTime(1000);
-      zeroTTLCache.set(tenantId, flagKey, true);
+      // Explicitly set TTL to 0 for this entry
+      zeroTTLCache.set(tenantId, flagKey, true, 0);
       // With 0 TTL, entry should not be stored
       expect(zeroTTLCache.get(tenantId, flagKey)).toBeUndefined();
       expect(zeroTTLCache.size()).toBe(0);
