@@ -1,5 +1,5 @@
 import AWS from 'aws-sdk';
-import { DynamoDbClient } from '@feature-flag/core';
+import { DynamoDbClient, FeatureFlagKey } from '@feature-flag/core';
 import { getConfig } from './config';
 
 export class ApiClient {
@@ -23,7 +23,7 @@ export class ApiClient {
     return this.dynamoClient.listFlags();
   }
 
-  async updateFlag(flagKey: string, updates: any) {
+  async updateFlag(flagKey: FeatureFlagKey, updates: any) {
     return this.dynamoClient.updateFlag(flagKey, updates);
   }
 
@@ -31,19 +31,19 @@ export class ApiClient {
     return this.dynamoClient.listTenantOverrides(tenantId);
   }
 
-  async setTenantOverride(tenantId: string, flagKey: string, enabled: boolean, updatedBy: string) {
+  async setTenantOverride(tenantId: string, flagKey: FeatureFlagKey, enabled: boolean, updatedBy: string) {
     return this.dynamoClient.setTenantOverride(tenantId, flagKey, enabled, updatedBy);
   }
 
-  async activateKillSwitch(flagKey: string | null, reason: string, activatedBy: string) {
+  async activateKillSwitch(flagKey: FeatureFlagKey | null, reason: string, activatedBy: string) {
     return this.dynamoClient.setKillSwitch(flagKey, true, reason, activatedBy);
   }
 
-  async deactivateKillSwitch(flagKey: string | null, deactivatedBy: string) {
+  async deactivateKillSwitch(flagKey: FeatureFlagKey | null, deactivatedBy: string) {
     return this.dynamoClient.setKillSwitch(flagKey, false, `Deactivated by ${deactivatedBy}`, deactivatedBy);
   }
 
-  async evaluateFlag(tenantId: string, flagKey: string, userId?: string, environment?: string) {
+  async evaluateFlag(tenantId: string, flagKey: FeatureFlagKey, userId?: string, environment?: string) {
     // 実際のAPI呼び出しの代わりにDynamoClientを直接使用
     const flag = await this.dynamoClient.getFlag(flagKey);
     const tenantOverride = await this.dynamoClient.getTenantOverride(tenantId, flagKey);
