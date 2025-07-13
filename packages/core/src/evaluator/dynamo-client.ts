@@ -212,17 +212,18 @@ export class DynamoDbClient {
   // フラグ一覧を取得
   async listFlags(): Promise<FeatureFlagsTable[]> {
     try {
-      const result = await this.dynamoDb.send(new QueryCommand({
+      // TODO: Issue #29でQuery最適化予定。現在はScanで動作確保
+      const result = await this.dynamoDb.send(new ScanCommand({
         TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
         ExpressionAttributeValues: {
           ':pk': 'FLAG#',
-          ':sk': 'FLAG#',
+          ':sk': 'METADATA',
         },
         ProjectionExpression: 'PK, SK, flagKey, description, defaultEnabled, owner, createdAt, expiresAt',
       }));
 
-      return result.Items as FeatureFlagsTable[];
+      return result.Items as FeatureFlagsTable[] || [];
     } catch (error) {
       console.error('Error listing flags:', error);
       throw error;
