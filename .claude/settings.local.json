@@ -20,7 +20,8 @@
       "Bash(gh pr list:*)",
       "Bash(npx vitest run:*)",
       "Bash(git pull:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(git stash pop:*)"
     ],
     "deny": []
   }
