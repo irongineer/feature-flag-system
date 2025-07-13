@@ -18,7 +18,8 @@
     "test:sdk:coverage": "cd packages/sdk && npm run test -- --coverage",
     "test:api:coverage": "cd packages/api && npm run test -- --coverage",
     "test:cli:coverage": "cd packages/cli && npm run test -- --coverage",
-    "test:integration": "jest --config jest.integration.config.js",
+    "test:integration": "cd tests/integration && npx vitest run",
+    "test:integration:watch": "cd tests/integration && npx vitest",
     "test:smoke": "echo 'Smoke tests not implemented yet'",
     "test:benchmark": "echo 'Benchmark tests not implemented yet'",
     "test:smoke:production": "echo 'Production smoke tests not implemented yet'",
@@ -28,6 +29,8 @@
     "format:check": "prettier --check packages/*/src/**/*.ts",
     "type-check": "npm run build",
     "setup:local": "node scripts/setup-local.js",
+    "local:start": "scripts/start-local-aws.sh",
+    "local:stop": "scripts/stop-local-aws.sh",
     "setup:test-db": "echo 'Test DB setup not implemented yet'",
     "deploy:dev": "cd infrastructure && npm run deploy:dev",
     "deploy:prod": "cd infrastructure && npm run deploy:prod",
@@ -59,7 +62,9 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "aws-sdk": "^2.1500.0"
+    "aws-sdk": "^2.1500.0",
+    "@aws-sdk/client-dynamodb": "^3.451.0",
+    "@aws-sdk/lib-dynamodb": "^3.451.0"
   },
   "workspaces": [
     "packages/*"

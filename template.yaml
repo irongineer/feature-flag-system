@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: フィーチャーフラグシステム - ローカル統合テスト用SAM設定
+
+# グローバルパラメータ
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs22.x
+    MemorySize: 256
+    Environment:
+      Variables:
+        NODE_ENV: local
+        DYNAMODB_ENDPOINT: http://localhost:8000
+        FEATURE_FLAGS_TABLE: !Ref FeatureFlagsTable
+        TENANT_OVERRIDES_TABLE: !Ref TenantOverridesTable
+        EMERGENCY_CONTROL_TABLE: !Ref EmergencyControlTable
+
+# リソース定義
+Resources:
+  # DynamoDB テーブル: FeatureFlags
+  FeatureFlagsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: FeatureFlags
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: flagKey
+          AttributeType: S
+        - AttributeName: expiresAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: flagKey
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ExpiresAtIndex
+          KeySchema:
+            - AttributeName: expiresAt
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Purpose
+          Value: FeatureFlagSystem
+        - Key: Environment
+          Value: Local
+
+  # DynamoDB テーブル: TenantOverrides
+  TenantOverridesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TenantOverrides
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: tenantId
+          AttributeType: S
+        - AttributeName: flagKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: tenantId
+          KeyType: HASH
+        - AttributeName: flagKey
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: FlagKeyIndex
+          KeySchema:
+            - AttributeName: flagKey
+              KeyType: HASH
+            - AttributeName: tenantId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Purpose
+          Value: FeatureFlagSystem
+        - Key: Environment
+          Value: Local
+
+  # DynamoDB テーブル: EmergencyControl
+  EmergencyControlTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: EmergencyControl
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: controlType
+          AttributeType: S
+        - AttributeName: flagKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: controlType
+          KeyType: HASH
+        - AttributeName: flagKey
+          KeyType: RANGE
+      Tags:
+        - Key: Purpose
+          Value: FeatureFlagSystem
+        - Key: Environment
+          Value: Local
+
+  # Lambda関数: フラグ評価API
+  EvaluateFlagFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: feature-flag-evaluate
+      CodeUri: packages/core/dist/
+      Handler: index.evaluateHandler
+      Events:
+        EvaluateFlag:
+          Type: Api
+          Properties:
+            Path: /evaluate/{tenantId}/{flagKey}
+            Method: GET
+            RestApiId: !Ref FeatureFlagApi
+      Environment:
+        Variables:
+          FEATURE_FLAGS_TABLE: !Ref FeatureFlagsTable
+          TENANT_OVERRIDES_TABLE: !Ref TenantOverridesTable
+          EMERGENCY_CONTROL_TABLE: !Ref EmergencyControlTable
+
+  # Lambda関数: フラグ管理API
+  ManageFlagFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: feature-flag-manage
+      CodeUri: packages/core/dist/
+      Handler: index.manageHandler
+      Events:
+        CreateFlag:
+          Type: Api
+          Properties:
+            Path: /flags
+            Method: POST
+            RestApiId: !Ref FeatureFlagApi
+        UpdateFlag:
+          Type: Api
+          Properties:
+            Path: /flags/{flagKey}
+            Method: PUT
+            RestApiId: !Ref FeatureFlagApi
+        GetFlag:
+          Type: Api
+          Properties:
+            Path: /flags/{flagKey}
+            Method: GET
+            RestApiId: !Ref FeatureFlagApi
+
+  # API Gateway
+  FeatureFlagApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: feature-flag-api-local
+      StageName: local
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+# 出力定義
+Outputs:
+  FeatureFlagApi:
+    Description: "API Gateway endpoint URL for Feature Flag API"
+    Value: !Sub "https://${FeatureFlagApi}.execute-api.${AWS::Region}.amazonaws.com/local/"
+    Export:
+      Name: FeatureFlagApiUrl
+  
+  FeatureFlagsTableName:
+    Description: "DynamoDB Table Name for Feature Flags"
+    Value: !Ref FeatureFlagsTable
+    Export:
+      Name: FeatureFlagsTableName
+  
+  TenantOverridesTableName:
+    Description: "DynamoDB Table Name for Tenant Overrides"
+    Value: !Ref TenantOverridesTable
+    Export:
+      Name: TenantOverridesTableName
+
+  EmergencyControlTableName:
+    Description: "DynamoDB Table Name for Emergency Control"
+    Value: !Ref EmergencyControlTable
+    Export:
+      Name: EmergencyControlTableName
