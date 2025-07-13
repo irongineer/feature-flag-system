@@ -21,7 +21,8 @@
       "Bash(npx vitest run:*)",
       "Bash(git pull:*)",
       "Bash(mkdir:*)",
-      "Bash(git stash pop:*)"
+      "Bash(git stash pop:*)",
+      "Bash(git stash show:*)"
     ],
     "deny": []
   }

@@ -11,6 +11,7 @@
 - **コードフォーマット**: Prettier
 - **Git Hooks**: Husky + lint-staged
 - **ユニットテスト**: Vitest
+- **ローカル統合テスト**: AWS SAM Local + DynamoDB Local
 - **E2E テスト**: PlayWright + CodeceptJS
 - **実行環境**: AWS Lambda + API Gateway
 - **データストア**: Amazon DynamoDB
