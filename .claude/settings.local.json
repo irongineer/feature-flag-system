@@ -10,7 +10,17 @@
       "Bash(gh auth:*)",
       "Bash(gh issue create:*)",
       "Bash(gh issue:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm test:*)",
+      "Bash(node:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(gh pr list:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(git pull:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }
