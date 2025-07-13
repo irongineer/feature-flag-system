@@ -1,4 +1,13 @@
-import * as AWS from 'aws-sdk';
+import { DynamoDBClient, DynamoDBClientConfig } from '@aws-sdk/client-dynamodb';
+import { 
+  DynamoDBDocumentClient, 
+  GetCommand, 
+  PutCommand, 
+  UpdateCommand, 
+  QueryCommand, 
+  BatchGetCommand, 
+  ScanCommand 
+} from '@aws-sdk/lib-dynamodb';
 import { 
   FeatureFlagKey, 
   FeatureFlagsTable, 
@@ -13,11 +22,11 @@ export interface DynamoDbClientConfig {
 }
 
 export class DynamoDbClient {
-  private dynamoDb: AWS.DynamoDB.DocumentClient;
+  private dynamoDb: DynamoDBDocumentClient;
   private tableName: string;
 
   constructor(config: DynamoDbClientConfig) {
-    const dynamoConfig: AWS.DynamoDB.ClientConfiguration = {
+    const dynamoConfig: DynamoDBClientConfig = {
       region: config.region || process.env.AWS_REGION || 'ap-northeast-1',
     };
 
@@ -26,20 +35,21 @@ export class DynamoDbClient {
       dynamoConfig.endpoint = config.endpoint;
     }
 
-    this.dynamoDb = new AWS.DynamoDB.DocumentClient(dynamoConfig);
+    const client = new DynamoDBClient(dynamoConfig);
+    this.dynamoDb = DynamoDBDocumentClient.from(client);
     this.tableName = config.tableName;
   }
 
   // フラグのデフォルト値を取得
   async getFlag(flagKey: FeatureFlagKey): Promise<FeatureFlagsTable | null> {
     try {
-      const result = await this.dynamoDb.get({
+      const result = await this.dynamoDb.send(new GetCommand({
         TableName: this.tableName,
         Key: {
           PK: `FLAG#${flagKey}`,
           SK: 'METADATA',
         },
-      }).promise();
+      }));
 
       return result.Item as FeatureFlagsTable || null;
     } catch (error) {
@@ -51,13 +61,13 @@ export class DynamoDbClient {
   // テナント別オーバーライドを取得
   async getTenantOverride(tenantId: string, flagKey: FeatureFlagKey): Promise<TenantOverridesTable | null> {
     try {
-      const result = await this.dynamoDb.get({
+      const result = await this.dynamoDb.send(new GetCommand({
         TableName: this.tableName,
         Key: {
           PK: `TENANT#${tenantId}`,
           SK: `FLAG#${flagKey}`,
         },
-      }).promise();
+      }));
 
       return result.Item as TenantOverridesTable || null;
     } catch (error) {
@@ -70,13 +80,13 @@ export class DynamoDbClient {
   async getKillSwitch(flagKey?: FeatureFlagKey): Promise<EmergencyControlTable | null> {
     try {
       const sk = flagKey ? `FLAG#${flagKey}` : 'GLOBAL';
-      const result = await this.dynamoDb.get({
+      const result = await this.dynamoDb.send(new GetCommand({
         TableName: this.tableName,
         Key: {
           PK: 'EMERGENCY',
           SK: sk,
         },
-      }).promise();
+      }));
 
       return result.Item as EmergencyControlTable || null;
     } catch (error) {
@@ -100,11 +110,11 @@ export class DynamoDbClient {
         item.GSI1SK = flag.expiresAt;
       }
 
-      await this.dynamoDb.put({
+      await this.dynamoDb.send(new PutCommand({
         TableName: this.tableName,
         Item: item,
         ConditionExpression: 'attribute_not_exists(PK)', // 重複防止
-      }).promise();
+      }));
     } catch (error) {
       console.error('Error creating flag:', error);
       throw error;
@@ -126,7 +136,7 @@ export class DynamoDbClient {
         }
       });
 
-      await this.dynamoDb.update({
+      await this.dynamoDb.send(new UpdateCommand({
         TableName: this.tableName,
         Key: {
           PK: `FLAG#${flagKey}`,
@@ -136,7 +146,7 @@ export class DynamoDbClient {
         ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues,
         ConditionExpression: 'attribute_exists(PK)', // 存在確認
-      }).promise();
+      }));
     } catch (error) {
       console.error('Error updating flag:', error);
       throw error;
@@ -161,10 +171,10 @@ export class DynamoDbClient {
         GSI1SK: `TENANT#${tenantId}`,
       };
 
-      await this.dynamoDb.put({
+      await this.dynamoDb.send(new PutCommand({
         TableName: this.tableName,
         Item: item,
-      }).promise();
+      }));
     } catch (error) {
       console.error('Error setting tenant override:', error);
       throw error;
@@ -189,10 +199,10 @@ export class DynamoDbClient {
         activatedBy,
       };
 
-      await this.dynamoDb.put({
+      await this.dynamoDb.send(new PutCommand({
         TableName: this.tableName,
         Item: item,
-      }).promise();
+      }));
     } catch (error) {
       console.error('Error setting kill switch:', error);
       throw error;
@@ -202,7 +212,7 @@ export class DynamoDbClient {
   // フラグ一覧を取得
   async listFlags(): Promise<FeatureFlagsTable[]> {
     try {
-      const result = await this.dynamoDb.query({
+      const result = await this.dynamoDb.send(new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
         ExpressionAttributeValues: {
@@ -210,7 +220,7 @@ export class DynamoDbClient {
           ':sk': 'FLAG#',
         },
         ProjectionExpression: 'PK, SK, flagKey, description, defaultEnabled, owner, createdAt, expiresAt',
-      }).promise();
+      }));
 
       return result.Items as FeatureFlagsTable[];
     } catch (error) {
@@ -222,14 +232,14 @@ export class DynamoDbClient {
   // テナント別オーバーライド一覧を取得
   async listTenantOverrides(tenantId: string): Promise<TenantOverridesTable[]> {
     try {
-      const result = await this.dynamoDb.query({
+      const result = await this.dynamoDb.send(new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
         ExpressionAttributeValues: {
           ':pk': `TENANT#${tenantId}`,
           ':sk': 'FLAG#',
         },
-      }).promise();
+      }));
 
       return result.Items as TenantOverridesTable[];
     } catch (error) {
@@ -246,13 +256,13 @@ export class DynamoDbClient {
         SK: 'METADATA',
       }));
 
-      const result = await this.dynamoDb.batchGet({
+      const result = await this.dynamoDb.send(new BatchGetCommand({
         RequestItems: {
           [this.tableName]: {
             Keys: requestItems,
           },
         },
-      }).promise();
+      }));
 
       return result.Responses?.[this.tableName] as FeatureFlagsTable[] || [];
     } catch (error) {
@@ -265,10 +275,10 @@ export class DynamoDbClient {
   async healthCheck(): Promise<boolean> {
     try {
       // DocumentClientではdescribeTableが使えないので、代わりにscanを使用
-      await this.dynamoDb.scan({
+      await this.dynamoDb.send(new ScanCommand({
         TableName: this.tableName,
         Limit: 1,
-      }).promise();
+      }));
       return true;
     } catch (error) {
       console.error('DynamoDB health check failed:', error);
