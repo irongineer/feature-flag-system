@@ -41,7 +41,7 @@ export class DynamoDbClient {
   }
 
   // フラグのデフォルト値を取得
-  async getFlag(flagKey: FeatureFlagKey): Promise<FeatureFlagsTable | null> {
+  async getFlag(flagKey: string): Promise<FeatureFlagsTable | null> {
     try {
       const result = await this.dynamoDb.send(new GetCommand({
         TableName: this.tableName,
@@ -59,7 +59,7 @@ export class DynamoDbClient {
   }
 
   // テナント別オーバーライドを取得
-  async getTenantOverride(tenantId: string, flagKey: FeatureFlagKey): Promise<TenantOverridesTable | null> {
+  async getTenantOverride(tenantId: string, flagKey: string): Promise<TenantOverridesTable | null> {
     try {
       const result = await this.dynamoDb.send(new GetCommand({
         TableName: this.tableName,
@@ -77,7 +77,7 @@ export class DynamoDbClient {
   }
 
   // Kill-Switchの状態を取得
-  async getKillSwitch(flagKey?: FeatureFlagKey): Promise<EmergencyControlTable | null> {
+  async getKillSwitch(flagKey?: string): Promise<EmergencyControlTable | null> {
     try {
       const sk = flagKey ? `FLAG#${flagKey}` : 'GLOBAL';
       const result = await this.dynamoDb.send(new GetCommand({
@@ -122,7 +122,7 @@ export class DynamoDbClient {
   }
 
   // フラグを更新
-  async updateFlag(flagKey: FeatureFlagKey, updates: Partial<FeatureFlagsTable>): Promise<void> {
+  async updateFlag(flagKey: string, updates: Partial<FeatureFlagsTable>): Promise<void> {
     try {
       const updateExpression: string[] = [];
       const expressionAttributeNames: { [key: string]: string } = {};
@@ -156,7 +156,7 @@ export class DynamoDbClient {
   // テナント別オーバーライドを設定
   async setTenantOverride(
     tenantId: string, 
-    flagKey: FeatureFlagKey, 
+    flagKey: string, 
     enabled: boolean, 
     updatedBy: string
   ): Promise<void> {
@@ -183,7 +183,7 @@ export class DynamoDbClient {
 
   // Kill-Switchを設定
   async setKillSwitch(
-    flagKey: FeatureFlagKey | null, 
+    flagKey: string | null, 
     enabled: boolean, 
     reason: string, 
     activatedBy: string
@@ -250,7 +250,7 @@ export class DynamoDbClient {
   }
 
   // バッチ操作用のヘルパー
-  async batchGetFlags(flagKeys: FeatureFlagKey[]): Promise<FeatureFlagsTable[]> {
+  async batchGetFlags(flagKeys: string[]): Promise<FeatureFlagsTable[]> {
     try {
       const requestItems = flagKeys.map(flagKey => ({
         PK: `FLAG#${flagKey}`,

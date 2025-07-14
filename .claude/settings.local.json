@@ -21,7 +21,11 @@
       "Bash(npx vitest run:*)",
       "Bash(git pull:*)",
       "Bash(mkdir:*)",
-      "Bash(git stash pop:*)"
+      "Bash(git stash pop:*)",
+      "Bash(git stash show:*)",
+      "Bash(scripts/start-local-aws.sh:*)",
+      "Bash(git rebase:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

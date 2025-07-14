@@ -1,0 +1,50 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - 8000:8000
+        options: --health-cmd="curl -f http://localhost:8000" --health-interval=30s --health-timeout=10s --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Wait for DynamoDB Local
+      run: |
+        for i in {1..30}; do
+          if curl -f http://localhost:8000; then
+            echo "DynamoDB Local is ready"
+            break
+          fi
+          echo "Waiting for DynamoDB Local..."
+          sleep 2
+        done
+
+    - name: Run integration tests
+      run: npm run test:integration
+      env:
+        AWS_ACCESS_KEY_ID: dummy
+        AWS_SECRET_ACCESS_KEY: dummy
+        AWS_DEFAULT_REGION: ap-northeast-1
+        NODE_ENV: test

@@ -1,0 +1,27 @@
+{
+  "name": "@feature-flag/audit-service",
+  "version": "1.0.0",
+  "description": "Audit logging service for feature flag changes",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "ts-node src/handlers/streams-processor.ts"
+  },
+  "dependencies": {
+    "@feature-flag/core": "file:../core",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "@aws-sdk/types": "^3.0.0",
+    "aws-lambda": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "vitest": "^2.0.0"
+  }
+}
