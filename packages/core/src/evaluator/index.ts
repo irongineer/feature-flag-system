@@ -16,53 +16,81 @@ export interface FeatureFlagEvaluatorOptions {
   useMock?: boolean;
 }
 
+// 統合テスト用の新しいインターフェース
+export interface FeatureFlagEvaluatorConfig {
+  cache?: FeatureFlagCache;
+  dynamoDbClient: DynamoDbClient;
+}
+
 export class FeatureFlagEvaluator {
   private cache: FeatureFlagCache;
   private dynamoDbClient: DynamoDbClient | MockDynamoDbClient;
 
-  constructor(options: FeatureFlagEvaluatorOptions = {}) {
-    this.cache = options.cache || new FeatureFlagCache();
+  // 既存コンストラクタ（単体テスト用）
+  constructor(options: FeatureFlagEvaluatorOptions);
+  // 新コンストラクタ（統合テスト用）
+  constructor(config: FeatureFlagEvaluatorConfig);
+  constructor(optionsOrConfig: FeatureFlagEvaluatorOptions | FeatureFlagEvaluatorConfig = {}) {
+    this.cache = optionsOrConfig.cache || new FeatureFlagCache();
     
-    if (options.dynamoDbClient) {
-      this.dynamoDbClient = options.dynamoDbClient;
-    } else if (options.dynamoConfig) {
-      this.dynamoDbClient = new DynamoDbClient(options.dynamoConfig);
-    } else {
-      // デフォルト: モック実装
-      this.dynamoDbClient = new MockDynamoDbClient();
+    // 新しい形式（FeatureFlagEvaluatorConfig）の場合
+    if ('dynamoDbClient' in optionsOrConfig && optionsOrConfig.dynamoDbClient) {
+      this.dynamoDbClient = optionsOrConfig.dynamoDbClient;
+    }
+    // 既存形式（FeatureFlagEvaluatorOptions）の場合  
+    else {
+      const options = optionsOrConfig as FeatureFlagEvaluatorOptions;
+      if (options.dynamoDbClient) {
+        this.dynamoDbClient = options.dynamoDbClient;
+      } else if (options.dynamoConfig) {
+        this.dynamoDbClient = new DynamoDbClient(options.dynamoConfig);
+      } else {
+        // デフォルト: モック実装
+        this.dynamoDbClient = new MockDynamoDbClient();
+      }
     }
   }
 
+  // 既存シグネチャ（単体テスト用）
+  async isEnabled(context: FeatureFlagContext, flagKey: FeatureFlagKey): Promise<boolean>;
+  // 新シグネチャ（統合テスト用）
+  async isEnabled(tenantId: string, flagKey: string): Promise<boolean>;
   async isEnabled(
-    context: FeatureFlagContext,
-    flagKey: FeatureFlagKey
+    contextOrTenantId: FeatureFlagContext | string,
+    flagKey: FeatureFlagKey | string
   ): Promise<boolean> {
     try {
+      // パラメータの正規化
+      const tenantId = typeof contextOrTenantId === 'string' 
+        ? contextOrTenantId 
+        : contextOrTenantId.tenantId;
+      const normalizedFlagKey = flagKey as FeatureFlagKey;
+
       // 1. Kill-Switch チェック
-      if (await this.checkKillSwitch(flagKey)) {
+      if (await this.checkKillSwitch(normalizedFlagKey)) {
         return false;
       }
 
       // 2. キャッシュチェック
-      const cached = this.cache.get(context.tenantId, flagKey);
+      const cached = this.cache.get(tenantId, normalizedFlagKey);
       if (cached !== undefined) {
         return cached;
       }
 
       // 3. テナント別オーバーライドチェック
-      const tenantOverride = await this.getTenantOverride(context.tenantId, flagKey);
+      const tenantOverride = await this.getTenantOverride(tenantId, normalizedFlagKey);
       if (tenantOverride !== undefined) {
-        this.cache.set(context.tenantId, flagKey, tenantOverride);
+        this.cache.set(tenantId, normalizedFlagKey, tenantOverride);
         return tenantOverride;
       }
 
       // 4. デフォルト値取得
-      const defaultValue = await this.getDefaultValue(flagKey);
-      this.cache.set(context.tenantId, flagKey, defaultValue);
+      const defaultValue = await this.getDefaultValue(normalizedFlagKey);
+      this.cache.set(tenantId, normalizedFlagKey, defaultValue);
       return defaultValue;
     } catch (error) {
       console.error('FeatureFlag evaluation failed:', error);
-      return this.getFallbackValue(flagKey);
+      return this.getFallbackValue(flagKey as FeatureFlagKey);
     }
   }
 
@@ -111,8 +139,8 @@ export class FeatureFlagEvaluator {
     return false;
   }
 
-  async invalidateCache(tenantId: string, flagKey: FeatureFlagKey): Promise<void> {
-    this.cache.invalidate(tenantId, flagKey);
+  async invalidateCache(tenantId: string, flagKey: FeatureFlagKey | string): Promise<void> {
+    this.cache.invalidate(tenantId, flagKey as FeatureFlagKey);
   }
 
   async invalidateAllCache(): Promise<void> {
