@@ -87,6 +87,7 @@ function App() {
             route={{
               routes: menuData,
             }}
+            data-testid="navigation"
             menuItemRender={(item, dom) => (
               <a
                 onClick={() => {
