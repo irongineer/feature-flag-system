@@ -81,8 +81,8 @@ const prodMonitoringStack = new MonitoringStack(app, 'FeatureFlagProdMonitoringS
 });
 
 // 依存関係の設定
-devLambdaStack.addDependency(devDatabaseStack);
-devMonitoringStack.addDependency(devLambdaStack);
+devLambdaStack.node.addDependency(devDatabaseStack);
+devMonitoringStack.node.addDependency(devLambdaStack);
 
-prodLambdaStack.addDependency(prodDatabaseStack);
-prodMonitoringStack.addDependency(prodLambdaStack);
+prodLambdaStack.node.addDependency(prodDatabaseStack);
+prodMonitoringStack.node.addDependency(prodLambdaStack);

@@ -13,6 +13,7 @@
     "sourceMap": true,
     "moduleResolution": "node"
   },
+  "composite": true,
   "include": [
     "src/**/*"
   ],
