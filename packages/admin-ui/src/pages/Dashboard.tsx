@@ -103,7 +103,7 @@ const Dashboard: React.FC = () => {
       </Title>
 
       {/* Metrics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }} data-testid="dashboard-metrics">
         <Col xs={12} sm={12} md={6}>
           <Card>
             <Statistic
@@ -179,6 +179,7 @@ const Dashboard: React.FC = () => {
                 size: 'small',
               }}
               size="small"
+              data-testid="flag-usage-table"
             />
           </Card>
         </Col>
@@ -196,6 +197,7 @@ const Dashboard: React.FC = () => {
             <List
               loading={activitiesLoading}
               dataSource={activities?.slice(0, 10) || []}
+              data-testid="recent-activities"
               renderItem={(item) => (
                 <List.Item style={{ padding: '8px 0' }}>
                   <List.Item.Meta

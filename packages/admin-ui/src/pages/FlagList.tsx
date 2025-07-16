@@ -247,6 +247,7 @@ const FlagList: React.FC = () => {
           <Col flex="auto">
             <Space size="middle">
               <Input.Search
+                data-testid="flag-search"
                 placeholder="フラグキー、説明、所有者で検索..."
                 allowClear
                 value={searchText}
@@ -270,6 +271,7 @@ const FlagList: React.FC = () => {
               type="primary" 
               icon={<PlusOutlined />}
               onClick={handleCreateFlag}
+              data-testid="create-flag-button"
             >
               フラグを作成
             </Button>
@@ -278,6 +280,7 @@ const FlagList: React.FC = () => {
 
         {/* Table */}
         <Table
+          data-testid="flag-table"
           columns={columns}
           dataSource={tableData}
           loading={isLoading}
@@ -303,11 +306,13 @@ const FlagList: React.FC = () => {
         okText={editingFlag ? '更新' : '作成'}
         cancelText="キャンセル"
         width={600}
+        data-testid="create-flag-modal"
       >
         <Form
           form={form}
           layout="vertical"
           requiredMark={false}
+          data-testid="flag-form"
         >
           <Form.Item
             name="flagKey"
@@ -320,6 +325,7 @@ const FlagList: React.FC = () => {
             <Input 
               placeholder="例: new_feature_enable" 
               disabled={!!editingFlag}
+              data-testid="flag-key-input"
             />
           </Form.Item>
 
@@ -331,6 +337,7 @@ const FlagList: React.FC = () => {
             <Input.TextArea 
               rows={3}
               placeholder="フラグの目的や機能について説明してください"
+              data-testid="flag-description-input"
             />
           </Form.Item>
 
@@ -344,6 +351,7 @@ const FlagList: React.FC = () => {
                 <Switch 
                   checkedChildren="有効" 
                   unCheckedChildren="無効"
+                  data-testid="flag-enabled-switch"
                 />
               </Form.Item>
             </Col>
@@ -353,7 +361,7 @@ const FlagList: React.FC = () => {
                 label="所有者"
                 rules={[{ required: true, message: '所有者は必須です' }]}
               >
-                <Input placeholder="例: team-frontend" />
+                <Input placeholder="例: team-frontend" data-testid="flag-owner-input" />
               </Form.Item>
             </Col>
           </Row>

@@ -4,11 +4,12 @@
   "description": "Multi-tenant SaaS feature flag system",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build:core && npm run build:sdk && npm run build:api && npm run build:cli",
+    "build": "npm run build:core && npm run build:sdk && npm run build:api && npm run build:cli && npm run build:admin-ui",
     "build:core": "cd packages/core && npm run build",
     "build:sdk": "cd packages/sdk && npm run build",
     "build:api": "cd packages/api && npm run build",
     "build:cli": "cd packages/cli && npm run build",
+    "build:admin-ui": "cd packages/admin-ui && npm run build",
     "test": "npm run test:core && npm run test:sdk && npm run test:api && npm run test:cli",
     "test:core": "cd packages/core && npm test",
     "test:sdk": "cd packages/sdk && npm test",
