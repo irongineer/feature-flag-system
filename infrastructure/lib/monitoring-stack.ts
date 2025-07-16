@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import * as cloudwatchActions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as snsSubscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
@@ -102,7 +103,7 @@ export class MonitoringStack extends cdk.Stack {
     });
 
     apiErrorAlarm.addAlarmAction(
-      new cloudwatch.SnsAction(alertTopic)
+      new cloudwatchActions.SnsAction(alertTopic)
     );
 
     // DynamoDB スロットリングアラーム
@@ -116,7 +117,7 @@ export class MonitoringStack extends cdk.Stack {
     });
 
     dynamoThrottleAlarm.addAlarmAction(
-      new cloudwatch.SnsAction(alertTopic)
+      new cloudwatchActions.SnsAction(alertTopic)
     );
 
     // Lambda エラーアラーム
@@ -131,7 +132,7 @@ export class MonitoringStack extends cdk.Stack {
       });
 
       lambdaErrorAlarm.addAlarmAction(
-        new cloudwatch.SnsAction(alertTopic)
+        new cloudwatchActions.SnsAction(alertTopic)
       );
     }
 
@@ -168,7 +169,7 @@ export class MonitoringStack extends cdk.Stack {
     });
 
     killSwitchAlarm.addAlarmAction(
-      new cloudwatch.SnsAction(alertTopic)
+      new cloudwatchActions.SnsAction(alertTopic)
     );
 
     // 出力

@@ -48,7 +48,8 @@
       "Bash(aws cloudformation:*)",
       "Bash(aws dynamodb describe-table:*)",
       "Bash(npx:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(npm run lint)"
     ],
     "deny": []
   }
