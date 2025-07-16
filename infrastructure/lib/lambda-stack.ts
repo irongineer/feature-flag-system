@@ -53,10 +53,8 @@ export class LambdaStack extends cdk.Stack {
       },
       deployOptions: {
         stageName: this.stackName.toLowerCase(),
-        throttle: {
-          rateLimit: 1000,
-          burstLimit: 2000,
-        },
+        throttlingRateLimit: 1000,
+        throttlingBurstLimit: 2000,
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
       },

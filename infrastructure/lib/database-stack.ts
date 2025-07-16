@@ -21,12 +21,7 @@ export class DatabaseStack extends cdk.Stack {
       // 暗号化設定
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       
-      // タグ
-      tags: {
-        Environment: this.stackName,
-        Service: 'FeatureFlag',
-        Component: 'Database'
-      }
+      // タグはStackレベルで設定
     });
 
     // GSI1: 有効期限でのクエリ用
@@ -54,11 +49,7 @@ export class DatabaseStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: 'ttl', // 90日後に自動削除
       
-      tags: {
-        Environment: this.stackName,
-        Service: 'FeatureFlag',
-        Component: 'AuditLog'
-      }
+      // タグはStackレベルで設定
     });
 
     // GSI: ユーザー別の監査ログ検索用
