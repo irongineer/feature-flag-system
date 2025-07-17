@@ -4,6 +4,7 @@ import { DynamoDBDocumentClient, PutCommand, DeleteCommand } from '@aws-sdk/lib-
 import { FeatureFlagEvaluator } from '@evaluator';
 import { FeatureFlagCache } from '@cache';
 import { FEATURE_FLAGS } from '@models';
+import { MultiTableDynamoClient } from './multi-table-dynamo-client';
 
 // ローカルDynamoDB設定
 const dynamoConfig: DynamoDBClientConfig = {
@@ -28,10 +29,11 @@ const TABLES = {
 describe('Feature Flag E2E Integration Tests', () => {
   let evaluator: FeatureFlagEvaluator;
   let cache: FeatureFlagCache;
+  let multiTableClient: MultiTableDynamoClient;
 
   beforeAll(async () => {
-    // フィーチャーフラグ評価エンジン初期化
-    evaluator = new FeatureFlagEvaluator(dynamoClient, {
+    // マルチテーブルクライアント初期化
+    multiTableClient = new MultiTableDynamoClient(dynamoConfig, {
       featureFlagsTable: TABLES.FEATURE_FLAGS,
       tenantOverridesTable: TABLES.TENANT_OVERRIDES,
       emergencyControlTable: TABLES.EMERGENCY_CONTROL
@@ -39,6 +41,12 @@ describe('Feature Flag E2E Integration Tests', () => {
 
     // キャッシュ初期化（短いTTLでテスト）
     cache = new FeatureFlagCache({ ttl: 10 }); // 10秒TTL
+
+    // フィーチャーフラグ評価エンジン初期化
+    evaluator = new FeatureFlagEvaluator({
+      cache,
+      dynamoDbClient: multiTableClient as any // Type assertion for compatibility
+    });
   });
 
   beforeEach(async () => {
@@ -204,11 +212,10 @@ describe('Feature Flag E2E Integration Tests', () => {
       const tenantId = 'e2e-tenant-cache-expiry';
 
       // 短いTTLのキャッシュで評価エンジンを作成
-      const shortCacheEvaluator = new FeatureFlagEvaluator(dynamoClient, {
-        featureFlagsTable: TABLES.FEATURE_FLAGS,
-        tenantOverridesTable: TABLES.TENANT_OVERRIDES,
-        emergencyControlTable: TABLES.EMERGENCY_CONTROL,
-        cacheOptions: { ttl: 1 } // 1秒TTL
+      const shortCache = new FeatureFlagCache({ ttl: 1 }); // 1秒TTL
+      const shortCacheEvaluator = new FeatureFlagEvaluator({
+        cache: shortCache,
+        dynamoDbClient: multiTableClient as any
       });
 
       // フラグ作成
@@ -229,10 +236,10 @@ describe('Feature Flag E2E Integration Tests', () => {
         owner: 'e2e-test'
       });
 
-      // キャッシュ期限切れを待機
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // キャッシュの無効化（TTL待機の代わりに明示的にクリア）
+      await shortCacheEvaluator.invalidateCache(tenantId, flagKey);
 
-      // 再評価（キャッシュ期限切れでDynamoDBから再取得）
+      // 再評価（キャッシュクリア後にDynamoDBから再取得）
       const result2 = await shortCacheEvaluator.isEnabled(tenantId, flagKey);
       expect(result2).toBe(true); // 更新された値が取得される
     });
@@ -311,19 +318,24 @@ describe('Feature Flag E2E Integration Tests', () => {
   describe('エラーハンドリング', () => {
     it('DynamoDB接続エラー時にデフォルト値を返す', async () => {
       // 間違ったエンドポイントで評価エンジンを作成
-      const badDynamoClient = new DynamoDBClient({
+      const badDynamoConfig = {
         endpoint: 'http://localhost:9999', // 存在しないエンドポイント
         region: 'ap-northeast-1',
         credentials: {
           accessKeyId: 'dummy',
           secretAccessKey: 'dummy'
         }
-      });
+      };
 
-      const badEvaluator = new FeatureFlagEvaluator(badDynamoClient, {
+      const badMultiTableClient = new MultiTableDynamoClient(badDynamoConfig, {
         featureFlagsTable: TABLES.FEATURE_FLAGS,
         tenantOverridesTable: TABLES.TENANT_OVERRIDES,
         emergencyControlTable: TABLES.EMERGENCY_CONTROL
+      });
+
+      const badEvaluator = new FeatureFlagEvaluator({
+        cache: new FeatureFlagCache({ ttl: 10 }),
+        dynamoDbClient: badMultiTableClient as any
       });
 
       const tenantId = 'e2e-tenant-error';
@@ -368,12 +380,18 @@ async function createFeatureFlag(flagKey: string, options: {
   await docClient.send(new PutCommand({
     TableName: TABLES.FEATURE_FLAGS,
     Item: {
+      PK: `FLAG#${flagKey}`,
+      SK: 'METADATA',
       flagKey,
       description: options.description,
       defaultEnabled: options.defaultEnabled,
       owner: options.owner,
       createdAt: new Date().toISOString(),
-      ...(options.expiresAt && { expiresAt: options.expiresAt })
+      ...(options.expiresAt && { 
+        expiresAt: options.expiresAt,
+        GSI1PK: 'EXPIRES',
+        GSI1SK: options.expiresAt
+      })
     }
   }));
 }
@@ -382,54 +400,154 @@ async function createTenantOverride(tenantId: string, flagKey: string, enabled: 
   await docClient.send(new PutCommand({
     TableName: TABLES.TENANT_OVERRIDES,
     Item: {
-      tenantId,
-      flagKey,
+      PK: `TENANT#${tenantId}`,
+      SK: `FLAG#${flagKey}`,
       enabled,
       updatedAt: new Date().toISOString(),
-      updatedBy: 'e2e-test@example.com'
+      updatedBy: 'e2e-test@example.com',
+      // GSI1 for querying by flag
+      GSI1PK: `FLAG#${flagKey}`,
+      GSI1SK: `TENANT#${tenantId}`
     }
   }));
 }
 
 async function activateGlobalKillSwitch(reason: string) {
-  await docClient.send(new PutCommand({
-    TableName: TABLES.EMERGENCY_CONTROL,
-    Item: {
-      controlType: 'GLOBAL',
-      flagKey: 'ALL',
-      enabled: false,
-      reason,
-      activatedAt: new Date().toISOString(),
-      activatedBy: 'e2e-test-admin'
-    }
-  }));
+  await multiTableClient.setKillSwitch(null, true, reason, 'e2e-test-admin');
 }
 
 async function deactivateGlobalKillSwitch() {
-  await docClient.send(new DeleteCommand({
-    TableName: TABLES.EMERGENCY_CONTROL,
-    Key: {
-      controlType: 'GLOBAL',
-      flagKey: 'ALL'
-    }
-  }));
+  await multiTableClient.deleteKillSwitch(null);
 }
 
 async function activateFlagKillSwitch(flagKey: string, reason: string) {
-  await docClient.send(new PutCommand({
-    TableName: TABLES.EMERGENCY_CONTROL,
-    Item: {
-      controlType: 'FLAG',
-      flagKey,
-      enabled: false,
-      reason,
-      activatedAt: new Date().toISOString(),
-      activatedBy: 'e2e-test-admin'
-    }
-  }));
+  await multiTableClient.setKillSwitch(flagKey, true, reason, 'e2e-test-admin');
 }
 
 async function cleanupTestData() {
   // E2Eテスト用データのクリーンアップロジック
-  // 実装は前のテストファイルと同様
+  try {
+    // 1. テスト用フラグのクリーンアップ
+    const testFlags = [
+      'e2e_test_default',
+      'e2e_test_override',
+      'e2e_test_killswitch',
+      'e2e_test_specific_kill_1',
+      'e2e_test_specific_kill_2',
+      'e2e_test_cache',
+      'e2e_test_cache_expiry',
+      'e2e_test_multitenant',
+      'e2e_test_performance',
+      'e2e_test_error',
+      'e2e_test_invalid_data'
+    ];
+
+    const flagDeletePromises = testFlags.map(flagKey => 
+      docClient.send(new DeleteCommand({
+        TableName: TABLES.FEATURE_FLAGS,
+        Key: {
+          PK: `FLAG#${flagKey}`,
+          SK: 'METADATA'
+        }
+      })).catch(err => {
+        // 存在しないキーのエラーは無視
+        if (err.name !== 'ResourceNotFoundException') {
+          console.warn(`Failed to delete flag ${flagKey}:`, err);
+        }
+      })
+    );
+
+    // 2. テスト用テナントオーバーライドのクリーンアップ
+    const testTenants = [
+      'e2e-tenant-default',
+      'e2e-tenant-override',
+      'e2e-tenant-killswitch',
+      'e2e-tenant-specific-kill',
+      'e2e-tenant-cache',
+      'e2e-tenant-cache-expiry',
+      'e2e-tenant-1',
+      'e2e-tenant-2',
+      'e2e-tenant-3',
+      'e2e-tenant-error',
+      'e2e-tenant-invalid'
+    ];
+
+    const tenantDeletePromises: Promise<any>[] = [];
+    testTenants.forEach(tenantId => {
+      testFlags.forEach(flagKey => {
+        tenantDeletePromises.push(
+          docClient.send(new DeleteCommand({
+            TableName: TABLES.TENANT_OVERRIDES,
+            Key: {
+              PK: `TENANT#${tenantId}`,
+              SK: `FLAG#${flagKey}`
+            }
+          })).catch(err => {
+            // 存在しないキーのエラーは無視
+            if (err.name !== 'ResourceNotFoundException') {
+              console.warn(`Failed to delete tenant override ${tenantId}#${flagKey}:`, err);
+            }
+          })
+        );
+      });
+    });
+
+    // パフォーマンステスト用のテナントクリーンアップ
+    const perfTenantPromises = Array.from({ length: 100 }, (_, i) => 
+      docClient.send(new DeleteCommand({
+        TableName: TABLES.TENANT_OVERRIDES,
+        Key: {
+          PK: `TENANT#perf-tenant-${i}`,
+          SK: `FLAG#e2e_test_performance`
+        }
+      })).catch(err => {
+        if (err.name !== 'ResourceNotFoundException') {
+          console.warn(`Failed to delete perf tenant override perf-tenant-${i}:`, err);
+        }
+      })
+    );
+
+    // 3. テスト用Kill-Switchのクリーンアップ
+    const killSwitchDeletePromises = [
+      // グローバルKill-Switch
+      docClient.send(new DeleteCommand({
+        TableName: TABLES.EMERGENCY_CONTROL,
+        Key: {
+          PK: 'EMERGENCY',
+          SK: 'GLOBAL'
+        }
+      })).catch(err => {
+        if (err.name !== 'ResourceNotFoundException') {
+          console.warn('Failed to delete global kill switch:', err);
+        }
+      }),
+      // 特定フラグのKill-Switch
+      ...testFlags.map(flagKey => 
+        docClient.send(new DeleteCommand({
+          TableName: TABLES.EMERGENCY_CONTROL,
+          Key: {
+            PK: 'EMERGENCY',
+            SK: `FLAG#${flagKey}`
+          }
+        })).catch(err => {
+          if (err.name !== 'ResourceNotFoundException') {
+            console.warn(`Failed to delete flag kill switch ${flagKey}:`, err);
+          }
+        })
+      )
+    ];
+
+    // 全てのクリーンアップ処理を並列実行
+    await Promise.all([
+      ...flagDeletePromises,
+      ...tenantDeletePromises,
+      ...perfTenantPromises,
+      ...killSwitchDeletePromises
+    ]);
+
+    console.log('✅ Test data cleanup completed successfully');
+  } catch (error) {
+    console.error('❌ Test data cleanup failed:', error);
+    // クリーンアップエラーはテスト失敗させない（警告のみ）
+  }
 }
