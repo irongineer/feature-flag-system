@@ -156,7 +156,7 @@ temp/
 *.temp
 
 # Package managers
-package-lock.json
+# package-lock.json  # Commented out for CI/CD compatibility
 yarn.lock
 pnpm-lock.yaml
 
