@@ -67,6 +67,158 @@ app.get('/api/dashboard/metrics', (req, res) => {
   });
 });
 
+// Mock dashboard activities endpoint
+app.get('/api/dashboard/activities', (req, res) => {
+  res.json([
+    {
+      id: '1',
+      timestamp: new Date().toISOString(),
+      type: 'flag_created',
+      user: 'test@example.com',
+      details: 'Created flag: test_flag_1'
+    },
+    {
+      id: '2',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      type: 'flag_updated',
+      user: 'admin@example.com',
+      details: 'Updated flag: test_flag_2'
+    }
+  ]);
+});
+
+// In-memory storage for development/testing
+let flags = [
+  {
+    id: '1',
+    flagKey: 'test_flag_1',
+    description: 'Test Flag 1',
+    defaultEnabled: true,
+    owner: 'test@example.com',
+    createdAt: '2025-01-01T00:00:00Z',
+    expiresAt: '2025-12-31T23:59:59Z'
+  },
+  {
+    id: '2',
+    flagKey: 'test_flag_2',
+    description: 'Test Flag 2',
+    defaultEnabled: false,
+    owner: 'test@example.com',
+    createdAt: '2025-01-01T00:00:00Z'
+  }
+];
+
+// Flag management endpoints
+app.get('/api/flags', (req, res) => {
+  res.json(flags);
+});
+
+app.post('/api/flags', (req, res) => {
+  const { flagKey, description, defaultEnabled = false, owner = 'test@example.com' } = req.body;
+  
+  if (!flagKey || !description) {
+    return res.status(400).json({ error: 'flagKey and description are required' });
+  }
+  
+  const newFlag = {
+    id: String(Date.now()),
+    flagKey,
+    description,
+    defaultEnabled,
+    owner,
+    createdAt: new Date().toISOString()
+  };
+  
+  flags.push(newFlag);
+  res.status(201).json(newFlag);
+});
+
+app.put('/api/flags/:id', (req, res) => {
+  const { id } = req.params;
+  const { flagKey, description, defaultEnabled, owner } = req.body;
+  
+  const flagIndex = flags.findIndex(f => f.id === id);
+  if (flagIndex === -1) {
+    return res.status(404).json({ error: 'Flag not found' });
+  }
+  
+  const updatedFlag = {
+    ...flags[flagIndex],
+    ...(flagKey && { flagKey }),
+    ...(description && { description }),
+    ...(defaultEnabled !== undefined && { defaultEnabled }),
+    ...(owner && { owner })
+  };
+  
+  flags[flagIndex] = updatedFlag;
+  res.json(updatedFlag);
+});
+
+app.delete('/api/flags/:id', (req, res) => {
+  const { id } = req.params;
+  
+  const flagIndex = flags.findIndex(f => f.id === id);
+  if (flagIndex === -1) {
+    return res.status(404).json({ error: 'Flag not found' });
+  }
+  
+  flags.splice(flagIndex, 1);
+  res.status(204).send();
+});
+
+// Test data management endpoints
+app.post('/api/test/reset', (req, res) => {
+  flags = [];
+  console.log('🧪 Test data reset - all flags cleared');
+  res.json({ message: 'Test data reset', timestamp: new Date().toISOString() });
+});
+
+app.post('/api/test/seed', (req, res) => {
+  const seedData = [
+    {
+      id: '1',
+      flagKey: 'test_flag_1',
+      description: 'Test Flag 1',
+      defaultEnabled: true,
+      owner: 'test@example.com',
+      createdAt: '2025-01-01T00:00:00Z',
+      expiresAt: '2025-12-31T23:59:59Z'
+    },
+    {
+      id: '2',
+      flagKey: 'test_flag_2',
+      description: 'Test Flag 2',
+      defaultEnabled: false,
+      owner: 'test@example.com',
+      createdAt: '2025-01-01T00:00:00Z'
+    }
+  ];
+  
+  flags = [...seedData];
+  console.log(`🌱 Test data seeded - ${flags.length} flags created`);
+  res.json({ message: 'Test data seeded', count: flags.length, timestamp: new Date().toISOString() });
+});
+
+app.post('/api/test/seed-custom', (req, res) => {
+  const { customFlags } = req.body;
+  
+  if (!customFlags || !Array.isArray(customFlags)) {
+    return res.status(400).json({ error: 'customFlags array is required' });
+  }
+  
+  flags = [...customFlags];
+  console.log(`🎯 Custom test data seeded - ${flags.length} flags created`);
+  res.json({ message: 'Custom test data seeded', count: flags.length, timestamp: new Date().toISOString() });
+});
+
+app.get('/api/test/status', (req, res) => {
+  res.json({
+    totalFlags: flags.length,
+    flags: flags.map(f => ({ id: f.id, flagKey: f.flagKey, defaultEnabled: f.defaultEnabled })),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Feature Flag API Server running on http://localhost:${PORT}`);
