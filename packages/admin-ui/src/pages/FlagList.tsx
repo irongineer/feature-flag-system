@@ -150,10 +150,19 @@ const FlagList: React.FC = () => {
       dataIndex: 'defaultEnabled',
       key: 'defaultEnabled',
       width: 120,
-      render: (enabled: boolean) => (
-        <Tag color={enabled ? 'green' : 'red'}>
-          {enabled ? '有効' : '無効'}
-        </Tag>
+      render: (enabled: boolean, record: FlagRecord) => (
+        <Switch
+          checked={enabled}
+          onChange={(checked) => {
+            updateFlagMutation.mutate({
+              flagKey: record.flagKey as any,
+              updates: { defaultEnabled: checked },
+            });
+          }}
+          checkedChildren="有効"
+          unCheckedChildren="無効"
+          loading={updateFlagMutation.isPending}
+        />
       ),
       filters: [
         { text: '有効', value: true },

@@ -20,9 +20,9 @@ test.describe('Admin UI Homepage', () => {
     // Wait for Pro Layout to load
     await page.waitForSelector('.ant-pro-layout', { timeout: 10000 });
     
-    // Check navigation items (use more specific selectors)
-    await expect(page.locator('.ant-menu-item').filter({ hasText: 'ダッシュボード' })).toBeVisible();
-    await expect(page.locator('.ant-menu-submenu').filter({ hasText: 'フラグ管理' })).toBeVisible();
+    // Check navigation items (use ProLayout compatible selectors)
+    await expect(page.locator('text=ダッシュボード')).toBeVisible();
+    await expect(page.locator('text=フラグ管理')).toBeVisible();
   });
 
   test('should handle API errors gracefully', async ({ page }) => {

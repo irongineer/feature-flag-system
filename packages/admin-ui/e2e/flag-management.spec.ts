@@ -192,9 +192,10 @@ test.describe('Dashboard', () => {
     // Check if dashboard page loads
     await expect(page.locator('text=ダッシュボード')).toBeVisible({ timeout: 10000 });
     
-    // Check that page content is loaded (more lenient test)
-    const cardCount = await page.locator('.ant-card').count();
-    expect(cardCount).toBeGreaterThan(0); // At least some cards
+    // Wait for metrics to load and check specific metrics
+    await page.waitForResponse('**/api/dashboard/metrics');
+    await expect(page.locator('text=総フラグ数')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=有効フラグ')).toBeVisible({ timeout: 10000 });
   });
 
   test('should display recent activities', async ({ page }) => {
@@ -206,7 +207,9 @@ test.describe('Dashboard', () => {
     // Check if dashboard page loads
     await expect(page.locator('text=ダッシュボード')).toBeVisible({ timeout: 10000 });
     
-    // Check that activities section exists (title should be visible)
+    // Wait for activities to load and check specific activities
+    await page.waitForResponse('**/api/dashboard/activities');
     await expect(page.locator('text=最近のアクティビティ')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="recent-activities"]')).toBeVisible({ timeout: 10000 });
   });
 });
