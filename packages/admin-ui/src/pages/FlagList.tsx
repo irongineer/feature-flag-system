@@ -150,10 +150,20 @@ const FlagList: React.FC = () => {
       dataIndex: 'defaultEnabled',
       key: 'defaultEnabled',
       width: 120,
-      render: (enabled: boolean) => (
-        <Tag color={enabled ? 'green' : 'red'}>
-          {enabled ? '有効' : '無効'}
-        </Tag>
+      render: (enabled: boolean, record: FlagRecord) => (
+        <Switch
+          checked={enabled}
+          onChange={(checked) => {
+            // Update flag enabled state
+            updateFlagMutation.mutate({
+              flagKey: record.flagKey as any,
+              updates: { defaultEnabled: checked },
+            });
+          }}
+          loading={updateFlagMutation.isPending}
+          size="small"
+          data-testid="flag-toggle-switch"
+        />
       ),
       filters: [
         { text: '有効', value: true },
@@ -224,7 +234,7 @@ const FlagList: React.FC = () => {
           }}
           trigger={['click']}
         >
-          <Button type="text" icon={<MoreOutlined />} />
+          <Button type="text" icon={<MoreOutlined />} data-testid="flag-actions-button" />
         </Dropdown>
       ),
     },
