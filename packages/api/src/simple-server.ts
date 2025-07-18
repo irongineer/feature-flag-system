@@ -62,8 +62,12 @@ app.get('/api/dashboard/metrics', (req, res) => {
   res.json({
     totalFlags: 15,
     activeFlags: 12,
-    killSwitchActive: false,
-    tenantOverrides: 23
+    killSwitchesActive: 0,
+    tenantsWithOverrides: 23,
+    flagUsageStats: [
+      { flagKey: 'test_flag_1', evaluations: 1234, lastAccessed: new Date().toISOString() },
+      { flagKey: 'test_flag_2', evaluations: 567, lastAccessed: new Date(Date.now() - 3600000).toISOString() }
+    ]
   });
 });
 
@@ -75,14 +79,14 @@ app.get('/api/dashboard/activities', (req, res) => {
       timestamp: new Date().toISOString(),
       type: 'flag_created',
       user: 'test@example.com',
-      details: 'Created flag: test_flag_1'
+      message: 'Created flag: test_flag_1'
     },
     {
       id: '2',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
       type: 'flag_updated',
       user: 'admin@example.com',
-      details: 'Updated flag: test_flag_2'
+      message: 'Updated flag: test_flag_2'
     }
   ]);
 });
