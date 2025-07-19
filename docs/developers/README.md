@@ -23,12 +23,12 @@ const client = new FeatureFlagClient({
   apiKey: 'your-api-key'
 });
 
-// 2. フィーチャーフラグの評価
+// 2. フィーチャーフラグの評価（柔軟なコンテキスト）
 const context = {
-  userId: 'user-123',
-  tenantId: 'tenant-456',
-  userRole: 'admin',
-  environment: 'production'
+  tenantId: 'tenant-456',  // 必須
+  userId: 'user-123',      // オプショナル
+  userRole: 'admin',       // オプショナル
+  environment: 'production' // オプショナル
 };
 
 const isEnabled = await client.isEnabled('new-dashboard', context);

@@ -59,7 +59,9 @@ export interface CacheEntry {
 
 export interface FeatureFlagContext {
   tenantId: string;
-  userId?: string;
-  environment?: string;
+  userId?: string;        // オプショナル: ユーザー固有の評価が不要な場合
+  userRole?: string;      // オプショナル: 権限ベースの制御が不要な場合
+  plan?: string;          // オプショナル: プラン情報が利用できない場合
+  environment?: 'development' | 'staging' | 'production'; // オプショナル
   metadata?: Record<string, any>;
 }

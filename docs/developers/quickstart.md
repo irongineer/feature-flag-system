@@ -53,12 +53,12 @@ const client = new FeatureFlagClient({
   }
 });
 
-// フィーチャーフラグの評価
+// フィーチャーフラグの評価（柔軟なコンテキスト）
 const context = {
-  userId: 'user-123',
-  tenantId: 'tenant-456',
-  userRole: 'admin',
-  environment: 'production'
+  tenantId: 'tenant-456',  // 必須
+  userId: 'user-123',      // オプショナル
+  userRole: 'admin',       // オプショナル
+  environment: 'production' // オプショナル
 };
 
 const isNewDashboardEnabled = await client.isEnabled('new-dashboard', context);
@@ -89,10 +89,10 @@ const useFeatureFlag = (flagKey: string) => {
 
   useEffect(() => {
     const context = {
-      userId: 'user-123',
-      tenantId: 'tenant-456',
-      userRole: 'admin',
-      environment: 'production'
+      tenantId: 'tenant-456',  // 必須
+      userId: 'user-123',      // オプショナル
+      userRole: 'admin',       // オプショナル
+      environment: 'production' // オプショナル
     };
 
     client.isEnabled(flagKey, context)
@@ -159,10 +159,10 @@ const loading = ref(true);
 
 onMounted(async () => {
   const context = {
-    userId: 'user-123',
-    tenantId: 'tenant-456',
-    userRole: 'admin',
-    environment: 'production'
+    tenantId: 'tenant-456',  // 必須
+    userId: 'user-123',      // オプショナル
+    userRole: 'admin',       // オプショナル
+    environment: 'production' // オプショナル
   };
 
   try {
@@ -188,10 +188,10 @@ const client = new FeatureFlagClient({
 // ミドルウェア
 app.use(async (req, res, next) => {
   const context = {
-    userId: req.user?.id || 'anonymous',
-    tenantId: req.user?.tenantId || 'default',
-    userRole: req.user?.role || 'guest',
-    environment: process.env.NODE_ENV || 'development'
+    tenantId: req.user?.tenantId || 'default', // 必須
+    userId: req.user?.id,                      // オプショナル（匿名ユーザーの場合はundefined）
+    userRole: req.user?.role,                  // オプショナル
+    environment: process.env.NODE_ENV || 'development' // オプショナル
   };
 
   try {
@@ -243,10 +243,10 @@ describe('Feature Flag Integration', () => {
     mockClient.isEnabled.mockResolvedValue(true);
 
     const context = {
-      userId: 'user-123',
-      tenantId: 'tenant-456',
-      userRole: 'admin',
-      environment: 'test'
+      tenantId: 'tenant-456',  // 必須
+      userId: 'user-123',      // オプショナル
+      userRole: 'admin',       // オプショナル
+      environment: 'test'      // オプショナル
     };
 
     const isEnabled = await mockClient.isEnabled('new-dashboard', context);
@@ -259,10 +259,10 @@ describe('Feature Flag Integration', () => {
     mockClient.isEnabled.mockResolvedValue(false);
 
     const context = {
-      userId: 'user-123',
-      tenantId: 'tenant-456',
-      userRole: 'admin',
-      environment: 'test'
+      tenantId: 'tenant-456',  // 必須
+      userId: 'user-123',      // オプショナル
+      userRole: 'admin',       // オプショナル
+      environment: 'test'      // オプショナル
     };
 
     const isEnabled = await mockClient.isEnabled('new-dashboard', context);
