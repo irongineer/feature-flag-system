@@ -1,5 +1,7 @@
 # 👨‍💻 アプリケーション開発者向けドキュメント
 
+> **注意**: このドキュメントは段階的に作成中です。多くのリンク先ファイルが **(準備中)** 状態です。現在利用可能なドキュメントは限定的です。
+
 ## 📋 概要
 
 このセクションでは、フィーチャーフラグシステムを利用してアプリケーションを開発する開発者向けの情報を提供します。
@@ -23,15 +25,22 @@ const client = new FeatureFlagClient({
   apiKey: 'your-api-key'
 });
 
-// 2. フィーチャーフラグの評価（柔軟なコンテキスト）
-const context = {
-  tenantId: 'tenant-456',  // 必須
-  userId: 'user-123',      // オプショナル
-  userRole: 'admin',       // オプショナル
-  environment: 'production' // オプショナル
+// 2. フィーチャーフラグの評価
+// 最小限のコンテキスト（tenantIdのみ必須）
+const basicContext = {
+  tenantId: 'tenant-456'
 };
 
-const isEnabled = await client.isEnabled('new-dashboard', context);
+// より詳細なコンテキスト（必要に応じてオプション情報を追加）
+const detailedContext = {
+  tenantId: 'tenant-456',
+  userId: 'user-123',        // ユーザー固有の評価が必要な場合
+  userRole: 'admin',         // 権限ベースの制御が必要な場合
+  plan: 'enterprise',        // プランベースの機能制御が必要な場合
+  environment: 'production'  // 環境別の設定が必要な場合
+};
+
+const isEnabled = await client.isEnabled('new-dashboard', detailedContext);
 
 // 3. 条件分岐
 if (isEnabled) {
@@ -49,6 +58,7 @@ if (isEnabled) {
 1. [フィーチャーフラグとは](./concepts/feature-flags-101.md)
 2. [システムアーキテクチャ](./concepts/architecture.md)
 3. [基本的な実装パターン](./concepts/basic-patterns.md)
+4. [コンテキスト利用パターン](./context-usage-patterns.md) ⭐ 必読
 
 ### 🔨 実装学習（推定時間: 4-6時間）
 1. [TypeScript統合](./typescript-integration.md)
@@ -130,19 +140,70 @@ if (isEnabled) {
 - [型ガード](./types/type-guards.md)
 - [ジェネリクス](./types/generics.md)
 
+## 📋 コンテキストの使い分け
+
+フィーチャーフラグの`FeatureFlagContext`は、`tenantId`のみが必須で、その他は利用目的に応じてオプショナルです。
+
+### 基本的なパターン
+
+```typescript
+// 1. 最小限（テナントレベル）- テナント全体で同じ設定
+const tenantContext = {
+  tenantId: 'tenant-123'
+};
+
+// 2. ユーザー固有 - A/Bテストや段階的ロールアウト
+const userContext = {
+  tenantId: 'tenant-123',
+  userId: 'user-456'
+};
+
+// 3. 権限ベース - 管理者機能など
+const roleContext = {
+  tenantId: 'tenant-123',
+  userId: 'user-456',
+  userRole: 'admin'
+};
+
+// 4. プランベース - 有料機能の制御
+const planContext = {
+  tenantId: 'tenant-123',
+  userId: 'user-456',
+  plan: 'enterprise'
+};
+
+// 5. 完全なコンテキスト - 複雑な条件判定
+const fullContext = {
+  tenantId: 'tenant-123',
+  userId: 'user-456',
+  userRole: 'manager',
+  plan: 'enterprise',
+  environment: 'production',
+  metadata: {
+    geoLocation: 'US',
+    deviceType: 'mobile'
+  }
+};
+```
+
 ## 🔍 実装パターン
 
 ### 基本パターン
 ```typescript
-// 1. 単純な条件分岐
-if (await client.isEnabled('feature-x', context)) {
+// 1. 単純な条件分岐（最小限のコンテキスト）
+const basicContext = { tenantId: 'tenant-123' };
+if (await client.isEnabled('feature-x', basicContext)) {
   // 新機能
 } else {
   // 従来機能
 }
 
-// 2. バリアント（多値）フラグ
-const variant = await client.getVariant('ui-theme', context);
+// 2. バリアント（多値）フラグ（ユーザー固有の場合）
+const userContext = { 
+  tenantId: 'tenant-123',
+  userId: 'user-456'  // ユーザー固有のテーマ設定のため
+};
+const variant = await client.getVariant('ui-theme', userContext);
 switch (variant) {
   case 'dark':
     return <DarkTheme />;
@@ -152,19 +213,119 @@ switch (variant) {
     return <DefaultTheme />;
 }
 
-// 3. 数値フラグ
-const maxItems = await client.getNumber('max-items', context, 10);
+// 3. 数値フラグ（プランベースの制限）
+const planContext = {
+  tenantId: 'tenant-123',
+  plan: 'enterprise'  // プランに基づく制限値のため
+};
+const maxItems = await client.getNumber('max-items', planContext, 10);
+```
+
+## 🛡️ フェイルセーフ機能
+
+コンテキスト情報が不足している場合でも、安全にフィーチャーフラグが動作するよう設計されています。
+
+### フェイルセーフの仕組み
+
+```typescript
+// コンテキスト情報が不足している場合の動作例
+const minimalContext = { tenantId: 'tenant-123' };
+
+try {
+  // ユーザー固有機能でも、ユーザー情報がなければテナントレベルで評価
+  const isEnabled = await client.isEnabled('user-specific-feature', minimalContext);
+  
+  if (isEnabled) {
+    // 機能を表示（テナント全体で有効の場合）
+    showFeature();
+  } else {
+    // デフォルト動作（安全側の挙動）
+    showDefaultBehavior();
+  }
+} catch (error) {
+  // ネットワークエラーなどの場合は保守的にfalse
+  console.error('Feature flag evaluation failed:', error);
+  showDefaultBehavior(); // 常に安全側に倒す
+}
+```
+
+### デフォルト値の決定ルール
+
+```typescript
+// フラグ評価時のフォールバック順序
+const getDefaultValue = (flagKey: string, context: FeatureFlagContext): boolean => {
+  // 1. フラグ固有のデフォルト値
+  const flagDefaults: Record<string, boolean> = {
+    'maintenance-mode': false,     // 安全側（機能有効にしない）
+    'new-feature': false,          // 新機能は保守的にfalse
+    'emergency-killswitch': false, // 緊急停止は通常false
+    'premium-feature': false       // 有料機能はfalse
+  };
+
+  // 2. プラン情報がある場合のプランベースデフォルト
+  const planDefaults = {
+    enterprise: true,   // エンタープライズは新機能有効
+    standard: false,    // スタンダードは保守的
+    basic: false        // ベーシックは最小限
+  };
+
+  // 優先順位: フラグ固有 > プランベース > 安全側(false)
+  return flagDefaults[flagKey] ?? 
+         (context.plan ? planDefaults[context.plan] : false) ?? 
+         false;
+};
+```
+
+### エラーハンドリングのベストプラクティス
+
+```typescript
+// 1. 個別フラグでのエラーハンドリング
+const safeGetFlag = async (flagKey: string, context: FeatureFlagContext): Promise<boolean> => {
+  try {
+    return await client.isEnabled(flagKey, context);
+  } catch (error) {
+    // ログに記録して、安全側のデフォルト値を返す
+    console.error(`Failed to evaluate flag ${flagKey}:`, error);
+    return getDefaultValue(flagKey, context);
+  }
+};
+
+// 2. バッチ取得でのエラーハンドリング
+const safeGetAllFlags = async (context: FeatureFlagContext): Promise<Record<string, boolean>> => {
+  try {
+    return await client.getAllFlags(context);
+  } catch (error) {
+    console.error('Failed to fetch feature flags:', error);
+    // 重要なフラグのみデフォルト値で初期化
+    return {
+      'maintenance-mode': false,
+      'new-dashboard': false,
+      'premium-features': false
+    };
+  }
+};
 ```
 
 ### React統合パターン
 ```typescript
-// 1. Hook使用
-const useFeatureFlag = (flagKey: string) => {
+// 1. Hook使用（オプショナルコンテキスト対応）
+const useFeatureFlag = (flagKey: string, additionalContext?: Partial<FeatureFlagContext>) => {
   const [enabled, setEnabled] = useState(false);
+  const { user, tenant } = useAuth();
   
   useEffect(() => {
+    const context = {
+      tenantId: tenant.id, // 必須
+      // ユーザー情報が利用可能な場合のみ追加
+      ...(user && { 
+        userId: user.id,
+        userRole: user.role,
+        plan: tenant.plan 
+      }),
+      ...additionalContext
+    };
     client.isEnabled(flagKey, context).then(setEnabled);
-  }, [flagKey]);
+  }, [flagKey, user, tenant, additionalContext]);
   
   return enabled;
 };
@@ -177,6 +338,12 @@ const FeatureFlag: React.FC<{flagKey: string, children: React.ReactNode}> =
   };
 
 // 3. 使用例
+{/* テナント全体での機能切り替え */}
+<FeatureFlag flagKey="maintenance-mode">
+  <MaintenanceBanner />
+</FeatureFlag>
+
+{/* ユーザー固有の機能（自動的にユーザー情報が含まれる） */}
 <FeatureFlag flagKey="new-dashboard">
   <NewDashboard />
 </FeatureFlag>
@@ -187,9 +354,13 @@ const FeatureFlag: React.FC<{flagKey: string, children: React.ReactNode}> =
 // 1. Express.jsミドルウェア
 const featureFlagMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const context = {
-    userId: req.user.id,
-    tenantId: req.user.tenantId,
-    userRole: req.user.role
+    tenantId: req.headers['x-tenant-id'] as string, // 必須
+    // 認証済みユーザーの場合のみ追加情報を含める
+    ...(req.user && {
+      userId: req.user.id,
+      userRole: req.user.role,
+      plan: req.user.tenant?.plan
+    })
   };
   
   client.getAllFlags(context).then(flags => {
