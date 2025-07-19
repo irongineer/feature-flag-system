@@ -1,5 +1,7 @@
 # 🚀 クイックスタート - 5分でフィーチャーフラグを実装
 
+> **注意**: このドキュメントの多くのリンクは **(準備中)** です。現在は基本的な実装方法のみ記載されています。
+
 ## 📋 概要
 
 このガイドでは、フィーチャーフラグシステムを最短時間で実装する方法を説明します。
@@ -53,15 +55,37 @@ const client = new FeatureFlagClient({
   }
 });
 
-// フィーチャーフラグの評価
-const context = {
-  userId: 'user-123',
+// フィーチャーフラグの評価（様々なコンテキストパターン）
+
+// 1. 最小限のコンテキスト（テナントレベルの機能制御）
+const basicContext = {
+  tenantId: 'tenant-456'
+};
+
+// 2. ユーザー固有のコンテキスト（A/Bテストや段階的ロールアウト）
+const userContext = {
   tenantId: 'tenant-456',
+  userId: 'user-123'
+};
+
+// 3. 権限ベースのコンテキスト（管理者機能など）
+const roleContext = {
+  tenantId: 'tenant-456',
+  userId: 'user-123',
+  userRole: 'admin'
+};
+
+// 4. 完全なコンテキスト（複雑な条件判定）
+const fullContext = {
+  tenantId: 'tenant-456',
+  userId: 'user-123',
   userRole: 'admin',
+  plan: 'enterprise',
   environment: 'production'
 };
 
-const isNewDashboardEnabled = await client.isEnabled('new-dashboard', context);
+// 実際の評価（目的に応じて適切なコンテキストを選択）
+const isNewDashboardEnabled = await client.isEnabled('new-dashboard', userContext);
 
 if (isNewDashboardEnabled) {
   console.log('新しいダッシュボードを表示');
@@ -88,17 +112,22 @@ const useFeatureFlag = (flagKey: string) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 動的なコンテキスト構築（ユーザー情報が利用可能な場合のみ追加）
     const context = {
-      userId: 'user-123',
-      tenantId: 'tenant-456',
-      userRole: 'admin',
+      tenantId: 'tenant-456', // 必須
+      // ログイン済みユーザーの場合のみ追加
+      ...(user && {
+        userId: user.id,
+        userRole: user.role,
+        plan: user.tenant?.plan
+      }),
       environment: 'production'
     };
 
     client.isEnabled(flagKey, context)
       .then(setEnabled)
       .finally(() => setLoading(false));
-  }, [flagKey]);
+  }, [flagKey, user]);
 
   return { enabled, loading };
 };
@@ -158,10 +187,14 @@ const isNewDashboardEnabled = ref(false);
 const loading = ref(true);
 
 onMounted(async () => {
+  // Vue.jsでの動的コンテキスト構築
   const context = {
-    userId: 'user-123',
-    tenantId: 'tenant-456',
-    userRole: 'admin',
+    tenantId: 'tenant-456', // 必須
+    // ユーザー情報が利用可能な場合のみ追加
+    ...(currentUser.value && {
+      userId: currentUser.value.id,
+      userRole: currentUser.value.role
+    }),
     environment: 'production'
   };
 
@@ -185,12 +218,17 @@ const client = new FeatureFlagClient({
   apiKey: process.env.FEATURE_FLAG_API_KEY
 });
 
-// ミドルウェア
+// ミドルウェア（必須フィールドとオプショナル情報を区別）
 app.use(async (req, res, next) => {
   const context = {
-    userId: req.user?.id || 'anonymous',
-    tenantId: req.user?.tenantId || 'default',
-    userRole: req.user?.role || 'guest',
+    // tenantIdは必須（ヘッダーから取得、デフォルトはdefault）
+    tenantId: req.headers['x-tenant-id'] as string || 'default',
+    // 認証済みユーザーの場合のみ追加情報を含める
+    ...(req.user && {
+      userId: req.user.id,
+      userRole: req.user.role,
+      plan: req.user.tenant?.plan
+    }),
     environment: process.env.NODE_ENV || 'development'
   };
 
@@ -220,6 +258,84 @@ app.listen(3000, () => {
 });
 ```
 
+## 🎯 コンテキストの使い分けパターン
+
+フィーチャーフラグのコンテキストは、利用目的に応じて必要最小限の情報から始めることが重要です。
+
+### 基本的な使い分け
+
+```typescript
+// 1. テナント全体での機能制御（緊急時の機能停止など）
+const tenantOnlyContext = {
+  tenantId: 'tenant-123'
+};
+const isMaintenanceMode = await client.isEnabled('maintenance-mode', tenantOnlyContext);
+
+// 2. A/Bテスト（ユーザーIDのハッシュ値で分割）
+const abTestContext = {
+  tenantId: 'tenant-123',
+  userId: 'user-456'
+};
+const showVariantA = await client.isEnabled('experiment-variant-a', abTestContext);
+
+// 3. 権限ベースの機能制御
+const adminContext = {
+  tenantId: 'tenant-123',
+  userId: 'user-456',
+  userRole: 'admin'
+};
+const canAccessAdminPanel = await client.isEnabled('admin-features', adminContext);
+
+// 4. プランベースの機能制限
+const planBasedContext = {
+  tenantId: 'tenant-123',
+  userId: 'user-456',
+  plan: 'enterprise'
+};
+const canUseAdvancedFeatures = await client.isEnabled('advanced-analytics', planBasedContext);
+```
+
+### フェイルセーフの活用
+
+```typescript
+// コンテキスト情報が不足している場合でも安全に動作
+const minimalContext = { tenantId: 'tenant-123' };
+
+try {
+  // ユーザー固有機能でも、ユーザー情報がなければテナントレベルで評価
+  const isEnabled = await client.isEnabled('user-specific-feature', minimalContext);
+  
+  if (isEnabled) {
+    // 機能を表示（テナント全体で有効の場合）
+    showNewFeature();
+  } else {
+    // デフォルト動作（保守的な挙動）
+    showLegacyFeature();
+  }
+} catch (error) {
+  // ネットワークエラーなどの場合は保守的にfalse
+  console.error('Feature flag evaluation failed:', error);
+  showLegacyFeature(); // 常に安全側に倒す
+}
+
+// 重要なフラグの事前取得とフェイルセーフ
+const initializeFlags = async (context: FeatureFlagContext) => {
+  const defaultFlags = {
+    'maintenance-mode': false,
+    'new-dashboard': false,
+    'premium-features': false
+  };
+
+  try {
+    const flags = await client.getAllFlags(context);
+    return { ...defaultFlags, ...flags }; // デフォルト値をベースに上書き
+  } catch (error) {
+    console.error('Failed to fetch feature flags, using defaults:', error);
+    return defaultFlags; // 完全にフォールバック
+  }
+};
+```
+
 ## 🧪 ステップ4: テストの実装
 
 ### ユニットテスト (Jest)
@@ -242,9 +358,10 @@ describe('Feature Flag Integration', () => {
     // モックの設定
     mockClient.isEnabled.mockResolvedValue(true);
 
+    // テスト用コンテキスト（必要最小限の情報）
     const context = {
-      userId: 'user-123',
       tenantId: 'tenant-456',
+      userId: 'user-123',
       userRole: 'admin',
       environment: 'test'
     };
@@ -258,11 +375,10 @@ describe('Feature Flag Integration', () => {
   it('should show legacy dashboard when flag is disabled', async () => {
     mockClient.isEnabled.mockResolvedValue(false);
 
+    // テスト用コンテキスト（最小限の情報でテスト）
     const context = {
-      userId: 'user-123',
       tenantId: 'tenant-456',
-      userRole: 'admin',
-      environment: 'test'
+      userId: 'user-123'
     };
 
     const isEnabled = await mockClient.isEnabled('new-dashboard', context);
@@ -341,11 +457,14 @@ const isEnabled = await client.isEnabled('new-dashboard', context);
 ```typescript
 // カスタムメトリクス
 client.on('flag-evaluated', (event) => {
-  // 外部メトリクスサービスに送信
+  // 外部メトリクスサービスに送信（必須フィールドのみ使用）
   metrics.increment('feature_flag.evaluations', 1, {
     flag: event.flagKey,
     result: event.result.toString(),
-    tenant: event.context.tenantId
+    tenant: event.context.tenantId, // 必須フィールド
+    // オプショナルフィールドは存在する場合のみ追加
+    ...(event.context.userId && { user: event.context.userId }),
+    ...(event.context.userRole && { role: event.context.userRole })
   });
 });
 ```
