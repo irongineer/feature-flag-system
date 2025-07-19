@@ -1,5 +1,7 @@
 # 🔧 フィーチャーフラグシステム開発者向けドキュメント
 
+> **注意**: このドキュメントは段階的に作成中です。多くのリンク先ファイルが **(準備中)** 状態です。
+
 ## 📋 概要
 
 このセクションでは、フィーチャーフラグシステム自体の開発・改良を行う開発者向けの情報を提供します。
@@ -260,9 +262,11 @@ export class MetricsCollector {
     const metrics = {
       timestamp: Date.now(),
       flagKey,
-      userId: context.userId,
-      tenantId: context.tenantId,
-      environment: context.environment,
+      tenantId: context.tenantId, // 必須フィールド
+      // オプショナルフィールドは存在する場合のみ含める
+      ...(context.userId && { userId: context.userId }),
+      ...(context.environment && { environment: context.environment }),
+      ...(context.userRole && { userRole: context.userRole }),
       variation: result.variationKey,
       reason: result.reason,
       responseTime: result.responseTime,

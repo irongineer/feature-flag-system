@@ -1,5 +1,7 @@
 # CLAUDE.md - フィーチャーフラグシステム開発ガイド
 
+> **注意**: 一部のリンクは準備中です。対象のファイルが存在しない場合は **(準備中)** または **(Coming Soon)** と表示されています。
+
 ## 📋 プロジェクト概要
 
 マルチテナント SaaS 向けのフィーチャーフラグシステム。デプロイとリリースを分離し、安全かつ高速な価値提供を実現。
@@ -239,7 +241,7 @@ const enabled = await evaluator.isEnabled(tenantId, flagKey);
 
 ### プロジェクト内資料
 - `/docs/architecture/` - アーキテクチャ設計
-- `/docs/runbooks/` - 運用手順書
+- `/docs/runbooks/` - 運用手順書 **(準備中)**
 - `/docs/api/` - API仕様書
 
 ## 💡 次のステップ

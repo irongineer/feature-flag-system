@@ -1,5 +1,7 @@
 # 🎯 Feature Flag System
 
+> **注意**: 一部のリンクは準備中です。対象のファイルが存在しない場合は **(準備中)** または **(Coming Soon)** と表示されています。
+
 マルチテナント SaaS 向けのエンタープライズグレード・フィーチャーフラグシステム
 
 [![CI Pipeline](https://github.com/irongineer/feature-flag-system/actions/workflows/ci.yml/badge.svg)](https://github.com/irongineer/feature-flag-system/actions/workflows/ci.yml)
@@ -165,7 +167,7 @@ curl -X POST "https://api.example.com/v1/flags" \
 
 ## 📚 ドキュメント
 
-- [📐 アーキテクチャ設計](./docs/architecture/)
+- [📐 アーキテクチャ設計](./docs/architecture/) **(索引準備中)**
 - [🔄 シーケンス図](./docs/architecture/sequence-diagrams.md)
 - [🏗️ AWS構成図](./docs/architecture/aws-architecture.md)
 - [📋 設計決定記録 (ADR)](./docs/architecture/design-decisions.md)

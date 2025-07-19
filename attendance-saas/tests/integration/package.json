@@ -1,0 +1,22 @@
+{
+  "name": "attendance-saas-integration-tests",
+  "version": "1.0.0",
+  "description": "Integration tests for attendance SaaS with feature flags",
+  "scripts": {
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "supertest": "^6.3.3",
+    "vitest": "^0.34.1"
+  },
+  "devDependencies": {
+    "@types/supertest": "^2.0.12",
+    "@types/node": "^20.4.5",
+    "tsx": "^3.12.7",
+    "typescript": "^5.1.6"
+  },
+  "keywords": ["testing", "integration", "feature-flags", "attendance"],
+  "license": "MIT"
+}
