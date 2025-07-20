@@ -8,8 +8,10 @@ import {
 } from '../models';
 import { FeatureFlagCache } from '../cache';
 import { DynamoDbClient, DynamoDbClientConfig } from './dynamo-client';
+import { DynamoKeyBuilder } from '../constants/dynamo-keys';
+import { ErrorHandler, ErrorHandlingOptions, defaultErrorHandler, StructuredError } from '../types/error-handling';
 
-export interface FeatureFlagEvaluatorOptions {
+export interface FeatureFlagEvaluatorOptions extends ErrorHandlingOptions {
   cache?: FeatureFlagCache;
   dynamoDbClient?: DynamoDbClient;
   dynamoConfig?: DynamoDbClientConfig;
@@ -17,7 +19,7 @@ export interface FeatureFlagEvaluatorOptions {
 }
 
 // 統合テスト用の新しいインターフェース
-export interface FeatureFlagEvaluatorConfig {
+export interface FeatureFlagEvaluatorConfig extends ErrorHandlingOptions {
   cache?: FeatureFlagCache;
   dynamoDbClient: DynamoDbClient;
 }
@@ -25,6 +27,7 @@ export interface FeatureFlagEvaluatorConfig {
 export class FeatureFlagEvaluator {
   private cache: FeatureFlagCache;
   private dynamoDbClient: DynamoDbClient | MockDynamoDbClient;
+  private errorHandler: ErrorHandler;
 
   // 既存コンストラクタ（単体テスト用）
   constructor(options: FeatureFlagEvaluatorOptions);
@@ -32,6 +35,7 @@ export class FeatureFlagEvaluator {
   constructor(config: FeatureFlagEvaluatorConfig);
   constructor(optionsOrConfig: FeatureFlagEvaluatorOptions | FeatureFlagEvaluatorConfig = {}) {
     this.cache = optionsOrConfig.cache || new FeatureFlagCache();
+    this.errorHandler = optionsOrConfig.errorHandler || defaultErrorHandler;
     
     // 新しい形式（FeatureFlagEvaluatorConfig）の場合
     if ('dynamoDbClient' in optionsOrConfig && optionsOrConfig.dynamoDbClient) {
@@ -89,7 +93,14 @@ export class FeatureFlagEvaluator {
       this.cache.set(tenantId, normalizedFlagKey, defaultValue);
       return defaultValue;
     } catch (error) {
-      console.error('FeatureFlag evaluation failed:', error);
+      const errorInfo: StructuredError = {
+        operation: 'feature-flag-evaluation',
+        tenantId: typeof contextOrTenantId === 'string' ? contextOrTenantId : contextOrTenantId.tenantId,
+        flagKey: flagKey as string,
+        error: error as Error,
+        timestamp: new Date().toISOString()
+      };
+      this.errorHandler(errorInfo);
       return this.getFallbackValue(flagKey as FeatureFlagKey);
     }
   }
@@ -106,7 +117,7 @@ export class FeatureFlagEvaluator {
       const flagKillSwitch = await this.dynamoDbClient.getKillSwitch(flagKey);
       return flagKillSwitch && flagKillSwitch.enabled;
     } catch (error) {
-      console.error('Kill-switch check failed:', error);
+      this.errorHandler('Kill-switch check failed:', error as Error);
       return false;
     }
   }
@@ -119,7 +130,14 @@ export class FeatureFlagEvaluator {
       const result = await this.dynamoDbClient.getTenantOverride(tenantId, flagKey);
       return result ? result.enabled : undefined;
     } catch (error) {
-      console.error('Tenant override check failed:', error);
+      const errorInfo: StructuredError = {
+        operation: 'tenant-override-check',
+        tenantId,
+        flagKey,
+        error: error as Error,
+        timestamp: new Date().toISOString()
+      };
+      this.errorHandler(errorInfo);
       return undefined;
     }
   }
@@ -129,7 +147,13 @@ export class FeatureFlagEvaluator {
       const result = await this.dynamoDbClient.getFlag(flagKey);
       return result ? result.defaultEnabled : false;
     } catch (error) {
-      console.error('Default value check failed:', error);
+      const errorInfo: StructuredError = {
+        operation: 'default-value-check',
+        flagKey,
+        error: error as Error,
+        timestamp: new Date().toISOString()
+      };
+      this.errorHandler(errorInfo);
       return this.getFallbackValue(flagKey);
     }
   }
@@ -158,24 +182,23 @@ class MockDynamoDbClient {
   }
 
   async getFlag(flagKey: FeatureFlagKey): Promise<any> {
-    const key = `FLAG#${flagKey}#METADATA`;
+    const key = DynamoKeyBuilder.flagMetadata(flagKey);
     return this.data.get(key);
   }
 
   async getTenantOverride(tenantId: string, flagKey: FeatureFlagKey): Promise<any> {
-    const key = `TENANT#${tenantId}#FLAG#${flagKey}`;
+    const key = DynamoKeyBuilder.tenantFlag(tenantId, flagKey);
     return this.data.get(key);
   }
 
   async getKillSwitch(flagKey?: FeatureFlagKey): Promise<any> {
-    const sk = flagKey ? `FLAG#${flagKey}` : 'GLOBAL';
-    const key = `EMERGENCY#${sk}`;
+    const key = DynamoKeyBuilder.emergencyKey(flagKey);
     return this.data.get(key);
   }
 
   async setKillSwitch(flagKey: FeatureFlagKey | null, enabled: boolean, reason: string, activatedBy: string): Promise<void> {
-    const sk = flagKey ? `FLAG#${flagKey}` : 'GLOBAL';
-    const key = `EMERGENCY#${sk}`;
+    const key = DynamoKeyBuilder.emergencyKey(flagKey || undefined);
+    const sk = flagKey ? DynamoKeyBuilder.emergencyKey(flagKey).split('#').slice(1).join('#') : 'GLOBAL';
     this.data.set(key, {
       PK: 'EMERGENCY',
       SK: sk,
@@ -187,19 +210,19 @@ class MockDynamoDbClient {
   }
 
   async get(params: { TableName: string; Key: { PK: string; SK: string } }): Promise<any> {
-    const key = `${params.Key.PK}#${params.Key.SK}`;
+    const key = DynamoKeyBuilder.compositeKey(params.Key.PK, params.Key.SK);
     return this.data.get(key);
   }
 
   async put(params: { TableName: string; Item: any }): Promise<void> {
-    const key = `${params.Item.PK}#${params.Item.SK}`;
+    const key = DynamoKeyBuilder.compositeKey(params.Item.PK, params.Item.SK);
     this.data.set(key, params.Item);
   }
 
   private seedData(): void {
     // デフォルトフラグ設定
     Object.values(FEATURE_FLAGS).forEach(flagKey => {
-      const key = `FLAG#${flagKey}#METADATA`;
+      const key = DynamoKeyBuilder.flagMetadata(flagKey);
       this.data.set(key, {
         PK: `FLAG#${flagKey}`,
         SK: 'METADATA',
@@ -212,7 +235,8 @@ class MockDynamoDbClient {
     });
 
     // テスト用のテナントオーバーライド
-    this.data.set('TENANT#test-tenant-1#FLAG#billing_v2_enable', {
+    const tenantOverrideKey = DynamoKeyBuilder.tenantFlag('test-tenant-1', 'billing_v2_enable');
+    this.data.set(tenantOverrideKey, {
       PK: 'TENANT#test-tenant-1',
       SK: 'FLAG#billing_v2_enable',
       enabled: true,
