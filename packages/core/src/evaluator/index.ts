@@ -117,7 +117,13 @@ export class FeatureFlagEvaluator {
       const flagKillSwitch = await this.dynamoDbClient.getKillSwitch(flagKey);
       return flagKillSwitch && flagKillSwitch.enabled;
     } catch (error) {
-      this.errorHandler('Kill-switch check failed:', error as Error);
+      const errorInfo: StructuredError = {
+        operation: 'kill-switch-check',
+        flagKey,
+        error: error as Error,
+        timestamp: new Date().toISOString()
+      };
+      this.errorHandler(errorInfo);
       return false;
     }
   }

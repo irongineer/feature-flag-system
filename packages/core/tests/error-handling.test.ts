@@ -50,11 +50,13 @@ describe('Error Handling Improvement Specification', () => {
           // When: Evaluating flag with error scenario
           const result = await evaluatorWithMockClient.isEnabled(context, FEATURE_FLAGS.BILLING_V2);
           
-          // Then: Should use error handler instead of console.error
-          expect(errorHandler).toHaveBeenCalledWith(
-            'Kill-switch check failed:',
-            expect.any(Error)
-          );
+          // Then: Should use error handler with structured error
+          expect(errorHandler).toHaveBeenCalledWith({
+            operation: 'kill-switch-check',
+            flagKey: FEATURE_FLAGS.BILLING_V2,
+            error: expect.any(Error),
+            timestamp: expect.any(String)
+          });
           expect(result).toBe(false); // Safe fallback
         });
       });

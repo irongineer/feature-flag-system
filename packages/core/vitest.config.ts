@@ -17,6 +17,14 @@ export default defineConfig({
         '**/*.d.ts',
         '**/index.ts',
       ],
+      thresholds: {
+        global: {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+      },
     },
     setupFiles: ['tests/setup.ts'],
     testTimeout: 10000,

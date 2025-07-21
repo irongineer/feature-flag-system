@@ -4,6 +4,7 @@ import {
   GetCommand, 
   PutCommand, 
   UpdateCommand, 
+  DeleteCommand,
   QueryCommand, 
   BatchGetCommand, 
   ScanCommand 
@@ -53,8 +54,8 @@ export class DynamoDbClient {
 
       return result.Item as FeatureFlagsTable || null;
     } catch (error) {
-      console.error('Error getting flag:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to get flag: ${message}`);
     }
   }
 
@@ -71,8 +72,8 @@ export class DynamoDbClient {
 
       return result.Item as TenantOverridesTable || null;
     } catch (error) {
-      console.error('Error getting tenant override:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to get tenant override: ${message}`);
     }
   }
 
@@ -90,9 +91,14 @@ export class DynamoDbClient {
 
       return result.Item as EmergencyControlTable || null;
     } catch (error) {
-      console.error('Error getting kill switch:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to get kill switch: ${message}`);
     }
+  }
+
+  // フラグを作成 (createFlagとputFlagのエイリアス)
+  async putFlag(flag: Omit<FeatureFlagsTable, 'PK' | 'SK'>): Promise<void> {
+    return this.createFlag(flag);
   }
 
   // フラグを作成
@@ -116,13 +122,13 @@ export class DynamoDbClient {
         ConditionExpression: 'attribute_not_exists(PK)', // 重複防止
       }));
     } catch (error) {
-      console.error('Error creating flag:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to put flag: ${message}`);
     }
   }
 
   // フラグを更新
-  async updateFlag(flagKey: string, updates: Partial<FeatureFlagsTable>): Promise<void> {
+  async updateFlag(flagKey: string, updates: Partial<FeatureFlagsTable>): Promise<FeatureFlagsTable> {
     try {
       const updateExpression: string[] = [];
       const expressionAttributeNames: { [key: string]: string } = {};
@@ -136,7 +142,7 @@ export class DynamoDbClient {
         }
       });
 
-      await this.dynamoDb.send(new UpdateCommand({
+      const result = await this.dynamoDb.send(new UpdateCommand({
         TableName: this.tableName,
         Key: {
           PK: `FLAG#${flagKey}`,
@@ -146,10 +152,29 @@ export class DynamoDbClient {
         ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues,
         ConditionExpression: 'attribute_exists(PK)', // 存在確認
+        ReturnValues: 'ALL_NEW',
+      }));
+      
+      return result.Attributes as FeatureFlagsTable;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to update flag: ${message}`);
+    }
+  }
+
+  // フラグを削除
+  async deleteFlag(flagKey: string): Promise<void> {
+    try {
+      await this.dynamoDb.send(new DeleteCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: `FLAG#${flagKey}`,
+          SK: 'METADATA',
+        },
       }));
     } catch (error) {
-      console.error('Error updating flag:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to delete flag: ${message}`);
     }
   }
 
@@ -176,8 +201,8 @@ export class DynamoDbClient {
         Item: item,
       }));
     } catch (error) {
-      console.error('Error setting tenant override:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to set tenant override: ${message}`);
     }
   }
 
@@ -204,8 +229,8 @@ export class DynamoDbClient {
         Item: item,
       }));
     } catch (error) {
-      console.error('Error setting kill switch:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to set kill switch: ${message}`);
     }
   }
 
@@ -225,8 +250,8 @@ export class DynamoDbClient {
 
       return result.Items as FeatureFlagsTable[] || [];
     } catch (error) {
-      console.error('Error listing flags:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to list flags: ${message}`);
     }
   }
 
@@ -242,14 +267,14 @@ export class DynamoDbClient {
         },
       }));
 
-      return result.Items as TenantOverridesTable[];
+      return result.Items as TenantOverridesTable[] || [];
     } catch (error) {
-      console.error('Error listing tenant overrides:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to list tenant overrides: ${message}`);
     }
   }
 
-  // バッチ操作用のヘルパー
+  // 複数フラグを一括取得
   async batchGetFlags(flagKeys: string[]): Promise<FeatureFlagsTable[]> {
     try {
       const requestItems = flagKeys.map(flagKey => ({
@@ -267,8 +292,8 @@ export class DynamoDbClient {
 
       return result.Responses?.[this.tableName] as FeatureFlagsTable[] || [];
     } catch (error) {
-      console.error('Error batch getting flags:', error);
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to batch get flags: ${message}`);
     }
   }
 
@@ -282,7 +307,6 @@ export class DynamoDbClient {
       }));
       return true;
     } catch (error) {
-      console.error('DynamoDB health check failed:', error);
       return false;
     }
   }
