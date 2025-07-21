@@ -50,7 +50,9 @@
       "Bash(npx:*)",
       "Bash(git stash:*)",
       "Bash(npm run lint)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(npm run:*)",
+      "Bash(kill:*)"
     ],
     "deny": []
   }
