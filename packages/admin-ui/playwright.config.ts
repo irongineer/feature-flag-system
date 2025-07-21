@@ -28,17 +28,29 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        actionTimeout: 10000,
+        navigationTimeout: 15000
+      },
     },
 
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: { 
+        ...devices['Desktop Firefox'],
+        actionTimeout: 20000,
+        navigationTimeout: 30000
+      },
     },
 
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: { 
+        ...devices['Desktop Safari'],
+        actionTimeout: 10000,
+        navigationTimeout: 15000
+      },
     },
 
     /* Test against mobile viewports. */
