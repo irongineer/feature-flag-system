@@ -26,7 +26,11 @@ const mockDynamoDbClient = vi.fn();
 // モジュールレベルでのモック設定
 vi.mock('@feature-flag/core', () => ({
   FeatureFlagEvaluator: vi.fn().mockImplementation(() => mockEvaluator),
-  DynamoDbClient: mockDynamoDbClient.mockImplementation(() => ({}))
+  DynamoDbClient: mockDynamoDbClient.mockImplementation(() => ({})),
+  FEATURE_FLAGS: {
+    BILLING_V2: 'billing_v2_enable',
+    NEW_DASHBOARD: 'new_dashboard_enable',
+  }
 }));
 
 describe('Feature Flag Evaluation Handler Specification', () => {
@@ -96,14 +100,15 @@ describe('Feature Flag Evaluation Handler Specification', () => {
           expect(response.headers['Access-Control-Allow-Origin']).toBe('*');
 
           const responseBody = JSON.parse(response.body);
-          expect(responseBody).toMatchObject({
+          expect(responseBody.success).toBe(true);
+          expect(responseBody.data).toMatchObject({
             enabled: true,
             flagKey: 'billing_v2_enable',
             tenantId: 'tenant-123',
             source: 'database',
             ttl: 300
           });
-          expect(responseBody.evaluatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+          expect(responseBody.data.evaluatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
         });
       });
 
@@ -140,9 +145,10 @@ describe('Feature Flag Evaluation Handler Specification', () => {
           // Then: Should return success response with flag disabled
           expect(response.statusCode).toBe(200);
           const responseBody = JSON.parse(response.body);
-          expect(responseBody.enabled).toBe(false);
-          expect(responseBody.flagKey).toBe('new_dashboard_enable');
-          expect(responseBody.tenantId).toBe('tenant-456');
+          expect(responseBody.success).toBe(true);
+          expect(responseBody.data.enabled).toBe(false);
+          expect(responseBody.data.flagKey).toBe('new_dashboard_enable');
+          expect(responseBody.data.tenantId).toBe('tenant-456');
         });
       });
     });
@@ -157,7 +163,7 @@ describe('Feature Flag Evaluation Handler Specification', () => {
           const event: APIGatewayProxyEvent = {
             body: JSON.stringify({
               tenantId: 'tenant-789',
-              flagKey: 'advanced_analytics_enable',
+              flagKey: 'billing_v2_enable',
               userId: 'user-456',
               environment: 'production',
               metadata: {
@@ -186,7 +192,7 @@ describe('Feature Flag Evaluation Handler Specification', () => {
 
           // Then: Should process successfully
           expect(response.statusCode).toBe(200);
-          expect(mockEvaluator.isEnabled).toHaveBeenCalledWith('tenant-789', 'advanced_analytics_enable');
+          expect(mockEvaluator.isEnabled).toHaveBeenCalledWith('tenant-789', 'billing_v2_enable');
         });
       });
     });
@@ -226,7 +232,12 @@ describe('Feature Flag Evaluation Handler Specification', () => {
             expect(response.headers['Content-Type']).toBe('application/json');
             
             const responseBody = JSON.parse(response.body);
-            expect(responseBody.error).toBe('tenantId and flagKey are required');
+            expect(responseBody.error.message).toBe('Validation failed');
+            expect(responseBody.error.details.details).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({ field: 'tenantId' })
+              ])
+            );
           });
         });
       });
@@ -261,7 +272,12 @@ describe('Feature Flag Evaluation Handler Specification', () => {
             // Then: Should return validation error
             expect(response.statusCode).toBe(400);
             const responseBody = JSON.parse(response.body);
-            expect(responseBody.error).toBe('tenantId and flagKey are required');
+            expect(responseBody.error.message).toBe('Validation failed');
+            expect(responseBody.error.details.details).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({ field: 'flagKey' })
+              ])
+            );
           });
         });
       });
@@ -294,7 +310,13 @@ describe('Feature Flag Evaluation Handler Specification', () => {
             // Then: Should return validation error
             expect(response.statusCode).toBe(400);
             const responseBody = JSON.parse(response.body);
-            expect(responseBody.error).toBe('tenantId and flagKey are required');
+            expect(responseBody.error.message).toBe('Validation failed');
+            expect(responseBody.error.details.details).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({ field: 'tenantId' }),
+                expect.objectContaining({ field: 'flagKey' })
+              ])
+            );
           });
         });
       });
@@ -331,7 +353,7 @@ describe('Feature Flag Evaluation Handler Specification', () => {
             expect(response.headers['Content-Type']).toBe('application/json');
             
             const responseBody = JSON.parse(response.body);
-            expect(responseBody.error).toBe('Internal server error');
+            expect(responseBody.error.message).toBe('Internal server error');
           });
         });
       });
@@ -364,7 +386,13 @@ describe('Feature Flag Evaluation Handler Specification', () => {
             // Then: Should return validation error for missing parameters
             expect(response.statusCode).toBe(400);
             const responseBody = JSON.parse(response.body);
-            expect(responseBody.error).toBe('tenantId and flagKey are required');
+            expect(responseBody.error.message).toBe('Validation failed');
+            expect(responseBody.error.details.details).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({ field: 'tenantId' }),
+                expect.objectContaining({ field: 'flagKey' })
+              ])
+            );
           });
         });
       });
@@ -407,7 +435,7 @@ describe('Feature Flag Evaluation Handler Specification', () => {
             expect(response.headers['Content-Type']).toBe('application/json');
             
             const responseBody = JSON.parse(response.body);
-            expect(responseBody.error).toBe('Internal server error');
+            expect(responseBody.error.message).toBe('Internal server error');
           });
         });
       });
@@ -483,15 +511,16 @@ describe('Feature Flag Evaluation Handler Specification', () => {
           // Then: Should return response with all required fields
           const responseBody = JSON.parse(response.body);
           
-          expect(typeof responseBody.enabled).toBe('boolean');
-          expect(typeof responseBody.flagKey).toBe('string');
-          expect(typeof responseBody.tenantId).toBe('string');
-          expect(typeof responseBody.evaluatedAt).toBe('string');
-          expect(typeof responseBody.source).toBe('string');
-          expect(typeof responseBody.ttl).toBe('number');
+          expect(responseBody.success).toBe(true);
+          expect(typeof responseBody.data.enabled).toBe('boolean');
+          expect(typeof responseBody.data.flagKey).toBe('string');
+          expect(typeof responseBody.data.tenantId).toBe('string');
+          expect(typeof responseBody.data.evaluatedAt).toBe('string');
+          expect(typeof responseBody.data.source).toBe('string');
+          expect(typeof responseBody.data.ttl).toBe('number');
           
-          expect(responseBody.source).toBe('database');
-          expect(responseBody.ttl).toBe(300);
+          expect(responseBody.data.source).toBe('database');
+          expect(responseBody.data.ttl).toBe(300);
         });
       });
     });

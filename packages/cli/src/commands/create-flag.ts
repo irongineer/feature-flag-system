@@ -59,12 +59,11 @@ export async function createFlag(options: CreateFlagOptions) {
         message: 'Enter expiration date (ISO format, optional):',
         validate: (input) => {
           if (!input) return true;
-          try {
-            new Date(input);
-            return true;
-          } catch {
+          const date = new Date(input);
+          if (isNaN(date.getTime())) {
             return 'Please enter a valid ISO date format';
           }
+          return true;
         },
         when: !options.expires,
       },

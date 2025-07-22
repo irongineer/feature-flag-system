@@ -189,7 +189,7 @@ export class StreamEventParser {
     for (const [key, value] of Object.entries(image)) {
       if (typeof value === 'object' && value !== null) {
         const attr = value as any;
-        if (attr.S) {
+        if (attr.S !== undefined) {
           result[key] = attr.S;
         } else if (attr.N) {
           result[key] = Number(attr.N);

@@ -38,7 +38,7 @@ export async function setTenantOverride(options: SetTenantOverrideOptions) {
         type: 'confirm',
         name: 'enabled',
         message: 'Enable for this tenant:',
-        when: !options.enabled,
+        when: options.enabled === undefined,
       },
       {
         type: 'input',
@@ -51,7 +51,7 @@ export async function setTenantOverride(options: SetTenantOverrideOptions) {
     
     const tenantId = options.tenant || answers.tenant;
     const flagKey = options.key || answers.key;
-    const enabled = options.enabled === 'true' || answers.enabled;
+    const enabled = options.enabled === 'true' || Boolean(answers.enabled);
     const user = options.user || answers.user;
     
     // API呼び出し

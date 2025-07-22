@@ -1,5 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
 import { FeatureFlagEvaluator, DynamoDbClient } from '@feature-flag/core';
+import { validateEvaluationRequest } from '../validators/evaluation';
+import { createErrorResponse, createSuccessResponse } from '../utils/response';
 
 interface EvaluationRequest {
   tenantId: string;
@@ -25,6 +27,7 @@ function getEvaluator(): FeatureFlagEvaluator {
     const dynamoClient = new DynamoDbClient({
       region: process.env.AWS_REGION || 'ap-northeast-1',
       tableName: process.env.FEATURE_FLAGS_TABLE_NAME || 'feature-flags',
+      endpoint: process.env.AWS_ENDPOINT_URL, // DynamoDB Local対応
     });
     evaluator = new FeatureFlagEvaluator({
       dynamoDbClient: dynamoClient,
@@ -41,20 +44,19 @@ export const handler = async (
   
   try {
     const body = JSON.parse(event.body || '{}');
-    const { tenantId, flagKey, userId, environment = 'development', metadata } = body;
     
-    if (!tenantId || !flagKey) {
-      return {
-        statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({
-          error: 'tenantId and flagKey are required'
-        }),
-      };
+    // Joi バリデーション適用 (TDD改善)
+    const { error, value } = validateEvaluationRequest(body);
+    if (error) {
+      return createErrorResponse(400, 'Validation failed', {
+        details: error.details.map(detail => ({
+          field: detail.path.join('.'),
+          message: detail.message,
+        }))
+      });
     }
+    
+    const { tenantId, flagKey, userId, environment = 'development', metadata } = value;
     
     const flagEvaluator = getEvaluator();
     const enabled = await flagEvaluator.isEnabled(tenantId, flagKey);
@@ -68,27 +70,14 @@ export const handler = async (
       ttl: 300, // 5分
     };
     
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(response),
-    };
+    return createSuccessResponse(response);
     
   } catch (error) {
     console.error('Evaluation error:', error);
     
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({
-        error: 'Internal server error'
-      }),
-    };
+    return createErrorResponse(500, 'Internal server error', {
+      timestamp: new Date().toISOString(),
+      requestId: context.awsRequestId,
+    });
   }
 };

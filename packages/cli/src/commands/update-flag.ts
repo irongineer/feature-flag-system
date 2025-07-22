@@ -37,7 +37,7 @@ export async function updateFlag(options: UpdateFlagOptions) {
         type: 'confirm',
         name: 'enabled',
         message: 'New default enabled state:',
-        when: !options.enabled,
+        when: options.enabled === undefined,
       },
       {
         type: 'input',
