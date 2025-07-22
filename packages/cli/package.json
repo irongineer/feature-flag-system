@@ -2,6 +2,7 @@
   "name": "@feature-flag/cli",
   "version": "1.0.0",
   "description": "Feature flag management CLI tool",
+  "license": "MIT",
   "main": "dist/index.js",
   "bin": {
     "feature-flag": "dist/cli.js"
@@ -12,7 +13,7 @@
     "dev": "ts-node src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage --reporter=basic"
   },
   "dependencies": {
     "@feature-flag/core": "file:../core",
