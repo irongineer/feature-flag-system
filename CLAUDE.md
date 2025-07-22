@@ -57,9 +57,12 @@ DELETE /api/flags/:id   # フラグ削除
 
 ### 1Issue1PR原則
 - **必須**: 1つのIssueに対して1つのPR
+- **厳格禁止**: 複数パッケージ・異なる機能の同時変更
+- **PRサイズ**: 200行以下（500行絶対禁止）
 - **マージ**: GitHub PR経由での正式マージのみ
 - **レビュー**: Expert Review必須（2名以上Approve）
 - **DoD**: Definition of Done達成確認
+- **プロセスチェック**: `.claude/process-checklist.md`必須確認
 
 ### Expert Review体制
 #### Eric Evans (DDD観点)
