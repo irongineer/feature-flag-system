@@ -1,12 +1,14 @@
 {
-  "name": "@feature-flag/audit-service",
+  "name": "@feature-flag/audit-service", 
   "version": "1.0.0",
   "description": "Audit logging service for feature flag changes",
+  "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --reporter=basic",
     "dev": "ts-node src/handlers/streams-processor.ts"
   },
   "dependencies": {
@@ -22,6 +24,8 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.0.0",
     "ts-node": "^10.9.0",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "aws-sdk-client-mock": "^4.1.0"
   }
 }
