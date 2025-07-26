@@ -119,14 +119,17 @@ export class AnalyticsEngine {
       timeOfDay[hour] = (timeOfDay[hour] || 0) + 1;
       dayOfWeek[day] = (dayOfWeek[day] || 0) + 1;
 
-      if (record.context.region) {
-        regionalDistribution[record.context.region] = 
-          (regionalDistribution[record.context.region] || 0) + 1;
+      // Note: region and userCohort are not in current FeatureFlagContext interface
+      // These features will be added in future iterations
+      const context = record.context as any;
+      if (context.region) {
+        regionalDistribution[context.region] = 
+          (regionalDistribution[context.region] || 0) + 1;
       }
 
-      if (record.context.userCohort) {
-        userCohorts[record.context.userCohort] = 
-          (userCohorts[record.context.userCohort] || 0) + 1;
+      if (context.userCohort) {
+        userCohorts[context.userCohort] = 
+          (userCohorts[context.userCohort] || 0) + 1;
       }
     }
 
