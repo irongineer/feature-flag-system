@@ -4,4 +4,4 @@ export * from './evaluator';
 export * from './evaluator/dynamo-client';
 export * from './client/http-client';
 export * from './analytics-engine';
-export * from './rollout-engine';
+export * from './rollout';
