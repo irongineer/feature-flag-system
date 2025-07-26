@@ -92,8 +92,11 @@ describe('SDK HTTP Client Integration Tests', () => {
     describe('GIVEN server errors (5xx)', () => {
       describe('WHEN API returns temporary failures', () => {
         it('THEN retries with exponential backoff', async () => {
-          // Given: リトライロジック設定
-          vi.useFakeTimers();
+          // Given: 短いリトライ遅延でテスト高速化
+          const fastRetryClient = new HttpClient({
+            ...config,
+            retryDelay: 1, // 1ms で非常に高速
+          });
           
           const request: EvaluationRequest = {
             tenantId: 'tenant-123',
@@ -118,13 +121,7 @@ describe('SDK HTTP Client Integration Tests', () => {
             });
 
           // When: リトライが必要なリクエスト実行
-          const evaluatePromise = httpClient.evaluateFlag(request);
-          
-          // リトライ待機時間を進める
-          await vi.advanceTimersByTimeAsync(100); // 1回目リトライ
-          await vi.advanceTimersByTimeAsync(200); // 2回目リトライ
-
-          const result = await evaluatePromise;
+          const result = await fastRetryClient.evaluateFlag(request);
 
           // Then: 3回試行して成功
           expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -132,8 +129,11 @@ describe('SDK HTTP Client Integration Tests', () => {
         });
 
         it('THEN fails after max retry attempts', async () => {
-          // Given: すべてのリトライが失敗するシナリオ
-          vi.useFakeTimers();
+          // Given: 短いリトライ遅延でテスト高速化
+          const fastRetryClient = new HttpClient({
+            ...config,
+            retryDelay: 1, // 1ms で非常に高速
+          });
 
           mockFetch.mockResolvedValue({
             ok: false,
@@ -141,19 +141,14 @@ describe('SDK HTTP Client Integration Tests', () => {
             statusText: 'Internal Server Error',
           });
 
-          // When: 最大リトライ数を超えるエラー
-          const evaluatePromise = httpClient.evaluateFlag({
-            tenantId: 'tenant-123',
-            flagKey: FEATURE_FLAGS.BILLING_V2,
-          });
-
-          // リトライ待機時間を進める
-          await vi.advanceTimersByTimeAsync(100);
-          await vi.advanceTimersByTimeAsync(200);
-          await vi.advanceTimersByTimeAsync(300);
-
-          // Then: エラーがスローされる
-          await expect(evaluatePromise).rejects.toThrow('Server error: 500 Internal Server Error');
+          // When & Then: 最大リトライ数を超えるエラー
+          await expect(
+            fastRetryClient.evaluateFlag({
+              tenantId: 'tenant-123',
+              flagKey: FEATURE_FLAGS.BILLING_V2,
+            })
+          ).rejects.toThrow('Server error: 500 Internal Server Error');
+          
           expect(mockFetch).toHaveBeenCalledTimes(3);
         });
       });
