@@ -14,8 +14,19 @@ import {
   TenantOverridesTable, 
   EmergencyControlTable 
 } from '../models';
+import {
+  createStructuredError,
+  enhancedErrorHandler,
+  isResourceNotFound,
+  isConditionalCheckFailed,
+  isValidationError,
+  isThrottlingError,
+  isRetryableError,
+  ErrorHandler,
+  ErrorHandlingOptions
+} from '../types/error-handling';
 
-export interface DynamoDbClientConfig {
+export interface DynamoDbClientConfig extends ErrorHandlingOptions {
   region?: string;
   tableName: string;
   endpoint?: string; // ローカル開発用
@@ -24,6 +35,7 @@ export interface DynamoDbClientConfig {
 export class DynamoDbClient {
   private dynamoDb: DynamoDBDocumentClient;
   private tableName: string;
+  private errorHandler: ErrorHandler;
 
   constructor(config: DynamoDbClientConfig) {
     const dynamoConfig: DynamoDBClientConfig = {
@@ -38,6 +50,34 @@ export class DynamoDbClient {
     const client = new DynamoDBClient(dynamoConfig);
     this.dynamoDb = DynamoDBDocumentClient.from(client);
     this.tableName = config.tableName;
+    
+    // エラーハンドラーの設定
+    this.errorHandler = config.errorHandler || enhancedErrorHandler;
+  }
+
+  /**
+   * 構造化エラーハンドリング用のヘルパーメソッド
+   */
+  private handleError(operation: string, error: unknown, context?: { tenantId?: string; flagKey?: string; [key: string]: any }): never {
+    const structuredError = createStructuredError(operation, error, context);
+    this.errorHandler(structuredError);
+    
+    // ビジネスロジック向けエラー分類
+    if (isResourceNotFound(error)) {
+      throw new Error(`Resource not found: ${context?.flagKey || 'unknown resource'}`);
+    }
+    if (isConditionalCheckFailed(error)) {
+      throw new Error(`Condition check failed: Resource already exists or has been modified`);
+    }
+    if (isValidationError(error)) {
+      throw new Error(`Validation error: Invalid request parameters`);
+    }
+    if (isThrottlingError(error)) {
+      throw new Error(`Service temporarily unavailable: Request rate exceeded`);
+    }
+    
+    // 一般的なエラー
+    throw error;
   }
 
   // フラグのデフォルト値を取得
@@ -53,8 +93,7 @@ export class DynamoDbClient {
 
       return result.Item as FeatureFlagsTable || null;
     } catch (error) {
-      console.error('Error getting flag:', error);
-      throw error;
+      this.handleError('getFlag', error, { flagKey });
     }
   }
 
@@ -71,8 +110,7 @@ export class DynamoDbClient {
 
       return result.Item as TenantOverridesTable || null;
     } catch (error) {
-      console.error('Error getting tenant override:', error);
-      throw error;
+      this.handleError('getTenantOverride', error, { tenantId, flagKey });
     }
   }
 
@@ -90,8 +128,7 @@ export class DynamoDbClient {
 
       return result.Item as EmergencyControlTable || null;
     } catch (error) {
-      console.error('Error getting kill switch:', error);
-      throw error;
+      this.handleError('getKillSwitch', error, { flagKey });
     }
   }
 
@@ -116,8 +153,7 @@ export class DynamoDbClient {
         ConditionExpression: 'attribute_not_exists(PK)', // 重複防止
       }));
     } catch (error) {
-      console.error('Error creating flag:', error);
-      throw error;
+      this.handleError('createFlag', error, { flagKey: flag.flagKey });
     }
   }
 
@@ -148,8 +184,7 @@ export class DynamoDbClient {
         ConditionExpression: 'attribute_exists(PK)', // 存在確認
       }));
     } catch (error) {
-      console.error('Error updating flag:', error);
-      throw error;
+      this.handleError('updateFlag', error, { flagKey });
     }
   }
 
@@ -176,8 +211,7 @@ export class DynamoDbClient {
         Item: item,
       }));
     } catch (error) {
-      console.error('Error setting tenant override:', error);
-      throw error;
+      this.handleError('setTenantOverride', error, { tenantId, flagKey });
     }
   }
 
@@ -204,8 +238,7 @@ export class DynamoDbClient {
         Item: item,
       }));
     } catch (error) {
-      console.error('Error setting kill switch:', error);
-      throw error;
+      this.handleError('setKillSwitch', error, { flagKey: flagKey || undefined });
     }
   }
 
@@ -225,8 +258,7 @@ export class DynamoDbClient {
 
       return result.Items as FeatureFlagsTable[] || [];
     } catch (error) {
-      console.error('Error listing flags:', error);
-      throw error;
+      this.handleError('listFlags', error);
     }
   }
 
@@ -244,8 +276,7 @@ export class DynamoDbClient {
 
       return result.Items as TenantOverridesTable[];
     } catch (error) {
-      console.error('Error listing tenant overrides:', error);
-      throw error;
+      this.handleError('listTenantOverrides', error, { tenantId });
     }
   }
 
@@ -267,8 +298,7 @@ export class DynamoDbClient {
 
       return result.Responses?.[this.tableName] as FeatureFlagsTable[] || [];
     } catch (error) {
-      console.error('Error batch getting flags:', error);
-      throw error;
+      this.handleError('batchGetFlags', error, { flagKeys });
     }
   }
 
@@ -282,7 +312,9 @@ export class DynamoDbClient {
       }));
       return true;
     } catch (error) {
-      console.error('DynamoDB health check failed:', error);
+      // ヘルスチェックではエラーログだけ出力し、falseを返す
+      const structuredError = createStructuredError('healthCheck', error);
+      this.errorHandler(structuredError);
       return false;
     }
   }
