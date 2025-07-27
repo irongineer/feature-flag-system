@@ -36,6 +36,7 @@ describe('DynamoDbClient Error Handling Integration', () => {
     errorHandlerSpy = vi.fn();
     
     client = new DynamoDbClient({
+      environment: 'development',
       region: 'ap-northeast-1',
       tableName: 'test-table',
       errorHandler: errorHandlerSpy

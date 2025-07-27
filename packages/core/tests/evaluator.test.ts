@@ -29,7 +29,8 @@ describe('FeatureFlagEvaluator Specification', () => {
   };
 
   const minimalContext: FeatureFlagContext = {
-    tenantId: 'tenant-123'
+    tenantId: 'tenant-123',
+    environment: 'development'
   };
 
   const tenantWithOverride: FeatureFlagContext = {
@@ -40,7 +41,10 @@ describe('FeatureFlagEvaluator Specification', () => {
 
   beforeEach(() => {
     cache = new FeatureFlagCache({ ttl: 300 });
-    evaluator = new FeatureFlagEvaluator({ cache });
+    evaluator = new FeatureFlagEvaluator({ 
+      cache,
+      environment: 'development' // Match the environment in test contexts
+    });
   });
 
   afterEach(() => {
