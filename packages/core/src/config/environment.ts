@@ -45,7 +45,20 @@ const DEFAULT_CONFIGS: Record<Environment, EnvironmentConfig> = {
  * 環境固有設定を取得
  */
 export function getEnvironmentConfig(environment: Environment): EnvironmentConfig {
+  // 環境パラメータの検証
+  if (!environment) {
+    throw new Error('Environment parameter is required for getEnvironmentConfig');
+  }
+  
+  // 有効な環境値かチェック
+  if (!Object.values(ENVIRONMENTS).includes(environment)) {
+    throw new Error(`Invalid environment: ${environment}. Must be one of: ${Object.values(ENVIRONMENTS).join(', ')}`);
+  }
+  
   const baseConfig = DEFAULT_CONFIGS[environment];
+  if (!baseConfig) {
+    throw new Error(`No configuration found for environment: ${environment}`);
+  }
   
   // 環境変数による設定上書き
   const config: EnvironmentConfig = {

@@ -229,6 +229,7 @@ describe('DynamoDbClient Error Handling Integration', () => {
   describe('Custom Error Handler Configuration', () => {
     it('should use default enhanced error handler when not specified', () => {
       const defaultClient = new DynamoDbClient({
+        environment: 'development',
         region: 'ap-northeast-1',
         tableName: 'test-table'
       });
@@ -239,6 +240,7 @@ describe('DynamoDbClient Error Handling Integration', () => {
 
     it('should use silent error handler in test environment', async () => {
       const silentClient = new DynamoDbClient({
+        environment: 'development',
         region: 'ap-northeast-1',
         tableName: 'test-table',
         errorHandler: silentErrorHandler
