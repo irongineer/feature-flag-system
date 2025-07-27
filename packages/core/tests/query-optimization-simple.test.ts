@@ -27,6 +27,7 @@ describe('DynamoDB Query Optimization', () => {
     mockSend.mockClear();
     
     client = new DynamoDbClient({
+      environment: 'development',
       region: 'ap-northeast-1',
       tableName: 'test-table',
       errorHandler: silentErrorHandler

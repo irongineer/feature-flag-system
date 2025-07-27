@@ -4,17 +4,21 @@ import {
   FeatureFlagsTable, 
   TenantOverridesTable, 
   EmergencyControlTable,
-  FEATURE_FLAGS 
+  FEATURE_FLAGS,
+  Environment,
+  ENVIRONMENTS 
 } from '../models';
 import { FeatureFlagCache } from '../cache';
 import { DynamoDbClient, DynamoDbClientConfig } from './dynamo-client';
 import { DynamoKeyBuilder } from '../constants/dynamo-keys';
 import { ErrorHandler, ErrorHandlingOptions, defaultErrorHandler, StructuredError } from '../types/error-handling';
+import { getCurrentEnvironment, debugLog } from '../config/environment';
 
 export interface FeatureFlagEvaluatorOptions extends ErrorHandlingOptions {
   cache?: FeatureFlagCache;
   dynamoDbClient?: DynamoDbClient;
   dynamoConfig?: DynamoDbClientConfig;
+  environment?: Environment; // 環境指定の追加
   useMock?: boolean;
 }
 
@@ -22,12 +26,14 @@ export interface FeatureFlagEvaluatorOptions extends ErrorHandlingOptions {
 export interface FeatureFlagEvaluatorConfig extends ErrorHandlingOptions {
   cache?: FeatureFlagCache;
   dynamoDbClient: DynamoDbClient;
+  environment?: Environment; // 環境指定の追加
 }
 
 export class FeatureFlagEvaluator {
   private cache: FeatureFlagCache;
   private dynamoDbClient: DynamoDbClient | MockDynamoDbClient;
   private errorHandler: ErrorHandler;
+  private environment: Environment;
 
   // 既存コンストラクタ（単体テスト用）
   constructor(options: FeatureFlagEvaluatorOptions);
@@ -36,6 +42,9 @@ export class FeatureFlagEvaluator {
   constructor(optionsOrConfig: FeatureFlagEvaluatorOptions | FeatureFlagEvaluatorConfig = {}) {
     this.cache = optionsOrConfig.cache || new FeatureFlagCache();
     this.errorHandler = optionsOrConfig.errorHandler || defaultErrorHandler;
+    this.environment = optionsOrConfig.environment || getCurrentEnvironment();
+    
+    debugLog(this.environment, 'FeatureFlagEvaluator initialized', { environment: this.environment });
     
     // 新しい形式（FeatureFlagEvaluatorConfig）の場合
     if ('dynamoDbClient' in optionsOrConfig && optionsOrConfig.dynamoDbClient) {
@@ -47,10 +56,12 @@ export class FeatureFlagEvaluator {
       if (options.dynamoDbClient) {
         this.dynamoDbClient = options.dynamoDbClient;
       } else if (options.dynamoConfig) {
-        this.dynamoDbClient = new DynamoDbClient(options.dynamoConfig);
+        // 環境情報をDynamoDbClientに渡す
+        const configWithEnv = { ...options.dynamoConfig, environment: this.environment };
+        this.dynamoDbClient = new DynamoDbClient(configWithEnv);
       } else {
         // デフォルト: モック実装
-        this.dynamoDbClient = new MockDynamoDbClient();
+        this.dynamoDbClient = new MockDynamoDbClient(this.environment);
       }
     }
   }
@@ -63,21 +74,39 @@ export class FeatureFlagEvaluator {
     contextOrTenantId: FeatureFlagContext | string,
     flagKey: FeatureFlagKey | string
   ): Promise<boolean> {
+    // パラメータの正規化と環境情報の取得
+    let tenantId: string;
+    let environment: Environment;
+    
+    if (typeof contextOrTenantId === 'string') {
+      tenantId = contextOrTenantId;
+      environment = this.environment; // デフォルト環境
+    } else {
+      tenantId = contextOrTenantId.tenantId;
+      environment = contextOrTenantId.environment || this.environment;
+    }
+    
+    const normalizedFlagKey = flagKey as FeatureFlagKey;
+    
+    // 環境が一致しない場合はエラー（try-catchの外で検証）
+    if (environment !== this.environment) {
+      throw new Error(`Environment mismatch: evaluator is configured for ${this.environment}, but context specifies ${environment}`);
+    }
+    
+    debugLog(environment, `Evaluating flag: ${normalizedFlagKey}`, { tenantId, environment });
+
     try {
-      // パラメータの正規化
-      const tenantId = typeof contextOrTenantId === 'string' 
-        ? contextOrTenantId 
-        : contextOrTenantId.tenantId;
-      const normalizedFlagKey = flagKey as FeatureFlagKey;
 
       // 1. Kill-Switch チェック
       if (await this.checkKillSwitch(normalizedFlagKey)) {
+        debugLog(environment, `Kill-switch activated for flag: ${normalizedFlagKey}`);
         return false;
       }
 
       // 2. キャッシュチェック
       const cached = this.cache.get(tenantId, normalizedFlagKey);
       if (cached !== undefined) {
+        debugLog(environment, `Cache hit for flag: ${normalizedFlagKey}`, { value: cached });
         return cached;
       }
 
@@ -85,18 +114,21 @@ export class FeatureFlagEvaluator {
       const tenantOverride = await this.getTenantOverride(tenantId, normalizedFlagKey);
       if (tenantOverride !== undefined) {
         this.cache.set(tenantId, normalizedFlagKey, tenantOverride);
+        debugLog(environment, `Tenant override found for flag: ${normalizedFlagKey}`, { value: tenantOverride });
         return tenantOverride;
       }
 
       // 4. デフォルト値取得
       const defaultValue = await this.getDefaultValue(normalizedFlagKey);
       this.cache.set(tenantId, normalizedFlagKey, defaultValue);
+      debugLog(environment, `Default value used for flag: ${normalizedFlagKey}`, { value: defaultValue });
       return defaultValue;
     } catch (error) {
       const errorInfo: StructuredError = {
         operation: 'feature-flag-evaluation',
         tenantId: typeof contextOrTenantId === 'string' ? contextOrTenantId : contextOrTenantId.tenantId,
         flagKey: flagKey as string,
+        environment: typeof contextOrTenantId === 'string' ? this.environment : (contextOrTenantId.environment || this.environment),
         error: error as Error,
         timestamp: new Date().toISOString()
       };
@@ -175,34 +207,52 @@ export class FeatureFlagEvaluator {
 // モック実装（ローカル開発用）
 class MockDynamoDbClient {
   private data: Map<string, any>;
+  private environment: Environment;
 
-  constructor() {
+  constructor(environment: Environment = ENVIRONMENTS.DEVELOPMENT) {
+    this.environment = environment;
     this.data = new Map();
     this.seedData();
   }
 
   async getFlag(flagKey: FeatureFlagKey): Promise<any> {
     const key = DynamoKeyBuilder.flagMetadata(flagKey);
-    return this.data.get(key);
+    const item = this.data.get(key);
+    // 環境が一致するものを返す
+    if (item && item.PK.includes(`#${this.environment}#`)) {
+      return item;
+    }
+    return null;
   }
 
   async getTenantOverride(tenantId: string, flagKey: FeatureFlagKey): Promise<any> {
     const key = DynamoKeyBuilder.tenantFlag(tenantId, flagKey);
-    return this.data.get(key);
+    const item = this.data.get(key);
+    // 環境が一致するものを返す
+    if (item && item.PK.includes(`#${this.environment}#`)) {
+      return item;
+    }
+    return null;
   }
 
   async getKillSwitch(flagKey?: FeatureFlagKey): Promise<any> {
     const key = DynamoKeyBuilder.emergencyKey(flagKey);
-    return this.data.get(key);
+    const item = this.data.get(key);
+    // 環境が一致するものを返す
+    if (item && item.PK.includes(`#${this.environment}`)) {
+      return item;
+    }
+    return null;
   }
 
   async setKillSwitch(flagKey: FeatureFlagKey | null, enabled: boolean, reason: string, activatedBy: string): Promise<void> {
     const key = DynamoKeyBuilder.emergencyKey(flagKey || undefined);
-    const sk = flagKey ? DynamoKeyBuilder.emergencyKey(flagKey).split('#').slice(1).join('#') : 'GLOBAL';
+    const sk = flagKey ? `FLAG#${flagKey}` : 'GLOBAL';
     this.data.set(key, {
-      PK: 'EMERGENCY',
+      PK: `EMERGENCY#${this.environment}`,
       SK: sk,
       enabled,
+      environment: this.environment,
       reason,
       activatedAt: new Date().toISOString(),
       activatedBy,
@@ -220,26 +270,28 @@ class MockDynamoDbClient {
   }
 
   private seedData(): void {
-    // デフォルトフラグ設定
+    // デフォルトフラグ設定（環境分離対応）
     Object.values(FEATURE_FLAGS).forEach(flagKey => {
       const key = DynamoKeyBuilder.flagMetadata(flagKey);
       this.data.set(key, {
-        PK: `FLAG#${flagKey}`,
+        PK: `FLAG#${this.environment}#${flagKey}`,
         SK: 'METADATA',
         flagKey,
-        description: `Feature flag for ${flagKey}`,
+        description: `Feature flag for ${flagKey} in ${this.environment}`,
         defaultEnabled: false,
         owner: 'system',
+        environment: this.environment,
         createdAt: new Date().toISOString(),
       });
     });
 
-    // テスト用のテナントオーバーライド
+    // テスト用のテナントオーバーライド（環境分離対応）
     const tenantOverrideKey = DynamoKeyBuilder.tenantFlag('test-tenant-1', 'billing_v2_enable');
     this.data.set(tenantOverrideKey, {
-      PK: 'TENANT#test-tenant-1',
+      PK: `TENANT#${this.environment}#test-tenant-1`,
       SK: 'FLAG#billing_v2_enable',
       enabled: true,
+      environment: this.environment,
       updatedAt: new Date().toISOString(),
       updatedBy: 'admin',
     });
