@@ -26,18 +26,27 @@ export class DatabaseStack extends cdk.Stack {
 
     // GSI1: 有効期限でのクエリ用
     this.featureFlagsTable.addGlobalSecondaryIndex({
-      indexName: 'GSI1',
+      indexName: 'GSI1-EXPIRES-INDEX',
       partitionKey: { name: 'GSI1PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'GSI1SK', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
-    // GSI2: フラグ別のテナント一覧用
+    // GSI2: オーナー別フラグ一覧用 (Query最適化)
     this.featureFlagsTable.addGlobalSecondaryIndex({
-      indexName: 'GSI2',
+      indexName: 'GSI2-OWNER-INDEX',
       partitionKey: { name: 'GSI2PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'GSI2SK', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // GSI3: 全フラグ一覧効率化用 (Scan代替)
+    this.featureFlagsTable.addGlobalSecondaryIndex({
+      indexName: 'GSI3-FLAGS-INDEX',
+      partitionKey: { name: 'GSI3PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'GSI3SK', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.INCLUDE,
+      nonKeyAttributes: ['flagKey', 'description', 'defaultEnabled', 'owner', 'createdAt', 'expiresAt'],
     });
 
     // 監査ログテーブル

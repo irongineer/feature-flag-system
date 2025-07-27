@@ -147,6 +147,16 @@ export class DynamoDbClient {
         item.GSI1SK = flag.expiresAt;
       }
 
+      // GSI2: オーナー別フラグ一覧用
+      if (flag.owner) {
+        item.GSI2PK = `OWNER#${flag.owner}`;
+        item.GSI2SK = `FLAG#${flag.flagKey}`;
+      }
+
+      // GSI3: 全フラグ一覧効率化用
+      item.GSI3PK = 'FLAGS';
+      item.GSI3SK = `METADATA#${flag.createdAt}`;
+
       await this.dynamoDb.send(new PutCommand({
         TableName: this.tableName,
         Item: item,
@@ -171,6 +181,24 @@ export class DynamoDbClient {
           expressionAttributeValues[`:${key}`] = value;
         }
       });
+
+      // GSI2キーの更新（オーナーが変更された場合）
+      if (updates.owner) {
+        updateExpression.push('#GSI2PK = :gsi2pk', '#GSI2SK = :gsi2sk');
+        expressionAttributeNames['#GSI2PK'] = 'GSI2PK';
+        expressionAttributeNames['#GSI2SK'] = 'GSI2SK';
+        expressionAttributeValues[':gsi2pk'] = `OWNER#${updates.owner}`;
+        expressionAttributeValues[':gsi2sk'] = `FLAG#${flagKey}`;
+      }
+
+      // GSI1キーの更新（有効期限が変更された場合）
+      if (updates.expiresAt) {
+        updateExpression.push('#GSI1PK = :gsi1pk', '#GSI1SK = :gsi1sk');
+        expressionAttributeNames['#GSI1PK'] = 'GSI1PK';
+        expressionAttributeNames['#GSI1SK'] = 'GSI1SK';
+        expressionAttributeValues[':gsi1pk'] = 'EXPIRES';
+        expressionAttributeValues[':gsi1sk'] = updates.expiresAt;
+      }
 
       await this.dynamoDb.send(new UpdateCommand({
         TableName: this.tableName,
@@ -242,10 +270,48 @@ export class DynamoDbClient {
     }
   }
 
-  // フラグ一覧を取得
+  // フラグ一覧を取得 (GSI3 Query最適化)
   async listFlags(): Promise<FeatureFlagsTable[]> {
     try {
-      // TODO: Issue #29でQuery最適化予定。現在はScanで動作確保
+      const result = await this.dynamoDb.send(new QueryCommand({
+        TableName: this.tableName,
+        IndexName: 'GSI3-FLAGS-INDEX',
+        KeyConditionExpression: 'GSI3PK = :gsi3pk',
+        ExpressionAttributeValues: {
+          ':gsi3pk': 'FLAGS',
+        },
+        ProjectionExpression: 'flagKey, description, defaultEnabled, owner, createdAt, expiresAt',
+        ScanIndexForward: false, // 新しいフラグから順に取得
+      }));
+
+      return result.Items as FeatureFlagsTable[] || [];
+    } catch (error) {
+      this.handleError('listFlags', error);
+    }
+  }
+
+  // オーナー別フラグ一覧を取得 (GSI2 Query最適化)
+  async listFlagsByOwner(owner: string): Promise<FeatureFlagsTable[]> {
+    try {
+      const result = await this.dynamoDb.send(new QueryCommand({
+        TableName: this.tableName,
+        IndexName: 'GSI2-OWNER-INDEX',
+        KeyConditionExpression: 'GSI2PK = :gsi2pk',
+        ExpressionAttributeValues: {
+          ':gsi2pk': `OWNER#${owner}`,
+        },
+        ProjectionExpression: 'flagKey, description, defaultEnabled, owner, createdAt, expiresAt',
+      }));
+
+      return result.Items as FeatureFlagsTable[] || [];
+    } catch (error) {
+      this.handleError('listFlagsByOwner', error, { owner });
+    }
+  }
+
+  // 従来のScan方式（フォールバック用）
+  async listFlagsWithScan(): Promise<FeatureFlagsTable[]> {
+    try {
       const result = await this.dynamoDb.send(new ScanCommand({
         TableName: this.tableName,
         FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
@@ -258,7 +324,7 @@ export class DynamoDbClient {
 
       return result.Items as FeatureFlagsTable[] || [];
     } catch (error) {
-      this.handleError('listFlags', error);
+      this.handleError('listFlagsWithScan', error);
     }
   }
 

@@ -11,6 +11,14 @@ export interface FeatureFlagsTable {
   // GSI1: 有効期限でのクエリ用
   GSI1PK?: string; // "EXPIRES"
   GSI1SK?: string; // expiresAt
+  
+  // GSI2: オーナー別フラグ一覧用
+  GSI2PK?: string; // "OWNER#${owner}"
+  GSI2SK?: string; // "FLAG#${flagKey}"
+  
+  // GSI3: 全フラグ一覧効率化用 (Scan代替)
+  GSI3PK?: string; // "FLAGS"
+  GSI3SK?: string; // "METADATA#${createdAt}"
 }
 
 export interface TenantOverridesTable {
