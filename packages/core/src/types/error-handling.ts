@@ -27,6 +27,7 @@ export interface StructuredError {
   operation: string;
   tenantId?: string;
   flagKey?: string;
+  environment?: string; // 環境情報を追加
   error: Error;
   timestamp?: string;
   context?: Record<string, any>;
@@ -89,7 +90,7 @@ export function isClientError(error: unknown): boolean {
 export function createStructuredError(
   operation: string,
   error: unknown,
-  context?: { tenantId?: string; flagKey?: string; [key: string]: any }
+  context?: { tenantId?: string; flagKey?: string; environment?: string; [key: string]: any }
 ): StructuredError {
   const err = error as AWSError;
   
@@ -97,6 +98,7 @@ export function createStructuredError(
     operation,
     tenantId: context?.tenantId,
     flagKey: context?.flagKey,
+    environment: context?.environment,
     error: err,
     timestamp: new Date().toISOString(),
     context,
