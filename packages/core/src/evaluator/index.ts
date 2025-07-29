@@ -252,21 +252,27 @@ export class FeatureFlagEvaluator {
       // 3. テナント別オーバーライドチェック
       const tenantOverride = await this.getTenantOverride(context.tenantId, flagKey);
       if (tenantOverride !== undefined) {
-        // ロールアウト設定がある場合は、オーバーライドが有効でもロールアウト判定を行う
-        if (rolloutConfig && tenantOverride) {
-          const rolloutResult = await this.rolloutEngine.evaluateRollout(context, flagKey, rolloutConfig);
-          const finalResult = tenantOverride && rolloutResult;
-          
-          if (!rolloutConfig) { // ロールアウト設定がない場合のみキャッシュ
-            this.cache.set(context.tenantId, flagKey, finalResult);
+        // ロールアウト設定がある場合の優先順位を明確化
+        if (rolloutConfig && tenantOverride !== undefined) {
+          // 仕様: テナントオーバーライドが無効(false)の場合は常にfalseを返す
+          // テナントオーバーライドが有効(true)の場合のみロールアウト判定を適用
+          if (!tenantOverride) {
+            debugLog(environment, `Tenant override disabled for flag: ${flagKey}`, { 
+              tenantOverride, 
+              finalResult: false 
+            });
+            return false;
           }
+          
+          // テナントオーバーライドが有効な場合、ロールアウト制御を適用
+          const rolloutResult = await this.rolloutEngine.evaluateRollout(context, flagKey, rolloutConfig);
           
           debugLog(environment, `Tenant override with rollout for flag: ${flagKey}`, { 
             tenantOverride, 
             rolloutResult, 
-            finalResult 
+            finalResult: rolloutResult 
           });
-          return finalResult;
+          return rolloutResult;
         } else {
           // ロールアウト設定がない場合は通常通り
           if (!rolloutConfig) {
