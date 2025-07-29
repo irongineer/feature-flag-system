@@ -13,6 +13,7 @@ import { DynamoDbClient, DynamoDbClientConfig } from './dynamo-client';
 import { DynamoKeyBuilder } from '../constants/dynamo-keys';
 import { ErrorHandler, ErrorHandlingOptions, defaultErrorHandler, StructuredError } from '../types/error-handling';
 import { getCurrentEnvironment, debugLog } from '../config/environment';
+import { RolloutEngine, RolloutConfig, RolloutContext } from '../rollout';
 
 export interface FeatureFlagEvaluatorOptions extends ErrorHandlingOptions {
   cache?: FeatureFlagCache;
@@ -20,6 +21,7 @@ export interface FeatureFlagEvaluatorOptions extends ErrorHandlingOptions {
   dynamoConfig?: DynamoDbClientConfig;
   environment?: Environment; // 環境指定の追加
   useMock?: boolean;
+  rolloutEngine?: RolloutEngine; // 段階的ロールアウトエンジン
 }
 
 // 統合テスト用の新しいインターフェース
@@ -27,6 +29,7 @@ export interface FeatureFlagEvaluatorConfig extends ErrorHandlingOptions {
   cache?: FeatureFlagCache;
   dynamoDbClient: DynamoDbClient;
   environment?: Environment; // 環境指定の追加
+  rolloutEngine?: RolloutEngine; // 段階的ロールアウトエンジン
 }
 
 export class FeatureFlagEvaluator {
@@ -34,6 +37,7 @@ export class FeatureFlagEvaluator {
   private dynamoDbClient: DynamoDbClient | MockDynamoDbClient;
   private errorHandler: ErrorHandler;
   private environment: Environment;
+  private rolloutEngine: RolloutEngine;
 
   // 既存コンストラクタ（単体テスト用）
   constructor(options: FeatureFlagEvaluatorOptions);
@@ -43,6 +47,7 @@ export class FeatureFlagEvaluator {
     this.cache = optionsOrConfig.cache || new FeatureFlagCache();
     this.errorHandler = optionsOrConfig.errorHandler || defaultErrorHandler;
     this.environment = optionsOrConfig.environment || getCurrentEnvironment();
+    this.rolloutEngine = optionsOrConfig.rolloutEngine || new RolloutEngine();
     
     debugLog(this.environment, 'FeatureFlagEvaluator initialized', { environment: this.environment });
     
@@ -201,6 +206,112 @@ export class FeatureFlagEvaluator {
 
   async invalidateAllCache(): Promise<void> {
     this.cache.invalidateAll();
+  }
+
+  /**
+   * 段階的ロールアウト対応のフラグ評価
+   * 
+   * @param context ロールアウト対応のコンテキスト
+   * @param flagKey フラグキー
+   * @param rolloutConfig ロールアウト設定（オプショナル）
+   * @returns フラグの有効性
+   */
+  async isEnabledWithRollout(
+    context: RolloutContext,
+    flagKey: FeatureFlagKey,
+    rolloutConfig?: RolloutConfig
+  ): Promise<boolean> {
+    // 環境が一致しない場合はエラー
+    const environment = context.environment || this.environment;
+    if (environment !== this.environment) {
+      throw new Error(`Environment mismatch: evaluator is configured for ${this.environment}, but context specifies ${environment}`);
+    }
+
+    debugLog(environment, 'Evaluating flag with rollout', { 
+      tenantId: context.tenantId, 
+      flagKey, 
+      hasRolloutConfig: !!rolloutConfig 
+    });
+
+    try {
+      // 1. Kill-Switch チェック（ロールアウトより優先）
+      if (await this.checkKillSwitch(flagKey)) {
+        debugLog(environment, `Kill-switch activated for flag: ${flagKey}`);
+        return false;
+      }
+
+      // 2. キャッシュチェック（ロールアウト設定がない場合のみ）
+      if (!rolloutConfig) {
+        const cached = this.cache.get(context.tenantId, flagKey);
+        if (cached !== undefined) {
+          debugLog(environment, `Cache hit for flag: ${flagKey}`, { value: cached });
+          return cached;
+        }
+      }
+
+      // 3. テナント別オーバーライドチェック
+      const tenantOverride = await this.getTenantOverride(context.tenantId, flagKey);
+      if (tenantOverride !== undefined) {
+        // ロールアウト設定がある場合は、オーバーライドが有効でもロールアウト判定を行う
+        if (rolloutConfig && tenantOverride) {
+          const rolloutResult = await this.rolloutEngine.evaluateRollout(context, flagKey, rolloutConfig);
+          const finalResult = tenantOverride && rolloutResult;
+          
+          if (!rolloutConfig) { // ロールアウト設定がない場合のみキャッシュ
+            this.cache.set(context.tenantId, flagKey, finalResult);
+          }
+          
+          debugLog(environment, `Tenant override with rollout for flag: ${flagKey}`, { 
+            tenantOverride, 
+            rolloutResult, 
+            finalResult 
+          });
+          return finalResult;
+        } else {
+          // ロールアウト設定がない場合は通常通り
+          if (!rolloutConfig) {
+            this.cache.set(context.tenantId, flagKey, tenantOverride);
+          }
+          debugLog(environment, `Tenant override found for flag: ${flagKey}`, { value: tenantOverride });
+          return tenantOverride;
+        }
+      }
+
+      // 4. デフォルト値取得
+      const defaultValue = await this.getDefaultValue(flagKey);
+      
+      // 5. ロールアウト判定（デフォルト値が有効な場合のみ）
+      if (rolloutConfig && defaultValue) {
+        const rolloutResult = await this.rolloutEngine.evaluateRollout(context, flagKey, rolloutConfig);
+        const finalResult = defaultValue && rolloutResult;
+        
+        debugLog(environment, `Default value with rollout for flag: ${flagKey}`, { 
+          defaultValue, 
+          rolloutResult, 
+          finalResult 
+        });
+        return finalResult;
+      } else {
+        // ロールアウト設定がない場合は通常通り
+        if (!rolloutConfig) {
+          this.cache.set(context.tenantId, flagKey, defaultValue);
+        }
+        debugLog(environment, `Default value used for flag: ${flagKey}`, { value: defaultValue });
+        return defaultValue;
+      }
+    } catch (error) {
+      const errorInfo: StructuredError = {
+        operation: 'feature-flag-evaluation-with-rollout',
+        tenantId: context.tenantId,
+        flagKey,
+        environment,
+        error: error as Error,
+        timestamp: new Date().toISOString(),
+        rolloutConfig: rolloutConfig ? 'enabled' : 'disabled'
+      };
+      this.errorHandler(errorInfo);
+      return this.getFallbackValue(flagKey);
+    }
   }
 }
 
