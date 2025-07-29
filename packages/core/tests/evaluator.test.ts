@@ -118,6 +118,7 @@ describe('FeatureFlagEvaluator Specification', () => {
 
           const evaluatorWithKillSwitch = new FeatureFlagEvaluator({ 
             cache,
+            environment: 'development',
             dynamoDbClient: mockDynamoClient as any
           });
 
@@ -148,6 +149,7 @@ describe('FeatureFlagEvaluator Specification', () => {
 
           const evaluatorWithKillSwitch = new FeatureFlagEvaluator({ 
             cache,
+            environment: 'development',
             dynamoDbClient: mockDynamoClient as any
           });
 
@@ -179,6 +181,7 @@ describe('FeatureFlagEvaluator Specification', () => {
 
           const evaluatorWithError = new FeatureFlagEvaluator({ 
             cache,
+            environment: 'development',
             dynamoDbClient: mockDynamoClient as any
           });
 
@@ -283,7 +286,7 @@ describe('FeatureFlagEvaluator Specification', () => {
           const fullContext: FeatureFlagContext = {
             tenantId: 'tenant-123',
             userId: 'user-456',
-            environment: 'production',
+            environment: 'development',
             metadata: {
               region: 'us-east-1',
               userTier: 'premium',

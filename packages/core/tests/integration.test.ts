@@ -28,6 +28,7 @@ describe('Feature Flag System Integration Specification', () => {
       cache = new FeatureFlagCache({ ttl: 1000 }); // 1 second TTL for testing
       evaluator = new FeatureFlagEvaluator({
         cache,
+        environment: 'development',
         errorHandler: silentErrorHandler
       });
     });
@@ -41,7 +42,7 @@ describe('Feature Flag System Integration Specification', () => {
             userId: 'enterprise-user',
             userRole: 'admin',
             plan: 'enterprise',
-            environment: 'production'
+            environment: 'development'
           };
 
           const basicTenant: FeatureFlagContext = {
@@ -49,7 +50,7 @@ describe('Feature Flag System Integration Specification', () => {
             userId: 'basic-user', 
             userRole: 'user',
             plan: 'basic',
-            environment: 'production'
+            environment: 'development'
           };
 
           // When: Both tenants evaluate the same feature flag
@@ -74,7 +75,7 @@ describe('Feature Flag System Integration Specification', () => {
           const context: FeatureFlagContext = {
             tenantId: 'performance-tenant',
             userId: 'test-user',
-            environment: 'production'
+            environment: 'development'
           };
 
           const startTime = Date.now();
@@ -107,6 +108,7 @@ describe('Feature Flag System Integration Specification', () => {
     beforeEach(() => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 500 }),
+        environment: 'development',
         errorHandler: silentErrorHandler
       });
     });
@@ -116,9 +118,9 @@ describe('Feature Flag System Integration Specification', () => {
         it('THEN immediately disables features across all tenants', async () => {
           // Given: Multiple tenant contexts
           const contexts = [
-            { tenantId: 'tenant-1', environment: 'production' as const },
-            { tenantId: 'tenant-2', environment: 'production' as const },
-            { tenantId: 'tenant-3', environment: 'production' as const }
+            { tenantId: 'tenant-1', environment: 'development' as const },
+            { tenantId: 'tenant-2', environment: 'development' as const },
+            { tenantId: 'tenant-3', environment: 'development' as const }
           ];
 
           // When: Evaluating flags before kill-switch activation
@@ -145,6 +147,7 @@ describe('Feature Flag System Integration Specification', () => {
       cache = new FeatureFlagCache({ ttl: 50 }); // Very short TTL for testing
       evaluator = new FeatureFlagEvaluator({
         cache,
+        environment: 'development',
         errorHandler: silentErrorHandler
       });
     });
@@ -183,7 +186,7 @@ describe('Feature Flag System Integration Specification', () => {
           // Given: A tenant with cached evaluations
           const context: FeatureFlagContext = {
             tenantId: 'invalidation-test-tenant',
-            environment: 'production'
+            environment: 'development'
           };
 
           // When: Initial evaluation and cache population
@@ -222,12 +225,13 @@ describe('Feature Flag System Integration Specification', () => {
 
           const evaluator = new FeatureFlagEvaluator({
             cache: new FeatureFlagCache({ ttl: 300 }),
+            environment: 'development',
             errorHandler: testErrorHandler
           });
 
           const context: FeatureFlagContext = {
             tenantId: 'error-test-tenant',
-            environment: 'production'
+            environment: 'development'
           };
 
           // When: Evaluating flags (may encounter errors in mock environment)
@@ -251,6 +255,7 @@ describe('Feature Flag System Integration Specification', () => {
     beforeEach(() => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 300 }),
+        environment: 'development',
         errorHandler: silentErrorHandler
       });
     });
@@ -261,12 +266,12 @@ describe('Feature Flag System Integration Specification', () => {
           // Given: Same tenant in different environments
           const productionContext: FeatureFlagContext = {
             tenantId: 'multi-env-tenant',
-            environment: 'production'
+            environment: 'development'
           };
 
           const stagingContext: FeatureFlagContext = {
             tenantId: 'multi-env-tenant', 
-            environment: 'staging'
+            environment: 'development'
           };
 
           const developmentContext: FeatureFlagContext = {

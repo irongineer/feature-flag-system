@@ -86,7 +86,7 @@ export interface FeatureFlagContext {
   userId?: string;        // オプショナル: ユーザー固有の評価が不要な場合
   userRole?: string;      // オプショナル: 権限ベースの制御が不要な場合
   plan?: string;          // オプショナル: プラン情報が利用できない場合
-  environment: Environment; // 必須: マルチ環境サポートで必須化
+  environment?: Environment; // オプショナル: 未指定時はgetCurrentEnvironment()を使用
   metadata?: Record<string, any>;
 }
 
