@@ -41,13 +41,13 @@ export class FeatureFlagCache {
   get(tenantId: string, flagKey: string): boolean | undefined {
     const key = this.createKey(tenantId, flagKey);
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       // アクセス時にクリーンアップを実行
       this.cleanup();
       return undefined;
     }
-    
+
     // TTL チェック: 現在時刻がエントリの期限切れ時刻を過ぎているかチェック
     const currentTime = this.timeProvider.now();
     const expirationTime = entry.timestamp + entry.ttl;
@@ -57,25 +57,25 @@ export class FeatureFlagCache {
       this.cleanup();
       return undefined;
     }
-    
+
     return entry.value;
   }
 
   set(tenantId: string, flagKey: string, value: boolean, ttl?: number): void {
     const key = this.createKey(tenantId, flagKey);
     const effectiveTtl = ttl !== undefined ? ttl : this.defaultTtl;
-    
+
     // TTLが0以下の場合は保存しない（即座に期限切れ扱い）
     if (effectiveTtl <= 0) {
       return;
     }
-    
+
     const entry: CacheEntry = {
       value,
       timestamp: this.timeProvider.now(),
       ttl: effectiveTtl,
     };
-    
+
     this.cache.set(key, entry);
   }
 
@@ -110,7 +110,7 @@ export class FeatureFlagCache {
   private cleanup(): void {
     const now = this.timeProvider.now();
     const keysToDelete: string[] = [];
-    
+
     // 期限切れのキーを収集
     for (const [key, entry] of this.cache.entries()) {
       const expirationTime = entry.timestamp + entry.ttl;
@@ -118,7 +118,7 @@ export class FeatureFlagCache {
         keysToDelete.push(key);
       }
     }
-    
+
     // 期限切れのエントリを削除
     for (const key of keysToDelete) {
       this.cache.delete(key);

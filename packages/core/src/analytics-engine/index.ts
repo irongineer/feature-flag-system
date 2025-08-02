@@ -2,7 +2,7 @@ import { FeatureFlagKey, FeatureFlagContext } from '../models';
 
 /**
  * Advanced Analytics Engine
- * 
+ *
  * フィーチャーフラグの統計分析・予測機能
  * 使用パターン分析・パフォーマンス予測・最適化提案
  */
@@ -46,12 +46,15 @@ export interface OptimizationRecommendation {
 
 export class AnalyticsEngine {
   private metricsData: Map<FeatureFlagKey, AnalyticsMetrics> = new Map();
-  private usageHistory: Map<FeatureFlagKey, Array<{
-    timestamp: number;
-    context: FeatureFlagContext;
-    enabled: boolean;
-    responseTime: number;
-  }>> = new Map();
+  private usageHistory: Map<
+    FeatureFlagKey,
+    Array<{
+      timestamp: number;
+      context: FeatureFlagContext;
+      enabled: boolean;
+      responseTime: number;
+    }>
+  > = new Map();
 
   /**
    * フラグ評価メトリクスを記録
@@ -91,9 +94,9 @@ export class AnalyticsEngine {
     metrics.evaluationCount++;
     metrics.enabledRate = this.calculateEnabledRate(flagKey, enabled);
     metrics.avgResponseTime = this.updateAverageResponseTime(metrics, responseTime);
-    
+
     if (context.tenantId) {
-      metrics.tenantDistribution[context.tenantId] = 
+      metrics.tenantDistribution[context.tenantId] =
         (metrics.tenantDistribution[context.tenantId] || 0) + 1;
     }
 
@@ -105,7 +108,7 @@ export class AnalyticsEngine {
    */
   analyzeUsagePattern(flagKey: FeatureFlagKey): UsagePattern {
     const history = this.usageHistory.get(flagKey) || [];
-    
+
     const timeOfDay: Record<string, number> = {};
     const dayOfWeek: Record<string, number> = {};
     const regionalDistribution: Record<string, number> = {};
@@ -123,13 +126,11 @@ export class AnalyticsEngine {
       // These features will be added in future iterations
       const context = record.context as any;
       if (context.region) {
-        regionalDistribution[context.region] = 
-          (regionalDistribution[context.region] || 0) + 1;
+        regionalDistribution[context.region] = (regionalDistribution[context.region] || 0) + 1;
       }
 
       if (context.userCohort) {
-        userCohorts[context.userCohort] = 
-          (userCohorts[context.userCohort] || 0) + 1;
+        userCohorts[context.userCohort] = (userCohorts[context.userCohort] || 0) + 1;
       }
     }
 
@@ -146,7 +147,7 @@ export class AnalyticsEngine {
    */
   predictLoad(flagKey: FeatureFlagKey, hoursAhead: number = 24): PredictionResult {
     const history = this.usageHistory.get(flagKey) || [];
-    
+
     if (history.length < 100) {
       // データ不足の場合は保守的な予測
       return {
@@ -160,9 +161,13 @@ export class AnalyticsEngine {
     const hourlyData = this.aggregateHourlyData(history);
     const trend = this.calculateTrend(hourlyData);
     const seasonality = this.detectSeasonality(hourlyData);
-    
+
     const basePrediction = this.calculateBasePrediction(hourlyData, hoursAhead);
-    const seasonalAdjustment = this.applySeasonalAdjustment(basePrediction, seasonality, hoursAhead);
+    const seasonalAdjustment = this.applySeasonalAdjustment(
+      basePrediction,
+      seasonality,
+      hoursAhead
+    );
     const trendAdjustment = this.applyTrendAdjustment(seasonalAdjustment, trend, hoursAhead);
 
     return {
@@ -191,15 +196,17 @@ export class AnalyticsEngine {
         type: 'cache_ttl',
         priority: 'high',
         expectedImprovement: 0.6,
-        description: 'レスポンス時間が100msを超えています。キャッシュTTLを延長することで改善が期待できます。',
-        implementation: 'FeatureFlagCache の TTL を 300秒から 600秒に延長'
+        description:
+          'レスポンス時間が100msを超えています。キャッシュTTLを延長することで改善が期待できます。',
+        implementation: 'FeatureFlagCache の TTL を 300秒から 600秒に延長',
       });
     }
 
     // 地域分散最適化
     const totalEvaluations = Object.values(pattern.regionalDistribution).reduce((a, b) => a + b, 0);
-    const dominantRegion = Object.entries(pattern.regionalDistribution)
-      .sort(([,a], [,b]) => b - a)[0];
+    const dominantRegion = Object.entries(pattern.regionalDistribution).sort(
+      ([, a], [, b]) => b - a
+    )[0];
 
     if (dominantRegion && dominantRegion[1] > totalEvaluations * 0.7) {
       recommendations.push({
@@ -207,7 +214,7 @@ export class AnalyticsEngine {
         priority: 'medium',
         expectedImprovement: 0.3,
         description: `${dominantRegion[0]}地域からのアクセスが70%を超えています。地域特化デプロイメントを検討してください。`,
-        implementation: `${dominantRegion[0]}地域にエッジキャッシュを配置`
+        implementation: `${dominantRegion[0]}地域にエッジキャッシュを配置`,
       });
     }
 
@@ -219,7 +226,7 @@ export class AnalyticsEngine {
         priority: 'low',
         expectedImprovement: 0.2,
         description: `現在の有効化率は${(metrics.enabledRate * 100).toFixed(1)}%です。段階的ロールアウトを検討してください。`,
-        implementation: `目標有効化率: ${(targetRate * 100).toFixed(0)}%への段階的移行`
+        implementation: `目標有効化率: ${(targetRate * 100).toFixed(0)}%への段階的移行`,
       });
     }
 
@@ -246,17 +253,22 @@ export class AnalyticsEngine {
     systemHealth: 'excellent' | 'good' | 'poor';
   } {
     const allMetrics = Array.from(this.metricsData.entries());
-    
-    const totalEvaluations = allMetrics.reduce((sum, [, metrics]) => sum + metrics.evaluationCount, 0);
-    const averageResponseTime = allMetrics.reduce((sum, [, metrics]) => sum + metrics.avgResponseTime, 0) / allMetrics.length || 0;
-    
+
+    const totalEvaluations = allMetrics.reduce(
+      (sum, [, metrics]) => sum + metrics.evaluationCount,
+      0
+    );
+    const averageResponseTime =
+      allMetrics.reduce((sum, [, metrics]) => sum + metrics.avgResponseTime, 0) /
+        allMetrics.length || 0;
+
     const topFlags = allMetrics
-      .sort(([,a], [,b]) => b.evaluationCount - a.evaluationCount)
+      .sort(([, a], [, b]) => b.evaluationCount - a.evaluationCount)
       .slice(0, 5)
       .map(([flagKey, metrics]) => ({ flagKey, evaluationCount: metrics.evaluationCount }));
 
-    const systemHealth = averageResponseTime < 50 ? 'excellent' : 
-                        averageResponseTime < 100 ? 'good' : 'poor';
+    const systemHealth =
+      averageResponseTime < 50 ? 'excellent' : averageResponseTime < 100 ? 'good' : 'poor';
 
     return {
       totalEvaluations,
@@ -270,7 +282,7 @@ export class AnalyticsEngine {
   private calculateEnabledRate(flagKey: FeatureFlagKey, latestEnabled: boolean): number {
     const history = this.usageHistory.get(flagKey) || [];
     if (history.length === 0) return latestEnabled ? 1 : 0;
-    
+
     const enabledCount = history.filter(record => record.enabled).length;
     return enabledCount / history.length;
   }
@@ -278,34 +290,36 @@ export class AnalyticsEngine {
   private updateAverageResponseTime(metrics: AnalyticsMetrics, newResponseTime: number): number {
     const currentAvg = metrics.avgResponseTime;
     const count = metrics.evaluationCount;
-    
+
     if (count === 0) return newResponseTime;
-    return ((currentAvg * (count - 1)) + newResponseTime) / count;
+    return (currentAvg * (count - 1) + newResponseTime) / count;
   }
 
   private aggregateHourlyData(history: Array<any>): Record<number, number> {
     const hourlyData: Record<number, number> = {};
-    
+
     for (const record of history) {
       const hour = Math.floor(record.timestamp / (1000 * 60 * 60));
       hourlyData[hour] = (hourlyData[hour] || 0) + 1;
     }
-    
+
     return hourlyData;
   }
 
-  private calculateTrend(hourlyData: Record<number, number>): 'increasing' | 'decreasing' | 'stable' {
+  private calculateTrend(
+    hourlyData: Record<number, number>
+  ): 'increasing' | 'decreasing' | 'stable' {
     const hours = Object.keys(hourlyData).map(Number).sort();
     if (hours.length < 2) return 'stable';
-    
+
     const recent = hours.slice(-24);
     const earlier = hours.slice(-48, -24);
-    
+
     const recentAvg = recent.reduce((sum, hour) => sum + hourlyData[hour], 0) / recent.length;
     const earlierAvg = earlier.reduce((sum, hour) => sum + hourlyData[hour], 0) / earlier.length;
-    
+
     const change = (recentAvg - earlierAvg) / earlierAvg;
-    
+
     if (change > 0.1) return 'increasing';
     if (change < -0.1) return 'decreasing';
     return 'stable';
@@ -313,16 +327,16 @@ export class AnalyticsEngine {
 
   private detectSeasonality(hourlyData: Record<number, number>): SeasonalityPattern[] {
     const patterns: SeasonalityPattern[] = [];
-    
+
     // 時間別パターン検出（簡易版）
     const hours = Object.keys(hourlyData).map(Number);
     const hourlyCounts = hours.map(hour => hourlyData[hour]);
-    
+
     if (hourlyCounts.length >= 24) {
       const maxHourly = Math.max(...hourlyCounts);
       const minHourly = Math.min(...hourlyCounts);
       const amplitude = (maxHourly - minHourly) / maxHourly;
-      
+
       if (amplitude > 0.3) {
         patterns.push({
           type: 'hourly',
@@ -331,7 +345,7 @@ export class AnalyticsEngine {
         });
       }
     }
-    
+
     return patterns;
   }
 
@@ -340,18 +354,22 @@ export class AnalyticsEngine {
     return values.reduce((sum, val) => sum + val, 0) / values.length;
   }
 
-  private applySeasonalAdjustment(basePrediction: number, seasonality: SeasonalityPattern[], hoursAhead: number): number {
+  private applySeasonalAdjustment(
+    basePrediction: number,
+    seasonality: SeasonalityPattern[],
+    hoursAhead: number
+  ): number {
     let adjustment = 1.0;
-    
+
     for (const pattern of seasonality) {
       if (pattern.type === 'hourly') {
         const targetHour = (new Date().getHours() + hoursAhead) % 24;
         const distanceFromPeak = Math.abs(targetHour - pattern.peak);
         const normalizedDistance = Math.min(distanceFromPeak, 24 - distanceFromPeak) / 12;
-        adjustment *= 1 + (pattern.amplitude * (1 - normalizedDistance));
+        adjustment *= 1 + pattern.amplitude * (1 - normalizedDistance);
       }
     }
-    
+
     return basePrediction * adjustment;
   }
 
@@ -364,11 +382,11 @@ export class AnalyticsEngine {
   private calculateConfidence(history: Array<any>, hourlyData: Record<number, number>): number {
     const dataPoints = Object.keys(hourlyData).length;
     const historyLength = history.length;
-    
+
     // データ量ベースの信頼度計算
     const dataConfidence = Math.min(dataPoints / 168, 1.0); // 1週間分のデータで最大信頼度
     const sampleConfidence = Math.min(historyLength / 1000, 1.0); // 1000サンプルで最大信頼度
-    
+
     return (dataConfidence + sampleConfidence) / 2;
   }
 }

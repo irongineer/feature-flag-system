@@ -7,19 +7,18 @@ import { silentErrorHandler } from '../src/types/error-handling';
 
 /**
  * Feature Flag System Integration Specification
- * 
+ *
  * システム全体の統合動作を検証し、各コンポーネント間の協調動作を保証する。
  * これらのテストは、実際のユーザーシナリオに基づいたワークフローを検証する。
- * 
+ *
  * Integration Test Scope:
  * 1. Evaluator + Cache + DynamoDB Integration
- * 2. Multi-tenant Scenario Workflows  
+ * 2. Multi-tenant Scenario Workflows
  * 3. Error Propagation Across Components
  * 4. Performance and Caching Behavior
  * 5. Real-world Business Scenarios
  */
 describe('Feature Flag System Integration Specification', () => {
-  
   describe('Complete Flag Evaluation Workflow', () => {
     let evaluator: FeatureFlagEvaluator;
     let cache: FeatureFlagCache;
@@ -29,7 +28,7 @@ describe('Feature Flag System Integration Specification', () => {
       evaluator = new FeatureFlagEvaluator({
         cache,
         environment: 'development',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -42,24 +41,27 @@ describe('Feature Flag System Integration Specification', () => {
             userId: 'enterprise-user',
             userRole: 'admin',
             plan: 'enterprise',
-            environment: 'development'
+            environment: 'development',
           };
 
           const basicTenant: FeatureFlagContext = {
             tenantId: 'basic-tenant-123',
-            userId: 'basic-user', 
+            userId: 'basic-user',
             userRole: 'user',
             plan: 'basic',
-            environment: 'development'
+            environment: 'development',
           };
 
           // When: Both tenants evaluate the same feature flag
-          const enterpriseResult = await evaluator.isEnabled(enterpriseTenant, FEATURE_FLAGS.BILLING_V2);
+          const enterpriseResult = await evaluator.isEnabled(
+            enterpriseTenant,
+            FEATURE_FLAGS.BILLING_V2
+          );
           const basicResult = await evaluator.isEnabled(basicTenant, FEATURE_FLAGS.BILLING_V2);
 
           // Then: Results should reflect tenant-specific configuration
-          expect(enterpriseResult).toBe(true);  // test-tenant-1 has override in mock data
-          expect(basicResult).toBe(false);     // basic tenant uses default (false)
+          expect(enterpriseResult).toBe(true); // test-tenant-1 has override in mock data
+          expect(basicResult).toBe(false); // basic tenant uses default (false)
 
           // And: Cache should maintain tenant isolation
           expect(cache.get(enterpriseTenant.tenantId, FEATURE_FLAGS.BILLING_V2)).toBe(true);
@@ -75,13 +77,13 @@ describe('Feature Flag System Integration Specification', () => {
           const context: FeatureFlagContext = {
             tenantId: 'performance-tenant',
             userId: 'test-user',
-            environment: 'development'
+            environment: 'development',
           };
 
           const startTime = Date.now();
 
           // When: Making multiple rapid evaluations of the same flag
-          const promises = Array.from({ length: 10 }, () => 
+          const promises = Array.from({ length: 10 }, () =>
             evaluator.isEnabled(context, FEATURE_FLAGS.BILLING_V2)
           );
 
@@ -109,7 +111,7 @@ describe('Feature Flag System Integration Specification', () => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 500 }),
         environment: 'development',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -120,7 +122,7 @@ describe('Feature Flag System Integration Specification', () => {
           const contexts = [
             { tenantId: 'tenant-1', environment: 'development' as const },
             { tenantId: 'tenant-2', environment: 'development' as const },
-            { tenantId: 'tenant-3', environment: 'development' as const }
+            { tenantId: 'tenant-3', environment: 'development' as const },
           ];
 
           // When: Evaluating flags before kill-switch activation
@@ -128,9 +130,9 @@ describe('Feature Flag System Integration Specification', () => {
             contexts.map(context => evaluator.isEnabled(context, FEATURE_FLAGS.BILLING_V2))
           );
 
-          // And: Simulating kill-switch activation (mock client doesn't support this yet, 
+          // And: Simulating kill-switch activation (mock client doesn't support this yet,
           // but test documents the expected behavior)
-          
+
           // Then: All evaluations should return false after kill-switch
           // Note: In real implementation, this would override tenant settings
           expect(beforeResults.every(result => typeof result === 'boolean')).toBe(true);
@@ -148,7 +150,7 @@ describe('Feature Flag System Integration Specification', () => {
       evaluator = new FeatureFlagEvaluator({
         cache,
         environment: 'development',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -158,7 +160,7 @@ describe('Feature Flag System Integration Specification', () => {
           // Given: A context for cache testing
           const context: FeatureFlagContext = {
             tenantId: 'cache-test-tenant',
-            environment: 'development'
+            environment: 'development',
           };
 
           // When: Initial evaluation (populates cache)
@@ -186,7 +188,7 @@ describe('Feature Flag System Integration Specification', () => {
           // Given: A tenant with cached evaluations
           const context: FeatureFlagContext = {
             tenantId: 'invalidation-test-tenant',
-            environment: 'development'
+            environment: 'development',
           };
 
           // When: Initial evaluation and cache population
@@ -226,12 +228,12 @@ describe('Feature Flag System Integration Specification', () => {
           const evaluator = new FeatureFlagEvaluator({
             cache: new FeatureFlagCache({ ttl: 300 }),
             environment: 'development',
-            errorHandler: testErrorHandler
+            errorHandler: testErrorHandler,
           });
 
           const context: FeatureFlagContext = {
             tenantId: 'error-test-tenant',
-            environment: 'development'
+            environment: 'development',
           };
 
           // When: Evaluating flags (may encounter errors in mock environment)
@@ -256,7 +258,7 @@ describe('Feature Flag System Integration Specification', () => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 300 }),
         environment: 'development',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -266,17 +268,17 @@ describe('Feature Flag System Integration Specification', () => {
           // Given: Same tenant in different environments
           const productionContext: FeatureFlagContext = {
             tenantId: 'multi-env-tenant',
-            environment: 'development'
+            environment: 'development',
           };
 
           const stagingContext: FeatureFlagContext = {
-            tenantId: 'multi-env-tenant', 
-            environment: 'development'
+            tenantId: 'multi-env-tenant',
+            environment: 'development',
           };
 
           const developmentContext: FeatureFlagContext = {
             tenantId: 'multi-env-tenant',
-            environment: 'development'
+            environment: 'development',
           };
 
           // When: Evaluating the same flag across environments
@@ -291,7 +293,7 @@ describe('Feature Flag System Integration Specification', () => {
 
           // And: Results should be consistent for same tenant (in current mock implementation)
           // Note: In real implementation, environment-specific logic could cause different results
-          expect([prodResult, stagingResult, devResult]).toSatisfy((results: boolean[]) => 
+          expect([prodResult, stagingResult, devResult]).toSatisfy((results: boolean[]) =>
             results.every(result => typeof result === 'boolean')
           );
         });

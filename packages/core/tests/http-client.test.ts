@@ -8,10 +8,10 @@ const mockFetch = fetch as any;
 
 /**
  * Feature Flag HTTP Client Specification
- * 
+ *
  * HTTPクライアントは、リモートフィーチャーフラグAPIとの通信を担当し、
  * コンテキストの柔軟性とフェイルセーフ機能を提供する責務を持つ。
- * 
+ *
  * Key Business Rules:
  * 1. 必須フィールドのバリデーション（tenantIdの存在確認）
  * 2. オプショナルフィールドの選択的送信（undefinedは除外）
@@ -29,9 +29,9 @@ describe('FeatureFlagHttpClient Specification', () => {
       apiUrl: 'https://api.example.com',
       apiKey: 'test-key',
       timeout: 1000,
-      retries: 1
+      retries: 1,
     });
-    
+
     vi.clearAllMocks();
   });
 
@@ -42,13 +42,17 @@ describe('FeatureFlagHttpClient Specification', () => {
           it('THEN successfully processes with minimal context and applies defaults', async () => {
             // Given: Minimal context with only required field
             const context: FeatureFlagContext = {
-              tenantId: 'tenant-123'
+              tenantId: 'tenant-123',
             };
 
             // Given: API responds successfully
             mockFetch.mockResolvedValueOnce({
               ok: true,
-              json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+              json: async () => ({
+                enabled: true,
+                flagKey: 'new_dashboard_enable',
+                reason: 'ENABLED',
+              }),
             } as Response);
 
             // When: Evaluating flag with minimal context
@@ -56,7 +60,7 @@ describe('FeatureFlagHttpClient Specification', () => {
 
             // Then: Should return the API result
             expect(result).toBe(true);
-            
+
             // And: Should make proper API call with correct headers
             expect(mockFetch).toHaveBeenCalledWith(
               'https://api.example.com/evaluate',
@@ -64,8 +68,8 @@ describe('FeatureFlagHttpClient Specification', () => {
                 method: 'POST',
                 headers: expect.objectContaining({
                   'Content-Type': 'application/json',
-                  'Authorization': 'Bearer test-key'
-                })
+                  Authorization: 'Bearer test-key',
+                }),
               })
             );
 
@@ -74,7 +78,7 @@ describe('FeatureFlagHttpClient Specification', () => {
             expect(callBody).toMatchObject({
               tenantId: 'tenant-123',
               flagKey: 'new_dashboard_enable',
-              environment: 'production' // Default environment
+              environment: 'production', // Default environment
             });
           });
         });
@@ -88,13 +92,17 @@ describe('FeatureFlagHttpClient Specification', () => {
             // Given: Context including user identification
             const context: FeatureFlagContext = {
               tenantId: 'tenant-123',
-              userId: 'user-456'
+              userId: 'user-456',
             };
 
             // Given: API responds successfully
             mockFetch.mockResolvedValueOnce({
               ok: true,
-              json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+              json: async () => ({
+                enabled: true,
+                flagKey: 'new_dashboard_enable',
+                reason: 'ENABLED',
+              }),
             } as Response);
 
             // When: Evaluating flag with user context
@@ -107,8 +115,8 @@ describe('FeatureFlagHttpClient Specification', () => {
                 method: 'POST',
                 headers: expect.objectContaining({
                   'Content-Type': 'application/json',
-                  'Authorization': 'Bearer test-key'
-                })
+                  Authorization: 'Bearer test-key',
+                }),
               })
             );
 
@@ -118,96 +126,104 @@ describe('FeatureFlagHttpClient Specification', () => {
               tenantId: 'tenant-123',
               userId: 'user-456',
               flagKey: 'new_dashboard_enable',
-              environment: 'production'
+              environment: 'production',
             });
           });
         });
       });
     });
 
-      describe('GIVEN a context with role-based information', () => {
-        describe('WHEN userRole is provided for authorization-based features', () => {
-          it('THEN includes role information for permission-based flag evaluation', async () => {
-            // Given: Context including user role for permission evaluation
-            const context: FeatureFlagContext = {
-              tenantId: 'tenant-123',
-              userRole: 'admin'
-            };
+    describe('GIVEN a context with role-based information', () => {
+      describe('WHEN userRole is provided for authorization-based features', () => {
+        it('THEN includes role information for permission-based flag evaluation', async () => {
+          // Given: Context including user role for permission evaluation
+          const context: FeatureFlagContext = {
+            tenantId: 'tenant-123',
+            userRole: 'admin',
+          };
 
-            // Given: API responds successfully
-            mockFetch.mockResolvedValueOnce({
-              ok: true,
-              json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
-            } as Response);
-
-            // When: Evaluating flag with role-based context
-            await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
-
-            // Then: Should make API call with authentication headers
-            expect(mockFetch).toHaveBeenCalledWith(
-              'https://api.example.com/evaluate',
-              expect.objectContaining({
-                method: 'POST',
-                headers: expect.objectContaining({
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer test-key'
-                })
-              })
-            );
-
-            // And: Should include role information for authorization evaluation
-            const callBody = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
-            expect(callBody).toMatchObject({
-              tenantId: 'tenant-123',
-              userRole: 'admin',
+          // Given: API responds successfully
+          mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              enabled: true,
               flagKey: 'new_dashboard_enable',
-              environment: 'production'
-            });
+              reason: 'ENABLED',
+            }),
+          } as Response);
+
+          // When: Evaluating flag with role-based context
+          await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
+
+          // Then: Should make API call with authentication headers
+          expect(mockFetch).toHaveBeenCalledWith(
+            'https://api.example.com/evaluate',
+            expect.objectContaining({
+              method: 'POST',
+              headers: expect.objectContaining({
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer test-key',
+              }),
+            })
+          );
+
+          // And: Should include role information for authorization evaluation
+          const callBody = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
+          expect(callBody).toMatchObject({
+            tenantId: 'tenant-123',
+            userRole: 'admin',
+            flagKey: 'new_dashboard_enable',
+            environment: 'production',
           });
         });
       });
+    });
 
-      describe('GIVEN a context with subscription plan information', () => {
-        describe('WHEN plan information is provided for feature tier control', () => {
-          it('THEN includes plan details for subscription-based feature evaluation', async () => {
-            // Given: Context including subscription plan for tier-based features
-            const context: FeatureFlagContext = {
-              tenantId: 'tenant-123',
-              plan: 'enterprise'
-            };
+    describe('GIVEN a context with subscription plan information', () => {
+      describe('WHEN plan information is provided for feature tier control', () => {
+        it('THEN includes plan details for subscription-based feature evaluation', async () => {
+          // Given: Context including subscription plan for tier-based features
+          const context: FeatureFlagContext = {
+            tenantId: 'tenant-123',
+            plan: 'enterprise',
+          };
 
-            // Given: API responds successfully
-            mockFetch.mockResolvedValueOnce({
-              ok: true,
-              json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
-            } as Response);
-
-            // When: Evaluating flag with plan-based context
-            await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
-
-            // Then: Should make authenticated API call
-            expect(mockFetch).toHaveBeenCalledWith(
-              'https://api.example.com/evaluate',
-              expect.objectContaining({
-                method: 'POST',
-                headers: expect.objectContaining({
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer test-key'
-                })
-              })
-            );
-
-            // And: Should include plan information for subscription-based evaluation
-            const callBody = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
-            expect(callBody).toMatchObject({
-              tenantId: 'tenant-123',
-              plan: 'enterprise',
+          // Given: API responds successfully
+          mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              enabled: true,
               flagKey: 'new_dashboard_enable',
-              environment: 'production'
-            });
+              reason: 'ENABLED',
+            }),
+          } as Response);
+
+          // When: Evaluating flag with plan-based context
+          await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
+
+          // Then: Should make authenticated API call
+          expect(mockFetch).toHaveBeenCalledWith(
+            'https://api.example.com/evaluate',
+            expect.objectContaining({
+              method: 'POST',
+              headers: expect.objectContaining({
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer test-key',
+              }),
+            })
+          );
+
+          // And: Should include plan information for subscription-based evaluation
+          const callBody = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
+          expect(callBody).toMatchObject({
+            tenantId: 'tenant-123',
+            plan: 'enterprise',
+            flagKey: 'new_dashboard_enable',
+            environment: 'production',
           });
         });
       });
+    });
 
     describe('Complete Context Processing', () => {
       describe('GIVEN a context with all available information', () => {
@@ -222,14 +238,18 @@ describe('FeatureFlagHttpClient Specification', () => {
               environment: 'staging',
               metadata: {
                 region: 'us-east-1',
-                experimentGroup: 'variant-A'
-              }
+                experimentGroup: 'variant-A',
+              },
             };
 
             // Given: API responds successfully
             mockFetch.mockResolvedValueOnce({
               ok: true,
-              json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+              json: async () => ({
+                enabled: true,
+                flagKey: 'new_dashboard_enable',
+                reason: 'ENABLED',
+              }),
             } as Response);
 
             // When: Evaluating flag with comprehensive context
@@ -242,8 +262,8 @@ describe('FeatureFlagHttpClient Specification', () => {
                 method: 'POST',
                 headers: expect.objectContaining({
                   'Content-Type': 'application/json',
-                  'Authorization': 'Bearer test-key'
-                })
+                  Authorization: 'Bearer test-key',
+                }),
               })
             );
 
@@ -258,8 +278,8 @@ describe('FeatureFlagHttpClient Specification', () => {
               environment: 'staging',
               metadata: {
                 region: 'us-east-1',
-                experimentGroup: 'variant-A'
-              }
+                experimentGroup: 'variant-A',
+              },
             });
           });
         });
@@ -276,13 +296,17 @@ describe('FeatureFlagHttpClient Specification', () => {
               userId: undefined,
               userRole: undefined,
               plan: undefined,
-              metadata: undefined
+              metadata: undefined,
             };
 
             // Given: API responds successfully
             mockFetch.mockResolvedValueOnce({
               ok: true,
-              json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+              json: async () => ({
+                enabled: true,
+                flagKey: 'new_dashboard_enable',
+                reason: 'ENABLED',
+              }),
             } as Response);
 
             // When: Evaluating flag with context containing undefined fields
@@ -290,13 +314,13 @@ describe('FeatureFlagHttpClient Specification', () => {
 
             // Then: Should send only defined fields plus defaults
             const callBody = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
-            
+
             expect(callBody).toMatchObject({
               tenantId: 'tenant-123',
               flagKey: 'new_dashboard_enable',
-              environment: 'production'
+              environment: 'production',
             });
-            
+
             // And: Should not include undefined fields in request payload
             expect(callBody).not.toHaveProperty('userId');
             expect(callBody).not.toHaveProperty('userRole');
@@ -333,7 +357,7 @@ describe('FeatureFlagHttpClient Specification', () => {
           it('THEN gracefully falls back to default value for system stability', async () => {
             // Given: Valid context but network issues
             const context: FeatureFlagContext = {
-              tenantId: 'tenant-123'
+              tenantId: 'tenant-123',
             };
 
             // Given: Network error occurs
@@ -355,7 +379,7 @@ describe('FeatureFlagHttpClient Specification', () => {
           it('THEN respects custom default values during failures', async () => {
             // Given: A context and custom default configuration
             const context: FeatureFlagContext = {
-              tenantId: 'tenant-123'
+              tenantId: 'tenant-123',
             };
 
             // Given: Custom default is set for business continuity
@@ -378,16 +402,18 @@ describe('FeatureFlagHttpClient Specification', () => {
           it('THEN automatically retries failed requests for improved reliability', async () => {
             // Given: Valid context
             const context: FeatureFlagContext = {
-              tenantId: 'tenant-123'
+              tenantId: 'tenant-123',
             };
 
             // Given: Transient failure followed by success
-            mockFetch
-              .mockRejectedValueOnce(new Error('Network error'))
-              .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
-              } as Response);
+            mockFetch.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({
+              ok: true,
+              json: async () => ({
+                enabled: true,
+                flagKey: 'new_dashboard_enable',
+                reason: 'ENABLED',
+              }),
+            } as Response);
 
             // When: Making request with retry mechanism
             const result = await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
@@ -408,7 +434,7 @@ describe('FeatureFlagHttpClient Specification', () => {
           it('THEN successfully retrieves all flags with basic tenant context', async () => {
             // Given: Minimal context for efficient batch processing
             const context: FeatureFlagContext = {
-              tenantId: 'tenant-123'
+              tenantId: 'tenant-123',
             };
 
             // Given: API returns multiple flag states
@@ -416,10 +442,10 @@ describe('FeatureFlagHttpClient Specification', () => {
               ok: true,
               json: async () => ({
                 flags: {
-                  'new_dashboard_enable': true,
-                  'billing_v2_enable': false
-                }
-              })
+                  new_dashboard_enable: true,
+                  billing_v2_enable: false,
+                },
+              }),
             } as Response);
 
             // When: Requesting all flags in batch
@@ -427,8 +453,8 @@ describe('FeatureFlagHttpClient Specification', () => {
 
             // Then: Should return comprehensive flag state mapping
             expect(result).toEqual({
-              'new_dashboard_enable': true,
-              'billing_v2_enable': false
+              new_dashboard_enable: true,
+              billing_v2_enable: false,
             });
           });
         });
@@ -443,13 +469,13 @@ describe('FeatureFlagHttpClient Specification', () => {
             const context: FeatureFlagContext = {
               tenantId: 'tenant-123',
               userId: 'user-456',
-              userRole: 'admin'
+              userRole: 'admin',
             };
 
             // Given: API responds to batch request
             mockFetch.mockResolvedValueOnce({
               ok: true,
-              json: async () => ({ flags: {} })
+              json: async () => ({ flags: {} }),
             } as Response);
 
             // When: Making batch request with rich context
@@ -461,7 +487,7 @@ describe('FeatureFlagHttpClient Specification', () => {
               tenantId: 'tenant-123',
               userId: 'user-456',
               userRole: 'admin',
-              environment: 'production'
+              environment: 'production',
             });
           });
         });

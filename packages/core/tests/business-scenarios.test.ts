@@ -6,11 +6,11 @@ import { silentErrorHandler } from '../src/types/error-handling';
 
 /**
  * Business Scenario Integration Specification
- * 
+ *
  * 実際のビジネスユースケースに基づいた統合テスト。
  * 単一機能のテストではなく、複数の要素が組み合わされた
  * 現実的なワークフローを検証する。
- * 
+ *
  * Business Scenarios Covered:
  * 1. Feature Rollout Campaign (段階的機能展開)
  * 2. A/B Testing Workflow (A/Bテスト運用)
@@ -19,14 +19,13 @@ import { silentErrorHandler } from '../src/types/error-handling';
  * 5. Performance Under Load (負荷時の性能)
  */
 describe('Business Scenario Integration Specification', () => {
-
   describe('Feature Rollout Campaign Workflow', () => {
     let evaluator: FeatureFlagEvaluator;
 
     beforeEach(() => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 1000 }),
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -40,48 +39,51 @@ describe('Business Scenario Integration Specification', () => {
             userRole: 'admin',
             plan: 'enterprise',
             environment: 'production',
-            metadata: { 
+            metadata: {
               customerSegment: 'beta',
               signupDate: '2023-01-01',
-              region: 'us-east-1'
-            }
+              region: 'us-east-1',
+            },
           };
 
           const standardCustomer: FeatureFlagContext = {
             tenantId: 'standard-customer-123',
-            userId: 'standard-user-001', 
+            userId: 'standard-user-001',
             userRole: 'user',
             plan: 'standard',
             environment: 'production',
             metadata: {
               customerSegment: 'standard',
               signupDate: '2024-06-01',
-              region: 'us-west-2'
-            }
+              region: 'us-west-2',
+            },
           };
 
           const trialCustomer: FeatureFlagContext = {
             tenantId: 'trial-customer-456',
             userId: 'trial-user-001',
-            userRole: 'user', 
+            userRole: 'user',
             plan: 'trial',
             environment: 'production',
             metadata: {
               customerSegment: 'trial',
               signupDate: '2025-01-01',
-              region: 'eu-west-1'
-            }
+              region: 'eu-west-1',
+            },
           };
 
           // When: Evaluating new feature flag across customer segments
           const betaResult = await evaluator.isEnabled(betaCustomer, FEATURE_FLAGS.BILLING_V2);
-          const standardResult = await evaluator.isEnabled(standardCustomer, FEATURE_FLAGS.BILLING_V2);
+          const standardResult = await evaluator.isEnabled(
+            standardCustomer,
+            FEATURE_FLAGS.BILLING_V2
+          );
           const trialResult = await evaluator.isEnabled(trialCustomer, FEATURE_FLAGS.BILLING_V2);
 
           // Then: Beta customer should have access (override), others should not (default false)
-          expect(betaResult).toBe(true);      // test-tenant-1 has override
+          expect(betaResult).toBe(true); // test-tenant-1 has override
           expect(standardResult).toBe(false); // Default behavior
-          expect(trialResult).toBe(false);    // Default behavior
+          expect(trialResult).toBe(false); // Default behavior
 
           // And: Results should be cached for performance
           expect(evaluator).toBeDefined(); // Sanity check
@@ -99,15 +101,15 @@ describe('Business Scenario Integration Specification', () => {
             environment: 'production',
             metadata: {
               experimentGroup: 'rollout-measurement',
-              trackingId: 'exp-001'
-            }
+              trackingId: 'exp-001',
+            },
           };
 
           // When: Multiple evaluations for analytics consistency
           const evaluations = await Promise.all([
             evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.BILLING_V2),
             evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.NEW_DASHBOARD),
-            evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.ADVANCED_ANALYTICS)
+            evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.ADVANCED_ANALYTICS),
           ]);
 
           // Then: All evaluations should return valid boolean results
@@ -120,7 +122,7 @@ describe('Business Scenario Integration Specification', () => {
           const secondEvaluations = await Promise.all([
             evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.BILLING_V2),
             evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.NEW_DASHBOARD),
-            evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.ADVANCED_ANALYTICS)
+            evaluator.isEnabled(monitoredCustomer, FEATURE_FLAGS.ADVANCED_ANALYTICS),
           ]);
 
           expect(secondEvaluations).toEqual(evaluations);
@@ -135,7 +137,7 @@ describe('Business Scenario Integration Specification', () => {
     beforeEach(() => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 500 }),
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -149,31 +151,31 @@ describe('Business Scenario Integration Specification', () => {
             environment: 'production',
             metadata: {
               experimentId: 'dashboard-redesign-001',
-              userHash: 'hash-alpha'
-            }
+              userHash: 'hash-alpha',
+            },
           };
 
           const userB: FeatureFlagContext = {
             tenantId: 'ab-test-tenant',
-            userId: 'user-beta-002', 
+            userId: 'user-beta-002',
             environment: 'production',
             metadata: {
               experimentId: 'dashboard-redesign-001',
-              userHash: 'hash-beta'
-            }
+              userHash: 'hash-beta',
+            },
           };
 
           // When: Multiple evaluations for the same users
           const userAResults = await Promise.all([
             evaluator.isEnabled(userA, FEATURE_FLAGS.NEW_DASHBOARD),
             evaluator.isEnabled(userA, FEATURE_FLAGS.NEW_DASHBOARD),
-            evaluator.isEnabled(userA, FEATURE_FLAGS.NEW_DASHBOARD)
+            evaluator.isEnabled(userA, FEATURE_FLAGS.NEW_DASHBOARD),
           ]);
 
           const userBResults = await Promise.all([
             evaluator.isEnabled(userB, FEATURE_FLAGS.NEW_DASHBOARD),
             evaluator.isEnabled(userB, FEATURE_FLAGS.NEW_DASHBOARD),
-            evaluator.isEnabled(userB, FEATURE_FLAGS.NEW_DASHBOARD)
+            evaluator.isEnabled(userB, FEATURE_FLAGS.NEW_DASHBOARD),
           ]);
 
           // Then: Each user should get consistent results across evaluations
@@ -194,7 +196,7 @@ describe('Business Scenario Integration Specification', () => {
     beforeEach(() => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 100 }), // Short TTL for emergency scenarios
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -207,8 +209,8 @@ describe('Business Scenario Integration Specification', () => {
             environment: 'production',
             metadata: {
               incidentId: 'INC-2025-001',
-              priority: 'P0'
-            }
+              priority: 'P0',
+            },
           };
 
           const affectedTenant: FeatureFlagContext = {
@@ -216,18 +218,18 @@ describe('Business Scenario Integration Specification', () => {
             environment: 'production',
             metadata: {
               incidentId: 'INC-2025-001',
-              priority: 'P1'
-            }
+              priority: 'P1',
+            },
           };
 
           // When: Rapid flag evaluations during incident response
           const startTime = Date.now();
-          
+
           const emergencyEvaluations = await Promise.all([
             evaluator.isEnabled(criticalTenant, FEATURE_FLAGS.BILLING_V2),
             evaluator.isEnabled(criticalTenant, FEATURE_FLAGS.NEW_DASHBOARD),
             evaluator.isEnabled(affectedTenant, FEATURE_FLAGS.BILLING_V2),
-            evaluator.isEnabled(affectedTenant, FEATURE_FLAGS.NEW_DASHBOARD)
+            evaluator.isEnabled(affectedTenant, FEATURE_FLAGS.NEW_DASHBOARD),
           ]);
 
           const responseTime = Date.now() - startTime;
@@ -253,7 +255,7 @@ describe('Business Scenario Integration Specification', () => {
     beforeEach(() => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 1000 }),
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -267,18 +269,18 @@ describe('Business Scenario Integration Specification', () => {
             environment: 'production',
             metadata: {
               contract: 'custom',
-              sla: 'premium'
-            }
+              sla: 'premium',
+            },
           };
 
           const startupTenant: FeatureFlagContext = {
             tenantId: 'startup-tenant-001',
             plan: 'startup',
-            environment: 'production', 
+            environment: 'production',
             metadata: {
               contract: 'standard',
-              sla: 'standard'
-            }
+              sla: 'standard',
+            },
           };
 
           const freeTierTenant: FeatureFlagContext = {
@@ -287,8 +289,8 @@ describe('Business Scenario Integration Specification', () => {
             environment: 'production',
             metadata: {
               contract: 'free',
-              sla: 'basic'
-            }
+              sla: 'basic',
+            },
           };
 
           // When: Evaluating premium features across tenant tiers
@@ -298,14 +300,14 @@ describe('Business Scenario Integration Specification', () => {
             freeBilling,
             enterpriseDashboard,
             startupDashboard,
-            freeDashboard
+            freeDashboard,
           ] = await Promise.all([
             evaluator.isEnabled(enterpriseTenant, FEATURE_FLAGS.BILLING_V2),
             evaluator.isEnabled(startupTenant, FEATURE_FLAGS.BILLING_V2),
             evaluator.isEnabled(freeTierTenant, FEATURE_FLAGS.BILLING_V2),
             evaluator.isEnabled(enterpriseTenant, FEATURE_FLAGS.NEW_DASHBOARD),
             evaluator.isEnabled(startupTenant, FEATURE_FLAGS.NEW_DASHBOARD),
-            evaluator.isEnabled(freeTierTenant, FEATURE_FLAGS.NEW_DASHBOARD)
+            evaluator.isEnabled(freeTierTenant, FEATURE_FLAGS.NEW_DASHBOARD),
           ]);
 
           // Then: Enterprise tenant should have override access
@@ -330,7 +332,7 @@ describe('Business Scenario Integration Specification', () => {
     beforeEach(() => {
       evaluator = new FeatureFlagEvaluator({
         cache: new FeatureFlagCache({ ttl: 2000 }), // Longer TTL for performance testing
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
     });
 
@@ -344,15 +346,15 @@ describe('Business Scenario Integration Specification', () => {
             environment: 'production',
             metadata: {
               loadTest: true,
-              batchId: Math.floor(i / 10)
-            }
+              batchId: Math.floor(i / 10),
+            },
           }));
 
           // When: Concurrent evaluations under load
           const startTime = Date.now();
 
           const concurrentResults = await Promise.all(
-            concurrentContexts.map(context => 
+            concurrentContexts.map(context =>
               evaluator.isEnabled(context, FEATURE_FLAGS.BILLING_V2)
             )
           );
@@ -381,7 +383,7 @@ describe('Business Scenario Integration Specification', () => {
           // Given: Extended evaluation scenario
           const baseContext: FeatureFlagContext = {
             tenantId: 'memory-test-tenant',
-            environment: 'production'
+            environment: 'production',
           };
 
           // When: Multiple evaluation cycles
@@ -389,7 +391,7 @@ describe('Business Scenario Integration Specification', () => {
             await Promise.all([
               evaluator.isEnabled(baseContext, FEATURE_FLAGS.BILLING_V2),
               evaluator.isEnabled(baseContext, FEATURE_FLAGS.NEW_DASHBOARD),
-              evaluator.isEnabled(baseContext, FEATURE_FLAGS.ADVANCED_ANALYTICS)
+              evaluator.isEnabled(baseContext, FEATURE_FLAGS.ADVANCED_ANALYTICS),
             ]);
 
             // Simulate time passage for cache management

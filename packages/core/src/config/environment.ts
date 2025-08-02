@@ -1,6 +1,6 @@
 /**
  * Multi-Environment Configuration Management
- * 
+ *
  * マルチ環境サポートのための設定管理
  */
 
@@ -49,30 +49,37 @@ export function getEnvironmentConfig(environment: Environment): EnvironmentConfi
   if (!environment) {
     throw new Error('Environment parameter is required for getEnvironmentConfig');
   }
-  
+
   // 有効な環境値かチェック
   if (!Object.values(ENVIRONMENTS).includes(environment)) {
-    throw new Error(`Invalid environment: ${environment}. Must be one of: ${Object.values(ENVIRONMENTS).join(', ')}`);
+    throw new Error(
+      `Invalid environment: ${environment}. Must be one of: ${Object.values(ENVIRONMENTS).join(', ')}`
+    );
   }
-  
+
   const baseConfig = DEFAULT_CONFIGS[environment];
   if (!baseConfig) {
     throw new Error(`No configuration found for environment: ${environment}`);
   }
-  
+
   // 環境変数による設定上書き
   const config: EnvironmentConfig = {
     ...baseConfig,
-    tableName: process.env[`FEATURE_FLAGS_TABLE_NAME_${environment.toUpperCase()}`] || baseConfig.tableName,
-    region: process.env[`AWS_REGION_${environment.toUpperCase()}`] || process.env.AWS_REGION || baseConfig.region,
+    tableName:
+      process.env[`FEATURE_FLAGS_TABLE_NAME_${environment.toUpperCase()}`] || baseConfig.tableName,
+    region:
+      process.env[`AWS_REGION_${environment.toUpperCase()}`] ||
+      process.env.AWS_REGION ||
+      baseConfig.region,
     endpoint: process.env[`DYNAMODB_ENDPOINT_${environment.toUpperCase()}`] || baseConfig.endpoint,
   };
 
   // 開発環境での特別な設定
   if (environment === ENVIRONMENTS.DEVELOPMENT) {
-    config.endpoint = process.env.DYNAMODB_ENDPOINT || process.env.IS_OFFLINE === 'true' 
-      ? 'http://localhost:8000' 
-      : config.endpoint;
+    config.endpoint =
+      process.env.DYNAMODB_ENDPOINT || process.env.IS_OFFLINE === 'true'
+        ? 'http://localhost:8000'
+        : config.endpoint;
   }
 
   return config;
@@ -83,12 +90,12 @@ export function getEnvironmentConfig(environment: Environment): EnvironmentConfi
  */
 export function getCurrentEnvironment(): Environment {
   const env = process.env.NODE_ENV as Environment;
-  
+
   // 有効な環境値かチェック
   if (env && Object.values(ENVIRONMENTS).includes(env)) {
     return env;
   }
-  
+
   // フォールバック: 本番環境
   return ENVIRONMENTS.PRODUCTION;
 }
@@ -131,7 +138,7 @@ export function validateEnvironmentConfig(config: EnvironmentConfig): boolean {
  */
 export function debugLog(environment: Environment, message: string, data?: any): void {
   const config = getEnvironmentConfig(environment);
-  
+
   if (config.features?.debugLogging) {
     console.log(`[${environment.toUpperCase()}] ${message}`, data ? data : '');
   }

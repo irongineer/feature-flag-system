@@ -48,7 +48,7 @@ export class FeatureFlagHttpClient {
       const requestPayload: EvaluationRequest = {
         tenantId: context.tenantId,
         flagKey,
-        environment: context.environment || 'production'
+        environment: context.environment || 'production',
       };
 
       // オプショナルフィールドをundefinedの場合は送信しない
@@ -59,7 +59,6 @@ export class FeatureFlagHttpClient {
 
       const response = await this.sendRequest('/evaluate', requestPayload);
       return response.enabled;
-
     } catch (error) {
       console.error(`Feature flag evaluation failed for ${flagKey}:`, error);
       return this.getDefaultValue(flagKey);
@@ -75,7 +74,7 @@ export class FeatureFlagHttpClient {
 
       const requestPayload: Omit<EvaluationRequest, 'flagKey'> = {
         tenantId: context.tenantId,
-        environment: context.environment || 'production'
+        environment: context.environment || 'production',
       };
 
       // オプショナルフィールドを条件付きで追加
@@ -86,7 +85,6 @@ export class FeatureFlagHttpClient {
 
       const response = await this.sendRequest('/evaluate-all', requestPayload);
       return response.flags || {};
-
     } catch (error) {
       console.error('Bulk flag evaluation failed:', error);
       return {};
@@ -97,8 +95,8 @@ export class FeatureFlagHttpClient {
     const url = `${this.options.apiUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.options.apiKey}`,
-      'User-Agent': 'FeatureFlagClient/1.0.0'
+      Authorization: `Bearer ${this.options.apiKey}`,
+      'User-Agent': 'FeatureFlagClient/1.0.0',
     };
 
     let lastError: Error | null = null;
@@ -112,7 +110,7 @@ export class FeatureFlagHttpClient {
           method: 'POST',
           headers,
           body: JSON.stringify(payload),
-          signal: controller.signal
+          signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
@@ -122,10 +120,9 @@ export class FeatureFlagHttpClient {
         }
 
         return await response.json();
-
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt < this.options.retries) {
           // 指数バックオフでリトライ
           const delay = Math.min(1000 * Math.pow(2, attempt), 5000);

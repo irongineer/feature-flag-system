@@ -4,20 +4,20 @@ import { FEATURE_FLAGS } from '../src/models';
 
 /**
  * Rollout Engine Business Logic Tests
- * 
+ *
  * 複雑なビジネスロジックテスト - 段階的ロールアウト戦略
  * 時間・地域・コホート・パーセンテージベース配信制御
  */
 
 describe('Rollout Engine Business Logic', () => {
   const rolloutEngine = new RolloutEngine();
-  
+
   const baseContext: RolloutContext = {
     tenantId: 'tenant-123',
     userId: 'user-456',
     region: 'US',
     userCohort: 'premium',
-    timestamp: '2025-07-23T14:00:00.000Z' // UTC時間で平日14時
+    timestamp: '2025-07-23T14:00:00.000Z', // UTC時間で平日14時
   };
 
   describe('Time Window Control', () => {
@@ -28,7 +28,7 @@ describe('Rollout Engine Business Logic', () => {
           const config: RolloutConfig = {
             percentage: 100,
             startDate: '2025-07-23T10:00:00.000Z',
-            endDate: '2025-07-23T18:00:00.000Z'
+            endDate: '2025-07-23T18:00:00.000Z',
           };
 
           // When: 時間窓内での評価
@@ -47,7 +47,7 @@ describe('Rollout Engine Business Logic', () => {
           const config: RolloutConfig = {
             percentage: 100,
             startDate: '2025-07-24T10:00:00.000Z', // 明日開始
-            endDate: '2025-07-24T18:00:00.000Z'
+            endDate: '2025-07-24T18:00:00.000Z',
           };
 
           // When: 時間窓外での評価
@@ -71,7 +71,7 @@ describe('Rollout Engine Business Logic', () => {
           // Given: 営業時間制限設定
           const config: RolloutConfig = {
             percentage: 100,
-            businessHoursOnly: true
+            businessHoursOnly: true,
           };
 
           // When: 営業時間設定での評価
@@ -89,12 +89,12 @@ describe('Rollout Engine Business Logic', () => {
           // Given: 営業時間制限設定
           const config: RolloutConfig = {
             percentage: 100,
-            businessHoursOnly: true
+            businessHoursOnly: true,
           };
 
           const weekendContext = {
             ...baseContext,
-            timestamp: '2025-07-26T14:00:00.000Z' // 土曜日14時
+            timestamp: '2025-07-26T14:00:00.000Z', // 土曜日14時
           };
 
           // When: 営業時間外（土曜日）での評価
@@ -118,7 +118,7 @@ describe('Rollout Engine Business Logic', () => {
           // Given: 地域制限設定
           const config: RolloutConfig = {
             percentage: 100,
-            targetRegions: ['US', 'EU']
+            targetRegions: ['US', 'EU'],
           };
 
           // When: 対象地域での評価
@@ -136,7 +136,7 @@ describe('Rollout Engine Business Logic', () => {
           // Given: 地域制限設定
           const config: RolloutConfig = {
             percentage: 100,
-            targetRegions: ['EU', 'APAC']
+            targetRegions: ['EU', 'APAC'],
           };
 
           // When: 対象外地域での評価
@@ -160,7 +160,7 @@ describe('Rollout Engine Business Logic', () => {
           // Given: コホート制限設定
           const config: RolloutConfig = {
             percentage: 100,
-            userCohorts: ['premium', 'enterprise']
+            userCohorts: ['premium', 'enterprise'],
           };
 
           // When: 対象コホートでの評価
@@ -183,7 +183,7 @@ describe('Rollout Engine Business Logic', () => {
         it('THEN provides consistent user-based distribution', async () => {
           // Given: 50%ロールアウト設定
           const config: RolloutConfig = {
-            percentage: 50
+            percentage: 50,
           };
 
           // When: 同じユーザーで複数回評価
