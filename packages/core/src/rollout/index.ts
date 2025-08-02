@@ -2,7 +2,7 @@ import { FeatureFlagKey, FeatureFlagContext } from '../models';
 
 /**
  * Advanced Rollout Engine
- * 
+ *
  * 複雑なビジネスロジックエンジン - 段階的ロールアウト戦略
  * 時間ベース・パーセンテージベース・条件ベース配信制御
  */
@@ -58,27 +58,27 @@ export class RolloutEngine {
 
   private isWithinTimeWindow(config: RolloutConfig, timestamp?: string): boolean {
     if (!timestamp) return true;
-    
+
     const now = new Date(timestamp);
-    
+
     if (config.startDate && now < new Date(config.startDate)) {
       return false;
     }
-    
+
     if (config.endDate && now > new Date(config.endDate)) {
       return false;
     }
-    
+
     return true;
   }
 
   private isBusinessHours(timestamp?: string): boolean {
     if (!timestamp) return true;
-    
+
     const date = new Date(timestamp);
     const hour = date.getHours();
     const day = date.getDay();
-    
+
     // 平日9-18時のみ
     return day >= 1 && day <= 5 && hour >= 9 && hour < 18;
   }
@@ -87,7 +87,7 @@ export class RolloutEngine {
     if (!config.targetRegions || config.targetRegions.length === 0) {
       return true;
     }
-    
+
     return userRegion ? config.targetRegions.includes(userRegion) : false;
   }
 
@@ -95,19 +95,19 @@ export class RolloutEngine {
     if (!config.userCohorts || config.userCohorts.length === 0) {
       return true;
     }
-    
+
     return userCohort ? config.userCohorts.includes(userCohort) : false;
   }
 
   private evaluatePercentage(
-    config: RolloutConfig, 
-    context: RolloutContext, 
+    config: RolloutConfig,
+    context: RolloutContext,
     flagKey: FeatureFlagKey
   ): boolean {
     // ユーザーIDベースの一貫したハッシュ生成
     const hash = this.generateUserHash(context.userId || '', flagKey);
     const userPercentile = hash % 100;
-    
+
     return userPercentile < config.percentage;
   }
 
@@ -117,15 +117,15 @@ export class RolloutEngine {
     const input = `${userId}-${flagKey}`;
     const FNV_OFFSET_BASIS = 2166136261;
     const FNV_PRIME = 16777619;
-    
+
     let hash = FNV_OFFSET_BASIS;
-    
+
     for (let i = 0; i < input.length; i++) {
       // FNV-1a: hash = (hash XOR byte) * FNV_PRIME
       hash ^= input.charCodeAt(i);
       hash = (hash * FNV_PRIME) >>> 0; // 32bit unsigned integer
     }
-    
+
     return hash;
   }
 }

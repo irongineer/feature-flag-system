@@ -13,21 +13,21 @@ describe('FeatureFlagHttpClient', () => {
       apiUrl: 'https://api.example.com',
       apiKey: 'test-key',
       timeout: 1000,
-      retries: 1
+      retries: 1,
     });
-    
+
     jest.clearAllMocks();
   });
 
   describe('Context Flexibility', () => {
     it('should work with minimal context (tenantId only)', async () => {
       const context: FeatureFlagContext = {
-        tenantId: 'tenant-123'
+        tenantId: 'tenant-123',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
       } as Response);
 
       const result = await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
@@ -39,8 +39,8 @@ describe('FeatureFlagHttpClient', () => {
           body: JSON.stringify({
             tenantId: 'tenant-123',
             flagKey: 'new_dashboard_enable',
-            environment: 'production'
-          })
+            environment: 'production',
+          }),
         })
       );
     });
@@ -48,12 +48,12 @@ describe('FeatureFlagHttpClient', () => {
     it('should include userId when provided', async () => {
       const context: FeatureFlagContext = {
         tenantId: 'tenant-123',
-        userId: 'user-456'
+        userId: 'user-456',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
       } as Response);
 
       await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
@@ -65,8 +65,8 @@ describe('FeatureFlagHttpClient', () => {
             tenantId: 'tenant-123',
             userId: 'user-456',
             flagKey: 'new_dashboard_enable',
-            environment: 'production'
-          })
+            environment: 'production',
+          }),
         })
       );
     });
@@ -74,12 +74,12 @@ describe('FeatureFlagHttpClient', () => {
     it('should include userRole when provided', async () => {
       const context: FeatureFlagContext = {
         tenantId: 'tenant-123',
-        userRole: 'admin'
+        userRole: 'admin',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
       } as Response);
 
       await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
@@ -91,8 +91,8 @@ describe('FeatureFlagHttpClient', () => {
             tenantId: 'tenant-123',
             userRole: 'admin',
             flagKey: 'new_dashboard_enable',
-            environment: 'production'
-          })
+            environment: 'production',
+          }),
         })
       );
     });
@@ -100,12 +100,12 @@ describe('FeatureFlagHttpClient', () => {
     it('should include plan when provided', async () => {
       const context: FeatureFlagContext = {
         tenantId: 'tenant-123',
-        plan: 'enterprise'
+        plan: 'enterprise',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
       } as Response);
 
       await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
@@ -117,8 +117,8 @@ describe('FeatureFlagHttpClient', () => {
             tenantId: 'tenant-123',
             plan: 'enterprise',
             flagKey: 'new_dashboard_enable',
-            environment: 'production'
-          })
+            environment: 'production',
+          }),
         })
       );
     });
@@ -132,13 +132,13 @@ describe('FeatureFlagHttpClient', () => {
         environment: 'staging',
         metadata: {
           region: 'us-east-1',
-          experimentGroup: 'variant-A'
-        }
+          experimentGroup: 'variant-A',
+        },
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
       } as Response);
 
       await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
@@ -155,9 +155,9 @@ describe('FeatureFlagHttpClient', () => {
             environment: 'staging',
             metadata: {
               region: 'us-east-1',
-              experimentGroup: 'variant-A'
-            }
-          })
+              experimentGroup: 'variant-A',
+            },
+          }),
         })
       );
     });
@@ -168,24 +168,24 @@ describe('FeatureFlagHttpClient', () => {
         userId: undefined,
         userRole: undefined,
         plan: undefined,
-        metadata: undefined
+        metadata: undefined,
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
+        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
       } as Response);
 
       await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
 
       const callBody = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
-      
+
       expect(callBody).toEqual({
         tenantId: 'tenant-123',
         flagKey: 'new_dashboard_enable',
-        environment: 'production'
+        environment: 'production',
       });
-      
+
       expect(callBody).not.toHaveProperty('userId');
       expect(callBody).not.toHaveProperty('userRole');
       expect(callBody).not.toHaveProperty('plan');
@@ -205,7 +205,7 @@ describe('FeatureFlagHttpClient', () => {
 
     it('should return default value on network error', async () => {
       const context: FeatureFlagContext = {
-        tenantId: 'tenant-123'
+        tenantId: 'tenant-123',
       };
 
       mockFetch.mockRejectedValue(new Error('Network error'));
@@ -217,7 +217,7 @@ describe('FeatureFlagHttpClient', () => {
 
     it('should use custom default values', async () => {
       const context: FeatureFlagContext = {
-        tenantId: 'tenant-123'
+        tenantId: 'tenant-123',
       };
 
       client.setDefaultValue(FEATURE_FLAGS.NEW_DASHBOARD, true);
@@ -230,15 +230,13 @@ describe('FeatureFlagHttpClient', () => {
 
     it('should retry on failure', async () => {
       const context: FeatureFlagContext = {
-        tenantId: 'tenant-123'
+        tenantId: 'tenant-123',
       };
 
-      mockFetch
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' })
-        } as Response);
+      mockFetch.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+      } as Response);
 
       const result = await client.isEnabled(FEATURE_FLAGS.NEW_DASHBOARD, context);
 
@@ -250,24 +248,24 @@ describe('FeatureFlagHttpClient', () => {
   describe('getAllFlags', () => {
     it('should work with minimal context', async () => {
       const context: FeatureFlagContext = {
-        tenantId: 'tenant-123'
+        tenantId: 'tenant-123',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           flags: {
-            'new_dashboard_enable': true,
-            'billing_v2_enable': false
-          }
-        })
+            new_dashboard_enable: true,
+            billing_v2_enable: false,
+          },
+        }),
       } as Response);
 
       const result = await client.getAllFlags(context);
 
       expect(result).toEqual({
-        'new_dashboard_enable': true,
-        'billing_v2_enable': false
+        new_dashboard_enable: true,
+        billing_v2_enable: false,
       });
     });
 
@@ -275,12 +273,12 @@ describe('FeatureFlagHttpClient', () => {
       const context: FeatureFlagContext = {
         tenantId: 'tenant-123',
         userId: 'user-456',
-        userRole: 'admin'
+        userRole: 'admin',
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ flags: {} })
+        json: async () => ({ flags: {} }),
       } as Response);
 
       await client.getAllFlags(context);
@@ -290,7 +288,7 @@ describe('FeatureFlagHttpClient', () => {
         tenantId: 'tenant-123',
         userId: 'user-456',
         userRole: 'admin',
-        environment: 'production'
+        environment: 'production',
       });
     });
   });

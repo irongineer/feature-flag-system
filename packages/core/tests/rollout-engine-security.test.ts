@@ -4,7 +4,7 @@ import { FEATURE_FLAGS } from '../src/models';
 
 /**
  * Rollout Engine Security Tests
- * 
+ *
  * ハッシュ関数のセキュリティ特性とロールアウト分散の均等性を検証
  * FNV-1aアルゴリズムの安全性とパフォーマンスをテスト
  */
@@ -19,15 +19,19 @@ describe('Rollout Engine Security', () => {
           // Given: 大量のユーザーIDとフラグの組み合わせ
           const users = Array.from({ length: 1000 }, (_, i) => `user-${i}`);
           const rolloutConfig: RolloutConfig = { percentage: 50 };
-          
+
           const results = await Promise.all(
             users.map(userId => {
               const context: RolloutContext = {
                 tenantId: 'security-test-tenant',
                 userId,
-                environment: 'development'
+                environment: 'development',
               };
-              return rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+              return rolloutEngine.evaluateRollout(
+                context,
+                FEATURE_FLAGS.BILLING_V2,
+                rolloutConfig
+              );
             })
           );
 
@@ -45,7 +49,7 @@ describe('Rollout Engine Security', () => {
           const context: RolloutContext = {
             tenantId: 'consistency-test',
             userId: 'consistent-user-123',
-            environment: 'development'
+            environment: 'development',
           };
           const rolloutConfig: RolloutConfig = { percentage: 30 };
 
@@ -67,23 +71,27 @@ describe('Rollout Engine Security', () => {
           // Given: 意図的に類似した入力パターン
           const similarUsers = [
             'user-attack-1',
-            'user-attack-2', 
+            'user-attack-2',
             'user-attack-3',
             'user-1-attack',
             'user-2-attack',
-            'user-3-attack'
+            'user-3-attack',
           ];
 
           const rolloutConfig: RolloutConfig = { percentage: 50 };
-          
+
           const results = await Promise.all(
             similarUsers.map(userId => {
               const context: RolloutContext = {
                 tenantId: 'collision-test',
                 userId,
-                environment: 'development'
+                environment: 'development',
               };
-              return rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+              return rolloutEngine.evaluateRollout(
+                context,
+                FEATURE_FLAGS.BILLING_V2,
+                rolloutConfig
+              );
             })
           );
 
@@ -111,9 +119,13 @@ describe('Rollout Engine Security', () => {
               const context: RolloutContext = {
                 tenantId: 'zero-percent-test',
                 userId,
-                environment: 'development'
+                environment: 'development',
               };
-              return rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+              return rolloutEngine.evaluateRollout(
+                context,
+                FEATURE_FLAGS.BILLING_V2,
+                rolloutConfig
+              );
             })
           );
 
@@ -134,9 +146,13 @@ describe('Rollout Engine Security', () => {
               const context: RolloutContext = {
                 tenantId: 'hundred-percent-test',
                 userId,
-                environment: 'development'
+                environment: 'development',
               };
-              return rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+              return rolloutEngine.evaluateRollout(
+                context,
+                FEATURE_FLAGS.BILLING_V2,
+                rolloutConfig
+              );
             })
           );
 
@@ -152,7 +168,7 @@ describe('Rollout Engine Security', () => {
             { userId: 'admin', percentage: 1 },
             { userId: 'root', percentage: 1 },
             { userId: '../../etc/passwd', percentage: 1 },
-            { userId: '<script>alert("xss")</script>', percentage: 1 }
+            { userId: '<script>alert("xss")</script>', percentage: 1 },
           ];
 
           // When: 悪意のある入力での評価
@@ -161,10 +177,14 @@ describe('Rollout Engine Security', () => {
               const context: RolloutContext = {
                 tenantId: 'security-test',
                 userId,
-                environment: 'development'
+                environment: 'development',
               };
               const rolloutConfig: RolloutConfig = { percentage };
-              return rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+              return rolloutEngine.evaluateRollout(
+                context,
+                FEATURE_FLAGS.BILLING_V2,
+                rolloutConfig
+              );
             })
           );
 
@@ -185,13 +205,13 @@ describe('Rollout Engine Security', () => {
           const context: RolloutContext = {
             tenantId: 'performance-test',
             userId: 'performance-user',
-            environment: 'development'
+            environment: 'development',
           };
           const rolloutConfig: RolloutConfig = { percentage: 50 };
 
           // When: パフォーマンス測定
           const startTime = Date.now();
-          
+
           await Promise.all(
             Array.from({ length: 1000 }, () =>
               rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig)
@@ -216,12 +236,16 @@ describe('Rollout Engine Security', () => {
           const context: RolloutContext = {
             tenantId: 'empty-user-test',
             userId: '',
-            environment: 'development'
+            environment: 'development',
           };
           const rolloutConfig: RolloutConfig = { percentage: 50 };
 
           // When: 空のユーザーIDで評価
-          const result = await rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+          const result = await rolloutEngine.evaluateRollout(
+            context,
+            FEATURE_FLAGS.BILLING_V2,
+            rolloutConfig
+          );
 
           // Then: 安全に処理される
           expect(typeof result).toBe('boolean');
@@ -233,12 +257,16 @@ describe('Rollout Engine Security', () => {
           const context: RolloutContext = {
             tenantId: 'long-user-test',
             userId: longUserId,
-            environment: 'development'
+            environment: 'development',
           };
           const rolloutConfig: RolloutConfig = { percentage: 50 };
 
           // When: 長いユーザーIDで評価
-          const result = await rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+          const result = await rolloutEngine.evaluateRollout(
+            context,
+            FEATURE_FLAGS.BILLING_V2,
+            rolloutConfig
+          );
 
           // Then: 安全に処理される
           expect(typeof result).toBe('boolean');
@@ -251,7 +279,7 @@ describe('Rollout Engine Security', () => {
             'пользователь-456',
             'ユーザー-789',
             '🚀user-emoji',
-            'user@例.テスト'
+            'user@例.テスト',
           ];
 
           const rolloutConfig: RolloutConfig = { percentage: 50 };
@@ -262,9 +290,13 @@ describe('Rollout Engine Security', () => {
               const context: RolloutContext = {
                 tenantId: 'unicode-test',
                 userId,
-                environment: 'development'
+                environment: 'development',
               };
-              return rolloutEngine.evaluateRollout(context, FEATURE_FLAGS.BILLING_V2, rolloutConfig);
+              return rolloutEngine.evaluateRollout(
+                context,
+                FEATURE_FLAGS.BILLING_V2,
+                rolloutConfig
+              );
             })
           );
 

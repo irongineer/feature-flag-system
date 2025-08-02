@@ -20,10 +20,10 @@ class MockTimeProvider implements TimeProvider {
 
 /**
  * Feature Flag Cache Specification
- * 
+ *
  * フィーチャーフラグキャッシュは、評価結果の一時保存による
  * パフォーマンス向上とレスポンス時間短縮を責務とする。
- * 
+ *
  * Key Business Rules:
  * 1. TTL（Time To Live）による自動無効化
  * 2. テナント・フラグキー単位での精密なキャッシュ管理
@@ -48,11 +48,11 @@ describe('FeatureFlagCache Specification', () => {
         describe('WHEN storing and immediately retrieving a value', () => {
           it('THEN returns the exact value that was stored', () => {
             // Given: A cache ready to store values
-            
+
             // When: Storing a boolean value and immediately retrieving it
             cache.set(tenantId, flagKey, true);
             const result = cache.get(tenantId, flagKey);
-            
+
             // Then: Should return the exact stored value
             expect(result).toBe(true);
           });
@@ -63,10 +63,10 @@ describe('FeatureFlagCache Specification', () => {
         describe('WHEN retrieving non-existent keys', () => {
           it('THEN returns undefined for non-existent tenant-flag combinations', () => {
             // Given: An empty cache
-            
+
             // When: Attempting to retrieve a non-existent key
             const result = cache.get('non-existent-tenant', flagKey);
-            
+
             // Then: Should return undefined indicating no cached value
             expect(result).toBeUndefined();
           });
@@ -78,11 +78,11 @@ describe('FeatureFlagCache Specification', () => {
           it('THEN replaces the old value with the new one', () => {
             // Given: A cache with an existing value
             cache.set(tenantId, flagKey, true);
-            
+
             // When: Overwriting with a different value
             cache.set(tenantId, flagKey, false);
             const result = cache.get(tenantId, flagKey);
-            
+
             // Then: Should return the new value, not the old one
             expect(result).toBe(false);
           });
@@ -95,11 +95,11 @@ describe('FeatureFlagCache Specification', () => {
         describe('WHEN storing different values per tenant', () => {
           it('THEN maintains tenant-specific values without interference', () => {
             // Given: Multiple tenants needing isolation
-            
+
             // When: Setting different values for the same flag across tenants
             cache.set('tenant-1', flagKey, true);
             cache.set('tenant-2', flagKey, false);
-            
+
             // Then: Each tenant should maintain its own value
             expect(cache.get('tenant-1', flagKey)).toBe(true);
             expect(cache.get('tenant-2', flagKey)).toBe(false);
@@ -113,11 +113,11 @@ describe('FeatureFlagCache Specification', () => {
         describe('WHEN storing different flag values', () => {
           it('THEN maintains flag-specific values independently', () => {
             // Given: A tenant that uses multiple feature flags
-            
+
             // When: Setting different values for different flags
             cache.set(tenantId, FEATURE_FLAGS.BILLING_V2, true);
             cache.set(tenantId, FEATURE_FLAGS.NEW_DASHBOARD, false);
-            
+
             // Then: Each flag should maintain its own value
             expect(cache.get(tenantId, FEATURE_FLAGS.BILLING_V2)).toBe(true);
             expect(cache.get(tenantId, FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
@@ -137,15 +137,15 @@ describe('FeatureFlagCache Specification', () => {
           // Given: A cache with 50ms TTL and controlled time
           const mockTimeProvider = new MockTimeProvider();
           const ttlCache = new FeatureFlagCache({ ttl: 50, timeProvider: mockTimeProvider });
-          
+
           // When: Storing a value and advancing time beyond TTL
           mockTimeProvider.setTime(1000);
           ttlCache.set(tenantId, flagKey, true);
           expect(ttlCache.get(tenantId, flagKey)).toBe(true);
-          
+
           // Advance time beyond TTL
           mockTimeProvider.setTime(1000 + 51); // TTL + 1ms
-          
+
           // Then: Should return undefined (expired)
           expect(ttlCache.get(tenantId, flagKey)).toBeUndefined();
         });
@@ -156,15 +156,15 @@ describe('FeatureFlagCache Specification', () => {
           // Given: A cache with 200ms TTL and controlled time
           const mockTimeProvider = new MockTimeProvider();
           const ttlCache = new FeatureFlagCache({ ttl: 200, timeProvider: mockTimeProvider });
-          
+
           // When: Storing a value and advancing time within TTL
           mockTimeProvider.setTime(1000);
           ttlCache.set(tenantId, flagKey, true);
           expect(ttlCache.get(tenantId, flagKey)).toBe(true);
-          
+
           // Advance time within TTL
           mockTimeProvider.setTime(1000 + 100); // Half TTL
-          
+
           // Then: Should still return the cached value
           expect(ttlCache.get(tenantId, flagKey)).toBe(true);
         });
@@ -183,7 +183,7 @@ describe('FeatureFlagCache Specification', () => {
           // When: Setting up both caches with their respective time providers
           mockTimeProvider1.setTime(1000);
           mockTimeProvider2.setTime(1000);
-          
+
           shortTTLCache.set(tenantId, flagKey, true);
           longTTLCache.set(tenantId, flagKey, false);
 
@@ -206,14 +206,14 @@ describe('FeatureFlagCache Specification', () => {
             // Given: Cache with multiple entries for the same tenant
             cache.set(tenantId, flagKey, true);
             cache.set(tenantId, FEATURE_FLAGS.NEW_DASHBOARD, false);
-            
+
             // Verify both entries exist
             expect(cache.get(tenantId, flagKey)).toBe(true);
             expect(cache.get(tenantId, FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
-            
+
             // When: Invalidating a specific entry
             cache.invalidate(tenantId, flagKey);
-            
+
             // Then: Only the targeted entry should be removed
             expect(cache.get(tenantId, flagKey)).toBeUndefined();
             expect(cache.get(tenantId, FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
@@ -230,15 +230,15 @@ describe('FeatureFlagCache Specification', () => {
             cache.set('tenant-1', FEATURE_FLAGS.BILLING_V2, true);
             cache.set('tenant-2', FEATURE_FLAGS.NEW_DASHBOARD, false);
             cache.set('tenant-3', FEATURE_FLAGS.ADVANCED_ANALYTICS, true);
-            
+
             // Verify all entries exist
             expect(cache.get('tenant-1', FEATURE_FLAGS.BILLING_V2)).toBe(true);
             expect(cache.get('tenant-2', FEATURE_FLAGS.NEW_DASHBOARD)).toBe(false);
             expect(cache.get('tenant-3', FEATURE_FLAGS.ADVANCED_ANALYTICS)).toBe(true);
-            
+
             // When: Performing global invalidation
             cache.invalidateAll();
-            
+
             // Then: All entries should be removed
             expect(cache.get('tenant-1', FEATURE_FLAGS.BILLING_V2)).toBeUndefined();
             expect(cache.get('tenant-2', FEATURE_FLAGS.NEW_DASHBOARD)).toBeUndefined();
@@ -253,7 +253,7 @@ describe('FeatureFlagCache Specification', () => {
         describe('WHEN targeting entries that do not exist', () => {
           it('THEN handles gracefully without throwing errors', () => {
             // Given: An empty or partially populated cache
-            
+
             // When: Attempting to invalidate non-existent entries
             // Then: Should not throw any errors (graceful handling)
             expect(() => {
@@ -272,25 +272,25 @@ describe('FeatureFlagCache Specification', () => {
           it('THEN accurately tracks the number of cached entries', () => {
             // Given: An empty cache
             const tenantId = 'tenant-123';
-            
+
             // When/Then: Tracking size through various operations
             expect(cache.size()).toBe(0);
-            
+
             // When: Adding first entry
             cache.set(tenantId, FEATURE_FLAGS.BILLING_V2, true);
             // Then: Size should increase
             expect(cache.size()).toBe(1);
-            
+
             // When: Adding second entry
             cache.set(tenantId, FEATURE_FLAGS.NEW_DASHBOARD, false);
             // Then: Size should reflect both entries
             expect(cache.size()).toBe(2);
-            
+
             // When: Removing one specific entry
             cache.invalidate(tenantId, FEATURE_FLAGS.BILLING_V2);
             // Then: Size should decrease accordingly
             expect(cache.size()).toBe(1);
-            
+
             // When: Clearing all entries
             cache.invalidateAll();
             // Then: Size should return to zero
@@ -307,16 +307,16 @@ describe('FeatureFlagCache Specification', () => {
             // Given: A cache with known entries
             const tenantId = 'tenant-123';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Adding entries and requesting key information
             cache.set(tenantId, flagKey, true);
-            
+
             const keys = cache.keys();
-            
+
             // Then: Should provide accurate key listing
             expect(keys).toContain(`${tenantId}:${flagKey}`);
             expect(keys).toHaveLength(1);
-            
+
             // Note: Skipped due to Vitest module resolution issue
             // This represents technical debt to be addressed separately
           });
@@ -333,10 +333,10 @@ describe('FeatureFlagCache Specification', () => {
             // Given: An edge case with empty string tenant ID
             const tenantId = '';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Storing and retrieving with empty string key
             cache.set(tenantId, flagKey, true);
-            
+
             // Then: Should handle empty string as a valid key
             expect(cache.get(tenantId, flagKey)).toBe(true);
           });
@@ -347,10 +347,10 @@ describe('FeatureFlagCache Specification', () => {
             // Given: A tenant ID containing special characters
             const tenantId = 'tenant-with-special-chars-@#$%';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Using special characters in tenant identification
             cache.set(tenantId, flagKey, true);
-            
+
             // Then: Should properly store and retrieve regardless of special chars
             expect(cache.get(tenantId, flagKey)).toBe(true);
           });
@@ -365,10 +365,10 @@ describe('FeatureFlagCache Specification', () => {
             // Given: A scenario where false is a meaningful value
             const tenantId = 'tenant-123';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Explicitly storing false value
             cache.set(tenantId, flagKey, false);
-            
+
             // Then: Should return false, not undefined
             expect(cache.get(tenantId, flagKey)).toBe(false);
             expect(cache.get(tenantId, flagKey)).not.toBeUndefined();
@@ -384,12 +384,12 @@ describe('FeatureFlagCache Specification', () => {
             // Given: A high-concurrency scenario
             const tenantId = 'tenant-123';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Simulating rapid concurrent set operations
             cache.set(tenantId, flagKey, true);
             cache.set(tenantId, flagKey, false);
             cache.set(tenantId, flagKey, true);
-            
+
             // Then: Should reflect the final operation's value
             expect(cache.get(tenantId, flagKey)).toBe(true);
           });
@@ -408,18 +408,18 @@ describe('FeatureFlagCache Specification', () => {
             const flagKey = FEATURE_FLAGS.BILLING_V2;
             const mockTimeProvider = new MockTimeProvider();
             const managedCache = new FeatureFlagCache({ ttl: 50, timeProvider: mockTimeProvider });
-            
+
             // When: Adding entry and letting time progress beyond TTL
             mockTimeProvider.setTime(1000);
             managedCache.set(tenantId, flagKey, true);
             expect(managedCache.size()).toBe(1);
-            
+
             // Advance time beyond TTL
             mockTimeProvider.setTime(1000 + 51);
-            
+
             // Access the cache to trigger cleanup
             managedCache.get(tenantId, flagKey);
-            
+
             // Then: Should automatically clean up expired entries
             expect(managedCache.size()).toBe(0);
           });
@@ -433,15 +433,15 @@ describe('FeatureFlagCache Specification', () => {
           it('THEN maintains performance and accuracy across scale', () => {
             // Given: A scenario requiring handling of many entries
             const numEntries = 1000;
-            
+
             // When: Populating cache with large number of entries
             for (let i = 0; i < numEntries; i++) {
               cache.set(`tenant-${i}`, FEATURE_FLAGS.BILLING_V2, i % 2 === 0);
             }
-            
+
             // Then: Should accurately maintain all entries
             expect(cache.size()).toBe(numEntries);
-            
+
             // Verify sample entries for accuracy
             expect(cache.get('tenant-0', FEATURE_FLAGS.BILLING_V2)).toBe(true);
             expect(cache.get('tenant-1', FEATURE_FLAGS.BILLING_V2)).toBe(false);
@@ -461,10 +461,10 @@ describe('FeatureFlagCache Specification', () => {
             const defaultCache = new FeatureFlagCache();
             const tenantId = 'tenant-123';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Using the cache with default settings
             defaultCache.set(tenantId, flagKey, true);
-            
+
             // Then: Should function properly with default TTL
             expect(defaultCache.get(tenantId, flagKey)).toBe(true);
           });
@@ -481,11 +481,11 @@ describe('FeatureFlagCache Specification', () => {
             const zeroTTLCache = new FeatureFlagCache({ ttl: 300, timeProvider: mockTimeProvider });
             const tenantId = 'tenant-123';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Setting TTL to 0 for immediate expiration behavior
             mockTimeProvider.setTime(1000);
             zeroTTLCache.set(tenantId, flagKey, true, 0);
-            
+
             // Then: Should not store the entry (immediate expiration)
             expect(zeroTTLCache.get(tenantId, flagKey)).toBeUndefined();
             expect(zeroTTLCache.size()).toBe(0);
@@ -498,14 +498,17 @@ describe('FeatureFlagCache Specification', () => {
           it('THEN prevents any caching by treating negative TTL as invalid', () => {
             // Given: A cache with negative TTL (invalid configuration)
             const mockTimeProvider = new MockTimeProvider();
-            const negativeTTLCache = new FeatureFlagCache({ ttl: -1, timeProvider: mockTimeProvider });
+            const negativeTTLCache = new FeatureFlagCache({
+              ttl: -1,
+              timeProvider: mockTimeProvider,
+            });
             const tenantId = 'tenant-123';
             const flagKey = FEATURE_FLAGS.BILLING_V2;
-            
+
             // When: Attempting to cache with negative TTL
             mockTimeProvider.setTime(1000);
             negativeTTLCache.set(tenantId, flagKey, true);
-            
+
             // Then: Should reject caching with invalid TTL
             expect(negativeTTLCache.get(tenantId, flagKey)).toBeUndefined();
             expect(negativeTTLCache.size()).toBe(0);

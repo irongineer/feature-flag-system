@@ -7,7 +7,7 @@ import { silentErrorHandler } from '../src/types/error-handling';
 
 /**
  * Rollout Engine Integration Tests
- * 
+ *
  * ロールアウトエンジンとフィーチャーフラグ評価エンジンの統合テスト
  * 段階的ロールアウト機能の実際のビジネスシナリオでの動作を検証
  */
@@ -24,7 +24,7 @@ describe('Rollout Engine Integration', () => {
       cache,
       environment: 'development',
       rolloutEngine,
-      errorHandler: silentErrorHandler
+      errorHandler: silentErrorHandler,
     });
   });
 
@@ -39,13 +39,13 @@ describe('Rollout Engine Integration', () => {
             environment: 'development',
             region: 'US',
             userCohort: 'premium',
-            timestamp: '2025-07-23T14:00:00.000Z'
+            timestamp: '2025-07-23T14:00:00.000Z',
           };
 
           const rolloutConfig: RolloutConfig = {
             percentage: 100, // 100%で確実にテスト
             targetRegions: ['US'],
-            userCohorts: ['premium']
+            userCohorts: ['premium'],
           };
 
           // When: ロールアウト対応評価
@@ -67,13 +67,13 @@ describe('Rollout Engine Integration', () => {
             environment: 'development',
             region: 'APAC', // 対象外リージョン
             userCohort: 'basic',
-            timestamp: '2025-07-23T14:00:00.000Z'
+            timestamp: '2025-07-23T14:00:00.000Z',
           };
 
           const rolloutConfig: RolloutConfig = {
             percentage: 100,
             targetRegions: ['US', 'EU'], // APAC は対象外
-            userCohorts: ['premium'] // basic は対象外
+            userCohorts: ['premium'], // basic は対象外
           };
 
           // When: 制限的設定での評価
@@ -99,12 +99,12 @@ describe('Rollout Engine Integration', () => {
             tenantId: 'business-tenant-1',
             userId: 'business-user-1',
             environment: 'development',
-            timestamp: '2025-07-23T14:00:00.000Z' // 平日14時（UTC）
+            timestamp: '2025-07-23T14:00:00.000Z', // 平日14時（UTC）
           };
 
           const rolloutConfig: RolloutConfig = {
             percentage: 100,
-            businessHoursOnly: true
+            businessHoursOnly: true,
           };
 
           // When: 営業時間内での評価
@@ -124,12 +124,12 @@ describe('Rollout Engine Integration', () => {
             tenantId: 'business-tenant-2',
             userId: 'business-user-2',
             environment: 'development',
-            timestamp: '2025-07-26T14:00:00.000Z' // 土曜日14時
+            timestamp: '2025-07-26T14:00:00.000Z', // 土曜日14時
           };
 
           const rolloutConfig: RolloutConfig = {
             percentage: 100,
-            businessHoursOnly: true
+            businessHoursOnly: true,
           };
 
           // When: 営業時間外での評価
@@ -155,13 +155,13 @@ describe('Rollout Engine Integration', () => {
             tenantId: 'time-tenant-1',
             userId: 'time-user-1',
             environment: 'development',
-            timestamp: '2025-07-23T15:00:00.000Z'
+            timestamp: '2025-07-23T15:00:00.000Z',
           };
 
           const rolloutConfig: RolloutConfig = {
             percentage: 100,
             startDate: '2025-07-23T10:00:00.000Z',
-            endDate: '2025-07-23T18:00:00.000Z'
+            endDate: '2025-07-23T18:00:00.000Z',
           };
 
           // When: 時間窓内での評価
@@ -181,13 +181,13 @@ describe('Rollout Engine Integration', () => {
             tenantId: 'time-tenant-2',
             userId: 'time-user-2',
             environment: 'development',
-            timestamp: '2025-07-23T20:00:00.000Z' // 時間窓外
+            timestamp: '2025-07-23T20:00:00.000Z', // 時間窓外
           };
 
           const rolloutConfig: RolloutConfig = {
             percentage: 100,
             startDate: '2025-07-23T10:00:00.000Z',
-            endDate: '2025-07-23T18:00:00.000Z'
+            endDate: '2025-07-23T18:00:00.000Z',
           };
 
           // When: 時間窓外での評価
@@ -212,18 +212,30 @@ describe('Rollout Engine Integration', () => {
           const rolloutContext: RolloutContext = {
             tenantId: 'percentage-tenant-1',
             userId: 'consistent-user-123',
-            environment: 'development'
+            environment: 'development',
           };
 
           const rolloutConfig: RolloutConfig = {
-            percentage: 50 // 50%ロールアウト
+            percentage: 50, // 50%ロールアウト
           };
 
           // When: 同じユーザーで複数回評価
           const results = await Promise.all([
-            evaluator.isEnabledWithRollout(rolloutContext, FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS, rolloutConfig),
-            evaluator.isEnabledWithRollout(rolloutContext, FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS, rolloutConfig),
-            evaluator.isEnabledWithRollout(rolloutContext, FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS, rolloutConfig)
+            evaluator.isEnabledWithRollout(
+              rolloutContext,
+              FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS,
+              rolloutConfig
+            ),
+            evaluator.isEnabledWithRollout(
+              rolloutContext,
+              FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS,
+              rolloutConfig
+            ),
+            evaluator.isEnabledWithRollout(
+              rolloutContext,
+              FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS,
+              rolloutConfig
+            ),
           ]);
 
           // Then: 一貫した結果
@@ -245,7 +257,7 @@ describe('Rollout Engine Integration', () => {
             environment: 'development',
             region: 'US',
             userCohort: 'premium',
-            timestamp: '2025-07-23T14:00:00.000Z' // 平日14時
+            timestamp: '2025-07-23T14:00:00.000Z', // 平日14時
           };
 
           const rolloutConfig: RolloutConfig = {
@@ -254,7 +266,7 @@ describe('Rollout Engine Integration', () => {
             userCohorts: ['premium', 'enterprise'],
             businessHoursOnly: true,
             startDate: '2025-07-23T10:00:00.000Z',
-            endDate: '2025-07-23T18:00:00.000Z'
+            endDate: '2025-07-23T18:00:00.000Z',
           };
 
           // When: 複雑条件での評価
@@ -276,14 +288,14 @@ describe('Rollout Engine Integration', () => {
             environment: 'development',
             region: 'APAC', // 対象外リージョン
             userCohort: 'basic', // 対象外コホート
-            timestamp: '2025-07-23T14:00:00.000Z'
+            timestamp: '2025-07-23T14:00:00.000Z',
           };
 
           const rolloutConfig: RolloutConfig = {
             percentage: 100,
             targetRegions: ['US', 'EU'],
             userCohorts: ['premium', 'enterprise'],
-            businessHoursOnly: true
+            businessHoursOnly: true,
           };
 
           // When: 条件不適合での評価
@@ -310,13 +322,13 @@ describe('Rollout Engine Integration', () => {
             userId: 'override-user-1',
             environment: 'development',
             region: 'US',
-            userCohort: 'premium'
+            userCohort: 'premium',
           };
 
           // 厳しいロールアウト設定
           const rolloutConfig: RolloutConfig = {
             percentage: 0, // 0%ロールアウト
-            targetRegions: ['EU'] // USは対象外
+            targetRegions: ['EU'], // USは対象外
           };
 
           // When: オーバーライド + ロールアウト評価
@@ -336,12 +348,12 @@ describe('Rollout Engine Integration', () => {
           const rolloutContext: RolloutContext = {
             tenantId: 'test-tenant-disabled',
             userId: 'disabled-user-1',
-            environment: 'development'
+            environment: 'development',
           };
 
           // 寛容なロールアウト設定
           const rolloutConfig: RolloutConfig = {
-            percentage: 100 // 100%ロールアウト
+            percentage: 100, // 100%ロールアウト
           };
 
           // When: 無効オーバーライド + ロールアウト評価
@@ -363,14 +375,14 @@ describe('Rollout Engine Integration', () => {
             userId: 'approved-user-1',
             environment: 'development',
             region: 'US',
-            userCohort: 'premium'
+            userCohort: 'premium',
           };
 
           // 寛容なロールアウト設定
           const rolloutConfig: RolloutConfig = {
             percentage: 100,
             targetRegions: ['US'],
-            userCohorts: ['premium']
+            userCohorts: ['premium'],
           };
 
           // When: オーバーライド有効 + ロールアウト承認
@@ -395,11 +407,11 @@ describe('Rollout Engine Integration', () => {
           const rolloutContext: RolloutContext = {
             tenantId: 'error-tenant-1',
             userId: 'error-user-1',
-            environment: 'development'
+            environment: 'development',
           };
 
           const rolloutConfig: RolloutConfig = {
-            percentage: 50
+            percentage: 50,
           };
 
           // When: エラーが発生する可能性のある評価
@@ -424,7 +436,7 @@ describe('Rollout Engine Integration', () => {
           const normalContext: RolloutContext = {
             tenantId: 'cache-tenant-1',
             userId: 'cache-user-1',
-            environment: 'development'
+            environment: 'development',
           };
 
           // When: ロールアウト設定なしで評価（キャッシュされる）

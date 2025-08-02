@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AnalyticsEngine, AnalyticsMetrics, UsagePattern, PredictionResult } from '../src/analytics-engine';
+import {
+  AnalyticsEngine,
+  AnalyticsMetrics,
+  UsagePattern,
+  PredictionResult,
+} from '../src/analytics-engine';
 import { FEATURE_FLAGS, FeatureFlagContext } from '../src/models';
 
 /**
  * Analytics Engine Comprehensive Tests
- * 
+ *
  * 統計分析・予測機能の包括的テスト
  * TDD完全実装による高品質アナリティクス
  */
@@ -15,7 +20,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
 
   beforeEach(() => {
     analyticsEngine = new AnalyticsEngine();
-    
+
     // 固定日時でテスト実行
     mockDate = vi.spyOn(Date, 'now').mockReturnValue(1642680000000); // 2022-01-20 12:00:00 UTC
   });
@@ -43,12 +48,12 @@ describe('Analytics Engine Comprehensive Tests', () => {
           // Then: メトリクスが正しく記録される
           const metrics = analyticsEngine.getMetrics(FEATURE_FLAGS.BILLING_V2);
           expect(metrics?.evaluationCount).toBe(3);
-          expect(metrics?.enabledRate).toBeCloseTo(2/3, 10); // 3回中2回有効
+          expect(metrics?.enabledRate).toBeCloseTo(2 / 3, 10); // 3回中2回有効
           expect(metrics?.avgResponseTime).toBe(45); // (45 + 55 + 35) / 3
           expect(metrics?.errorRate).toBe(0);
           expect(metrics?.uniqueUsers).toBe(0);
           expect(metrics?.tenantDistribution).toEqual({
-            'tenant-123': 3
+            'tenant-123': 3,
           });
         });
 
@@ -72,7 +77,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
           expect(metrics?.tenantDistribution).toEqual({
             'tenant-a': 3,
             'tenant-b': 1,
-            'tenant-c': 1
+            'tenant-c': 1,
           });
         });
 
@@ -88,7 +93,10 @@ describe('Analytics Engine Comprehensive Tests', () => {
 
           // Then: 使用パターン分析で履歴制限確認（間接的検証）
           const pattern = analyticsEngine.analyzeUsagePattern(FEATURE_FLAGS.BILLING_V2);
-          const totalRecords = Object.values(pattern.timeOfDay).reduce((sum, count) => sum + count, 0);
+          const totalRecords = Object.values(pattern.timeOfDay).reduce(
+            (sum, count) => sum + count,
+            0
+          );
           expect(totalRecords).toBeLessThanOrEqual(1000);
         });
       });
@@ -103,10 +111,10 @@ describe('Analytics Engine Comprehensive Tests', () => {
           const context: FeatureFlagContext = { tenantId: 'test', userId: 'user' };
 
           const timeSlots = [
-            { hour: 9, count: 10 },   // 朝
-            { hour: 14, count: 15 },  // 午後
-            { hour: 18, count: 5 },   // 夕方
-            { hour: 22, count: 2 },   // 夜
+            { hour: 9, count: 10 }, // 朝
+            { hour: 14, count: 15 }, // 午後
+            { hour: 18, count: 5 }, // 夕方
+            { hour: 22, count: 2 }, // 夜
           ];
 
           // When: 各時間帯での評価記録
@@ -125,22 +133,22 @@ describe('Analytics Engine Comprehensive Tests', () => {
             '9': 10,
             '14': 15,
             '18': 5,
-            '22': 2
+            '22': 2,
           });
         });
 
         it('THEN identifies day-of-week patterns correctly', () => {
           // Given: 曜日別の評価履歴
           const context: FeatureFlagContext = { tenantId: 'test', userId: 'user' };
-          
+
           const dayPatterns = [
             { dayOfWeek: 1, count: 20 }, // 月曜
             { dayOfWeek: 2, count: 25 }, // 火曜
             { dayOfWeek: 3, count: 30 }, // 水曜
             { dayOfWeek: 4, count: 15 }, // 木曜
             { dayOfWeek: 5, count: 10 }, // 金曜
-            { dayOfWeek: 6, count: 5 },  // 土曜
-            { dayOfWeek: 0, count: 3 },  // 日曜
+            { dayOfWeek: 6, count: 5 }, // 土曜
+            { dayOfWeek: 0, count: 3 }, // 日曜
           ];
 
           // When: 各曜日での評価記録
@@ -149,7 +157,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
               // 指定した曜日の日付を作成 (2022年1月の適切な日付)
               const dates = {
                 0: new Date(2022, 0, 16), // 日曜
-                1: new Date(2022, 0, 17), // 月曜 
+                1: new Date(2022, 0, 17), // 月曜
                 2: new Date(2022, 0, 18), // 火曜
                 3: new Date(2022, 0, 19), // 水曜
                 4: new Date(2022, 0, 20), // 木曜
@@ -166,13 +174,13 @@ describe('Analytics Engine Comprehensive Tests', () => {
           // Then: 曜日パターンが正しく分析される
           const pattern = analyticsEngine.analyzeUsagePattern(FEATURE_FLAGS.NEW_DASHBOARD);
           expect(pattern.dayOfWeek).toEqual({
-            '0': 3,  // 日曜
+            '0': 3, // 日曜
             '1': 20, // 月曜
             '2': 25, // 火曜
             '3': 30, // 水曜
             '4': 15, // 木曜
             '5': 10, // 金曜
-            '6': 5   // 土曜
+            '6': 5, // 土曜
           });
         });
 
@@ -190,7 +198,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
               const context: FeatureFlagContext = {
                 tenantId: 'test',
                 userId: `user-${i}`,
-                region
+                region,
               };
               analyticsEngine.recordEvaluation(FEATURE_FLAGS.ADVANCED_ANALYTICS, context, true, 50);
             }
@@ -199,9 +207,9 @@ describe('Analytics Engine Comprehensive Tests', () => {
           // Then: 地域分布が正しく分析される
           const pattern = analyticsEngine.analyzeUsagePattern(FEATURE_FLAGS.ADVANCED_ANALYTICS);
           expect(pattern.regionalDistribution).toEqual({
-            'US': 50,
-            'EU': 30,
-            'APAC': 20
+            US: 50,
+            EU: 30,
+            APAC: 20,
           });
         });
 
@@ -219,7 +227,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
               const context: FeatureFlagContext = {
                 tenantId: 'test',
                 userId: `user-${i}`,
-                userCohort: cohort
+                userCohort: cohort,
               };
               analyticsEngine.recordEvaluation(FEATURE_FLAGS.ENHANCED_SECURITY, context, true, 50);
             }
@@ -228,9 +236,9 @@ describe('Analytics Engine Comprehensive Tests', () => {
           // Then: コホート分布が正しく分析される
           const pattern = analyticsEngine.analyzeUsagePattern(FEATURE_FLAGS.ENHANCED_SECURITY);
           expect(pattern.userCohorts).toEqual({
-            'premium': 40,
-            'standard': 60,
-            'trial': 20
+            premium: 40,
+            standard: 60,
+            trial: 20,
           });
         });
       });
@@ -262,14 +270,14 @@ describe('Analytics Engine Comprehensive Tests', () => {
         it('THEN detects increasing trend correctly', () => {
           // Given: 増加傾向のデータ
           const context: FeatureFlagContext = { tenantId: 'test', userId: 'user' };
-          const baseTime = Date.now() - (48 * 60 * 60 * 1000); // 48時間前から開始
+          const baseTime = Date.now() - 48 * 60 * 60 * 1000; // 48時間前から開始
 
           // When: 段階的に増加するデータ記録
           for (let hour = 0; hour < 48; hour++) {
             const count = hour < 24 ? 10 : 20; // 最初の24時間は10件/時、次の24時間は20件/時
-            
+
             for (let i = 0; i < count; i++) {
-              const timestamp = baseTime + (hour * 60 * 60 * 1000) + (i * 60 * 1000);
+              const timestamp = baseTime + hour * 60 * 60 * 1000 + i * 60 * 1000;
               mockDate.mockReturnValue(timestamp);
               analyticsEngine.recordEvaluation(FEATURE_FLAGS.NEW_DASHBOARD, context, true, 50);
             }
@@ -287,16 +295,21 @@ describe('Analytics Engine Comprehensive Tests', () => {
         it('THEN detects decreasing trend correctly', () => {
           // Given: 減少傾向のデータ
           const context: FeatureFlagContext = { tenantId: 'test', userId: 'user' };
-          const baseTime = Date.now() - (48 * 60 * 60 * 1000);
+          const baseTime = Date.now() - 48 * 60 * 60 * 1000;
 
           // When: 段階的に減少するデータ記録
           for (let hour = 0; hour < 48; hour++) {
             const count = hour < 24 ? 20 : 8; // 最初の24時間は20件/時、次の24時間は8件/時
-            
+
             for (let i = 0; i < count; i++) {
-              const timestamp = baseTime + (hour * 60 * 60 * 1000) + (i * 60 * 1000);
+              const timestamp = baseTime + hour * 60 * 60 * 1000 + i * 60 * 1000;
               mockDate.mockReturnValue(timestamp);
-              analyticsEngine.recordEvaluation(FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS, context, true, 50);
+              analyticsEngine.recordEvaluation(
+                FEATURE_FLAGS.REAL_TIME_NOTIFICATIONS,
+                context,
+                true,
+                50
+              );
             }
           }
 
@@ -311,18 +324,24 @@ describe('Analytics Engine Comprehensive Tests', () => {
         it('THEN detects seasonal patterns', () => {
           // Given: 季節パターンのあるデータ
           const context: FeatureFlagContext = { tenantId: 'test', userId: 'user' };
-          const baseTime = Date.now() - (7 * 24 * 60 * 60 * 1000); // 1週間前から
+          const baseTime = Date.now() - 7 * 24 * 60 * 60 * 1000; // 1週間前から
 
           // When: 時間別に変動するデータ記録
           for (let day = 0; day < 7; day++) {
             for (let hour = 0; hour < 24; hour++) {
               // 9-17時にピークを作る
-              const count = (hour >= 9 && hour <= 17) ? 20 : 5;
-              
+              const count = hour >= 9 && hour <= 17 ? 20 : 5;
+
               for (let i = 0; i < count; i++) {
-                const timestamp = baseTime + (day * 24 * 60 * 60 * 1000) + (hour * 60 * 60 * 1000) + (i * 60 * 1000);
+                const timestamp =
+                  baseTime + day * 24 * 60 * 60 * 1000 + hour * 60 * 60 * 1000 + i * 60 * 1000;
                 mockDate.mockReturnValue(timestamp);
-                analyticsEngine.recordEvaluation(FEATURE_FLAGS.ENHANCED_SECURITY, context, true, 50);
+                analyticsEngine.recordEvaluation(
+                  FEATURE_FLAGS.ENHANCED_SECURITY,
+                  context,
+                  true,
+                  50
+                );
               }
             }
           }
@@ -352,7 +371,9 @@ describe('Analytics Engine Comprehensive Tests', () => {
           }
 
           // When: 最適化提案生成
-          const recommendations = analyticsEngine.generateOptimizationRecommendations(FEATURE_FLAGS.BILLING_V2);
+          const recommendations = analyticsEngine.generateOptimizationRecommendations(
+            FEATURE_FLAGS.BILLING_V2
+          );
 
           // Then: キャッシュTTL最適化が提案される
           const cacheRecommendation = recommendations.find(r => r.type === 'cache_ttl');
@@ -376,20 +397,26 @@ describe('Analytics Engine Comprehensive Tests', () => {
               const context: FeatureFlagContext = {
                 tenantId: 'test',
                 userId: `user-${i}`,
-                region
+                region,
               };
               analyticsEngine.recordEvaluation(FEATURE_FLAGS.NEW_DASHBOARD, context, true, 50);
             }
           });
 
           // When: 最適化提案生成
-          const recommendations = analyticsEngine.generateOptimizationRecommendations(FEATURE_FLAGS.NEW_DASHBOARD);
+          const recommendations = analyticsEngine.generateOptimizationRecommendations(
+            FEATURE_FLAGS.NEW_DASHBOARD
+          );
 
           // Then: 地域分散デプロイメントが提案される
-          const regionalRecommendation = recommendations.find(r => r.type === 'regional_deployment');
+          const regionalRecommendation = recommendations.find(
+            r => r.type === 'regional_deployment'
+          );
           expect(regionalRecommendation).toBeDefined();
           expect(regionalRecommendation?.priority).toBe('medium');
-          expect(regionalRecommendation?.description).toContain('US地域からのアクセスが70%を超えています');
+          expect(regionalRecommendation?.description).toContain(
+            'US地域からのアクセスが70%を超えています'
+          );
         });
 
         it('THEN recommends rollout strategy for partial enablement', () => {
@@ -402,7 +429,9 @@ describe('Analytics Engine Comprehensive Tests', () => {
           }
 
           // When: 最適化提案生成
-          const recommendations = analyticsEngine.generateOptimizationRecommendations(FEATURE_FLAGS.ADVANCED_ANALYTICS);
+          const recommendations = analyticsEngine.generateOptimizationRecommendations(
+            FEATURE_FLAGS.ADVANCED_ANALYTICS
+          );
 
           // Then: ロールアウト戦略が提案される
           const rolloutRecommendation = recommendations.find(r => r.type === 'rollout_strategy');
@@ -421,7 +450,9 @@ describe('Analytics Engine Comprehensive Tests', () => {
           }
 
           // When: 最適化提案生成
-          const recommendations = analyticsEngine.generateOptimizationRecommendations(FEATURE_FLAGS.ENHANCED_SECURITY);
+          const recommendations = analyticsEngine.generateOptimizationRecommendations(
+            FEATURE_FLAGS.ENHANCED_SECURITY
+          );
 
           // Then: 優先度順でソートされる
           expect(recommendations[0].priority).toBe('high'); // cache_ttl
@@ -461,9 +492,9 @@ describe('Analytics Engine Comprehensive Tests', () => {
           expect(summary.totalEvaluations).toBe(300); // 100+80+60+40+20
           expect(summary.averageResponseTime).toBe(50); // (40+60+30+70+50)/5
           expect(summary.topFlags).toHaveLength(5);
-          expect(summary.topFlags[0]).toEqual({ 
-            flagKey: FEATURE_FLAGS.BILLING_V2, 
-            evaluationCount: 100 
+          expect(summary.topFlags[0]).toEqual({
+            flagKey: FEATURE_FLAGS.BILLING_V2,
+            evaluationCount: 100,
           });
           expect(summary.systemHealth).toBe('good'); // 50ms is in 'good' range
         });
@@ -485,7 +516,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
 
         it('THEN handles empty metrics gracefully', () => {
           // Given: メトリクスが記録されていない状態
-          
+
           // When: システムサマリー生成
           const summary = analyticsEngine.generateStatsSummary();
 
@@ -531,7 +562,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
 
         it('THEN returns null for non-existent flag metrics', () => {
           // Given: 記録されていないフラグ
-          
+
           // When: 存在しないフラグのメトリクス取得
           const metrics = analyticsEngine.getMetrics(FEATURE_FLAGS.BILLING_V2);
 
@@ -541,7 +572,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
 
         it('THEN handles analysis of non-existent flag patterns', () => {
           // Given: 記録されていないフラグ
-          
+
           // When: 存在しないフラグのパターン分析
           const pattern = analyticsEngine.analyzeUsagePattern(FEATURE_FLAGS.BILLING_V2);
 
@@ -550,7 +581,7 @@ describe('Analytics Engine Comprehensive Tests', () => {
             timeOfDay: {},
             dayOfWeek: {},
             regionalDistribution: {},
-            userCohorts: {}
+            userCohorts: {},
           });
         });
       });

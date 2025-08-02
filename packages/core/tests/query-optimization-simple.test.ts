@@ -7,16 +7,16 @@ const mockSend = vi.fn();
 
 vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: {
-    from: vi.fn(() => ({ send: mockSend }))
+    from: vi.fn(() => ({ send: mockSend })),
   },
   QueryCommand: vi.fn(),
   ScanCommand: vi.fn(),
   PutCommand: vi.fn(),
-  UpdateCommand: vi.fn()
+  UpdateCommand: vi.fn(),
 }));
 
 vi.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: vi.fn()
+  DynamoDBClient: vi.fn(),
 }));
 
 describe('DynamoDB Query Optimization', () => {
@@ -25,12 +25,12 @@ describe('DynamoDB Query Optimization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSend.mockClear();
-    
+
     client = new DynamoDbClient({
       environment: 'development',
       region: 'ap-northeast-1',
       tableName: 'test-table',
-      errorHandler: silentErrorHandler
+      errorHandler: silentErrorHandler,
     });
   });
 
@@ -42,15 +42,15 @@ describe('DynamoDB Query Optimization', () => {
           description: 'Enable billing v2',
           defaultEnabled: true,
           owner: 'team-billing',
-          createdAt: '2025-01-01T00:00:00Z'
+          createdAt: '2025-01-01T00:00:00Z',
         },
         {
           flagKey: 'new_dashboard_enable',
           description: 'Enable new dashboard',
           defaultEnabled: false,
           owner: 'team-ui',
-          createdAt: '2025-01-02T00:00:00Z'
-        }
+          createdAt: '2025-01-02T00:00:00Z',
+        },
       ];
 
       mockSend.mockResolvedValue({ Items: mockFlags });
@@ -77,8 +77,8 @@ describe('DynamoDB Query Optimization', () => {
           description: 'Enable billing v2',
           defaultEnabled: true,
           owner: 'team-billing',
-          createdAt: '2025-01-01T00:00:00Z'
-        }
+          createdAt: '2025-01-01T00:00:00Z',
+        },
       ];
 
       mockSend.mockResolvedValue({ Items: ownerFlags });
@@ -109,8 +109,8 @@ describe('DynamoDB Query Optimization', () => {
           description: 'Enable billing v2',
           defaultEnabled: true,
           owner: 'team-billing',
-          createdAt: '2025-01-01T00:00:00Z'
-        }
+          createdAt: '2025-01-01T00:00:00Z',
+        },
       ];
 
       mockSend.mockResolvedValue({ Items: mockFlags });
@@ -132,7 +132,7 @@ describe('DynamoDB Query Optimization', () => {
         defaultEnabled: true,
         owner: 'team-product',
         createdAt: '2025-01-01T00:00:00Z',
-        expiresAt: '2025-12-31T23:59:59Z'
+        expiresAt: '2025-12-31T23:59:59Z',
       };
 
       await client.createFlag(flagData);
@@ -146,7 +146,7 @@ describe('DynamoDB Query Optimization', () => {
       const updates = {
         owner: 'team-new-owner',
         expiresAt: '2025-06-30T23:59:59Z',
-        description: 'Updated description'
+        description: 'Updated description',
       };
 
       await client.updateFlag('test_flag', updates);
@@ -163,7 +163,7 @@ describe('DynamoDB Query Optimization', () => {
         description: `Performance test flag ${i}`,
         defaultEnabled: i % 2 === 0,
         owner: `team-${i % 10}`,
-        createdAt: new Date(2025, 0, 1, 0, i).toISOString()
+        createdAt: new Date(2025, 0, 1, 0, i).toISOString(),
       }));
 
       mockSend.mockResolvedValue({ Items: largeDataSet });
@@ -174,8 +174,10 @@ describe('DynamoDB Query Optimization', () => {
 
       expect(result).toHaveLength(1000);
       expect(endTime - startTime).toBeLessThan(100); // Should complete quickly
-      
-      console.log(`Query optimization: Processed ${result.length} flags in ${(endTime - startTime).toFixed(2)}ms`);
+
+      console.log(
+        `Query optimization: Processed ${result.length} flags in ${(endTime - startTime).toFixed(2)}ms`
+      );
     });
 
     it('should demonstrate different query patterns', async () => {
@@ -196,7 +198,7 @@ describe('DynamoDB Query Optimization', () => {
 
       await expect(client.listFlags()).rejects.toThrow();
       await expect(client.listFlagsByOwner('team-test')).rejects.toThrow();
-      
+
       expect(mockSend).toHaveBeenCalledTimes(2);
     });
   });
@@ -207,7 +209,7 @@ describe('DynamoDB Query Optimization', () => {
 
       // GSI3: All flags listing (replaces expensive scan)
       await client.listFlags();
-      
+
       // GSI2: Owner-specific flags (efficient filtering)
       await client.listFlagsByOwner('team-specific');
 
@@ -223,7 +225,7 @@ describe('DynamoDB Query Optimization', () => {
         client.listFlags(),
         client.listFlagsByOwner('team-a'),
         client.listFlagsByOwner('team-b'),
-        client.listFlags()
+        client.listFlags(),
       ];
 
       await Promise.all(queries);
@@ -242,8 +244,8 @@ describe('DynamoDB Query Optimization', () => {
           description: 'Legacy flag',
           defaultEnabled: false,
           owner: 'legacy-team',
-          createdAt: '2024-12-01T00:00:00Z'
-        }
+          createdAt: '2024-12-01T00:00:00Z',
+        },
       ];
 
       mockSend.mockResolvedValue({ Items: scanResults });
@@ -262,15 +264,15 @@ describe('DynamoDB Query Optimization', () => {
           description: 'New flag with GSI keys',
           defaultEnabled: true,
           owner: 'team-new',
-          createdAt: '2025-01-01T00:00:00Z'
+          createdAt: '2025-01-01T00:00:00Z',
         },
         {
           flagKey: 'old_flag_no_gsi',
           description: 'Old flag without GSI keys',
           defaultEnabled: false,
           owner: 'team-old',
-          createdAt: '2024-01-01T00:00:00Z'
-        }
+          createdAt: '2024-01-01T00:00:00Z',
+        },
       ];
 
       mockSend.mockResolvedValue({ Items: mixedFlags });
