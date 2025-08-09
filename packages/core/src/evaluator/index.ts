@@ -1,13 +1,4 @@
-import {
-  FeatureFlagKey,
-  FeatureFlagContext,
-  FeatureFlagsTable,
-  TenantOverridesTable,
-  EmergencyControlTable,
-  FEATURE_FLAGS,
-  Environment,
-  ENVIRONMENTS,
-} from '../models';
+import { FeatureFlagKey, FeatureFlagContext, FEATURE_FLAGS, Environment } from '../models';
 import { FeatureFlagCache } from '../cache';
 import { DynamoDbClient, DynamoDbClientConfig } from './dynamo-client';
 import { DynamoKeyBuilder } from '../constants/dynamo-keys';
@@ -78,9 +69,9 @@ export class FeatureFlagEvaluator {
     }
   }
 
-  // 既存シグネチャ（単体テスト用）
+  // オーバーロード（単体テスト用）
   async isEnabled(context: FeatureFlagContext, flagKey: FeatureFlagKey): Promise<boolean>;
-  // 新シグネチャ（統合テスト用）
+  // オーバーロード（統合テスト用）
   async isEnabled(tenantId: string, flagKey: string): Promise<boolean>;
   async isEnabled(
     contextOrTenantId: FeatureFlagContext | string,

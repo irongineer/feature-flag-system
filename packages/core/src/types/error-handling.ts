@@ -37,7 +37,7 @@ export interface StructuredError {
   rolloutConfig?: string; // ロールアウト設定情報を追加
 }
 
-export type ErrorHandler = (errorInfo: string | StructuredError, error?: Error) => void;
+export type ErrorHandler = (errorInfo: string | StructuredError, _error?: Error) => void;
 
 export interface ErrorHandlingOptions {
   errorHandler?: ErrorHandler;

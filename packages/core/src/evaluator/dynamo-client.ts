@@ -8,12 +8,7 @@ import {
   BatchGetCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
-import {
-  FeatureFlagKey,
-  FeatureFlagsTable,
-  TenantOverridesTable,
-  EmergencyControlTable,
-} from '../models';
+import { FeatureFlagsTable, TenantOverridesTable, EmergencyControlTable } from '../models';
 import {
   createStructuredError,
   enhancedErrorHandler,
@@ -21,12 +16,11 @@ import {
   isConditionalCheckFailed,
   isValidationError,
   isThrottlingError,
-  isRetryableError,
   ErrorHandler,
   ErrorHandlingOptions,
 } from '../types/error-handling';
-import { Environment, ENVIRONMENTS } from '../models';
-import { getEnvironmentConfig, addEnvironmentToKey, debugLog } from '../config/environment';
+import { Environment } from '../models';
+import { getEnvironmentConfig, debugLog } from '../config/environment';
 
 export interface DynamoDbClientConfig extends ErrorHandlingOptions {
   environment: Environment; // 必須: 環境指定
