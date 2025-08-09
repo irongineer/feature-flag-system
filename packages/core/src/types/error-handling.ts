@@ -37,7 +37,7 @@ export interface StructuredError {
   rolloutConfig?: string; // ロールアウト設定情報を追加
 }
 
-export type ErrorHandler = (errorInfo: string | StructuredError, _error?: Error) => void;
+export type ErrorHandler = (errorInfo: string | StructuredError, error?: Error) => void;
 
 export interface ErrorHandlingOptions {
   errorHandler?: ErrorHandler;
@@ -118,11 +118,10 @@ export function createStructuredError(
  * Enhanced error handler with AWS error classification
  */
 export const enhancedErrorHandler: ErrorHandler = (
-  errorInfo: string | StructuredError,
-  error?: Error
+  errorInfo: string | StructuredError
 ) => {
   if (typeof errorInfo === 'string') {
-    console.error(errorInfo, error);
+    console.error(errorInfo);
   } else {
     const logLevel = isClientError(errorInfo.error) ? 'warn' : 'error';
     const retryInfo = errorInfo.isRetryable ? ' [RETRYABLE]' : ' [NON-RETRYABLE]';
@@ -145,10 +144,10 @@ export const enhancedErrorHandler: ErrorHandler = (
  */
 export const defaultErrorHandler: ErrorHandler = (
   errorInfo: string | StructuredError,
-  error?: Error
+  _error?: Error
 ) => {
   if (typeof errorInfo === 'string') {
-    console.error(errorInfo, error);
+    console.error(errorInfo);
   } else {
     console.error(`[${errorInfo.operation}] Error in feature flag evaluation:`, {
       ...errorInfo,

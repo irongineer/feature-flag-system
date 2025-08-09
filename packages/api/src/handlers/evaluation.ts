@@ -1,13 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
 import { FeatureFlagEvaluator, DynamoDbClient } from '@feature-flag/core';
 
-interface EvaluationRequest {
-  tenantId: string;
-  flagKey: string;
-  userId?: string;
-  environment?: string;
-  metadata?: Record<string, any>;
-}
 
 interface EvaluationResponse {
   enabled: boolean;
@@ -25,6 +18,7 @@ function getEvaluator(): FeatureFlagEvaluator {
     const dynamoClient = new DynamoDbClient({
       region: process.env.AWS_REGION || 'ap-northeast-1',
       tableName: process.env.FEATURE_FLAGS_TABLE_NAME || 'feature-flags',
+      environment: (process.env.ENVIRONMENT as any) || 'development',
     });
     evaluator = new FeatureFlagEvaluator({
       dynamoDbClient: dynamoClient,
@@ -34,14 +28,13 @@ function getEvaluator(): FeatureFlagEvaluator {
 }
 
 export const handler = async (
-  event: APIGatewayProxyEvent,
-  context: Context
+  event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   console.log('Evaluation request:', JSON.stringify(event, null, 2));
   
   try {
     const body = JSON.parse(event.body || '{}');
-    const { tenantId, flagKey, userId, environment = 'development', metadata } = body;
+    const { tenantId, flagKey } = body;
     
     if (!tenantId || !flagKey) {
       return {

@@ -349,7 +349,7 @@ export class AnalyticsEngine {
     return patterns;
   }
 
-  private calculateBasePrediction(hourlyData: Record<number, number>, hoursAhead: number): number {
+  private calculateBasePrediction(hourlyData: Record<number, number>): number {
     const values = Object.values(hourlyData);
     return values.reduce((sum, val) => sum + val, 0) / values.length;
   }

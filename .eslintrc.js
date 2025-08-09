@@ -27,8 +27,23 @@ module.exports = {
       env: {
         jest: true,
       },
+      globals: {
+        vi: 'readonly',
+      },
       rules: {
         'no-console': 'off',
+      },
+    },
+    {
+      files: ['packages/admin-ui/src/**/*.ts'],
+      env: {
+        browser: true,
+      },
+      globals: {
+        React: 'readonly',
+      },
+      rules: {
+        'no-console': 'warn',
       },
     },
     {
