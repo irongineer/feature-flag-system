@@ -151,10 +151,9 @@ describe('AWS SDK v3 Error Handling', () => {
     });
 
     it('should handle string errors', () => {
-      const error = new Error('Test error');
-      enhancedErrorHandler('Test message', error);
+      enhancedErrorHandler('Test message');
 
-      expect(consoleSpy).toHaveBeenCalledWith('Test message', error);
+      expect(consoleSpy).toHaveBeenCalledWith('Test message');
     });
 
     it('should handle structured client errors with warn level', () => {
