@@ -1,11 +1,7 @@
 import { DynamoDBStreamEvent, DynamoDBStreamHandler, Context } from 'aws-lambda';
-import { CloudWatchLogsClient, CreateLogStreamCommand, PutLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
+import { CloudWatchLogsClient } from '@aws-sdk/client-cloudwatch-logs';
 import { 
-  AuditLogEntry, 
-  AuditEventType, 
-  ResourceType, 
-  AuditAction,
-  StreamRecord 
+  AuditLogEntry 
 } from '../types';
 import { FeatureFlagKey } from '../../../core/src/models';
 import { AuditLogger } from '../services/audit-logger';

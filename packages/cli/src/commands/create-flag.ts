@@ -3,7 +3,6 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import { FEATURE_FLAGS } from '@feature-flag/core';
 import { getApiClient } from '../utils/api-client';
-import { getConfig } from '../utils/config';
 
 interface CreateFlagOptions {
   key?: string;

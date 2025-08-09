@@ -15,10 +15,10 @@ import { tenantApi } from '../services/api';
 
 /**
  * Tenant Override Hooks Specification
- * 
+ *
  * テナントオーバーライド管理フックは、テナント固有の
  * フィーチャーフラグ設定を管理する責務を持つ。
- * 
+ *
  * Key Responsibilities:
  * 1. テナント別オーバーライド設定の取得・管理
  * 2. フラグ別テナント設定の取得・管理
@@ -26,7 +26,7 @@ import { tenantApi } from '../services/api';
  * 4. 一括オーバーライド設定機能
  * 5. キャッシュ無効化による一貫性保証
  * 6. ユーザーフレンドリーな操作フィードバック
- * 
+ *
  * Business Rules:
  * - テナントID必須: 空の場合はクエリ無効化
  * - フラグキー必須: 空の場合はクエリ無効化
@@ -63,9 +63,8 @@ const createTestQueryClient = () =>
 
 // React Query Wrapper
 const createWrapper = (queryClient: QueryClient) => {
-  return ({ children }: { children: React.ReactNode }) => (
-    React.createElement(QueryClientProvider, { client: queryClient }, children)
-  );
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
 };
 
 describe('Tenant Override Hooks Specification', () => {
@@ -108,10 +107,7 @@ describe('Tenant Override Hooks Specification', () => {
             mockedTenantApi.getTenantOverrides.mockResolvedValue(mockOverrides);
 
             // When: Rendering useTenantOverrides hook
-            const { result } = renderHook(
-              () => useTenantOverrides('tenant-123'),
-              { wrapper }
-            );
+            const { result } = renderHook(() => useTenantOverrides('tenant-123'), { wrapper });
 
             // Then: Should start with loading state
             expect(result.current.isLoading).toBe(true);
@@ -138,10 +134,7 @@ describe('Tenant Override Hooks Specification', () => {
             const tenantId = '';
 
             // When: Rendering hook with empty tenantId
-            const { result } = renderHook(
-              () => useTenantOverrides(tenantId),
-              { wrapper }
-            );
+            const { result } = renderHook(() => useTenantOverrides(tenantId), { wrapper });
 
             // Then: Should not execute query
             expect(result.current.isLoading).toBe(false);
@@ -158,10 +151,7 @@ describe('Tenant Override Hooks Specification', () => {
             mockedTenantApi.getTenantOverrides.mockRejectedValue(authError);
 
             // When: Rendering hook with failed API
-            const { result } = renderHook(
-              () => useTenantOverrides('tenant-456'),
-              { wrapper }
-            );
+            const { result } = renderHook(() => useTenantOverrides('tenant-456'), { wrapper });
 
             // Then: Should provide error state
             await waitFor(() => {
@@ -205,10 +195,9 @@ describe('Tenant Override Hooks Specification', () => {
             mockedTenantApi.getFlagTenantOverrides.mockResolvedValue(mockFlagTenants);
 
             // When: Rendering useFlagTenantOverrides hook
-            const { result } = renderHook(
-              () => useFlagTenantOverrides('billing_v2_enable'),
-              { wrapper }
-            );
+            const { result } = renderHook(() => useFlagTenantOverrides('billing_v2_enable'), {
+              wrapper,
+            });
 
             // Then: Should fetch flag tenant overrides
             await waitFor(() => {
@@ -216,7 +205,9 @@ describe('Tenant Override Hooks Specification', () => {
             });
 
             expect(result.current.data).toEqual(mockFlagTenants);
-            expect(mockedTenantApi.getFlagTenantOverrides).toHaveBeenCalledWith('billing_v2_enable');
+            expect(mockedTenantApi.getFlagTenantOverrides).toHaveBeenCalledWith(
+              'billing_v2_enable'
+            );
 
             // And: Should use correct query key
             const queryKey = TENANT_QUERY_KEYS.FLAG_TENANTS('billing_v2_enable');
@@ -230,10 +221,7 @@ describe('Tenant Override Hooks Specification', () => {
             const flagKey = '' as any;
 
             // When: Rendering hook with empty flagKey
-            const { result } = renderHook(
-              () => useFlagTenantOverrides(flagKey),
-              { wrapper }
-            );
+            const { result } = renderHook(() => useFlagTenantOverrides(flagKey), { wrapper });
 
             // Then: Should not execute query
             expect(result.current.isLoading).toBe(false);

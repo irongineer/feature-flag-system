@@ -7,7 +7,7 @@ import { message } from 'antd';
 export const QUERY_KEYS = {
   FLAGS: ['flags'] as const,
   FLAG: (flagKey: FeatureFlagKey) => ['flags', flagKey] as const,
-  FLAG_EVALUATION: (tenantId: string, flagKey: FeatureFlagKey) => 
+  FLAG_EVALUATION: (tenantId: string, flagKey: FeatureFlagKey) =>
     ['flags', flagKey, 'evaluation', tenantId] as const,
 };
 
@@ -45,7 +45,7 @@ export const useCreateFlag = () => {
 
   return useMutation({
     mutationFn: featureFlagApi.createFlag,
-    onSuccess: (data) => {
+    onSuccess: data => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAGS });
       message.success(`フラグ "${data.flagKey}" を作成しました`);
     },
@@ -60,8 +60,13 @@ export const useUpdateFlag = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ flagKey, updates }: { flagKey: FeatureFlagKey; updates: Partial<FeatureFlagsTable> }) =>
-      featureFlagApi.updateFlag(flagKey, updates),
+    mutationFn: ({
+      flagKey,
+      updates,
+    }: {
+      flagKey: FeatureFlagKey;
+      updates: Partial<FeatureFlagsTable>;
+    }) => featureFlagApi.updateFlag(flagKey, updates),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAGS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAG(variables.flagKey) });

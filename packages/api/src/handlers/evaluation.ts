@@ -1,6 +1,5 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { FeatureFlagEvaluator, DynamoDbClient } from '@feature-flag/core';
-
 
 interface EvaluationResponse {
   enabled: boolean;
@@ -27,15 +26,13 @@ function getEvaluator(): FeatureFlagEvaluator {
   return evaluator;
 }
 
-export const handler = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Evaluation request:', JSON.stringify(event, null, 2));
-  
+
   try {
     const body = JSON.parse(event.body || '{}');
     const { tenantId, flagKey } = body;
-    
+
     if (!tenantId || !flagKey) {
       return {
         statusCode: 400,
@@ -44,14 +41,14 @@ export const handler = async (
           'Access-Control-Allow-Origin': '*',
         },
         body: JSON.stringify({
-          error: 'tenantId and flagKey are required'
+          error: 'tenantId and flagKey are required',
         }),
       };
     }
-    
+
     const flagEvaluator = getEvaluator();
     const enabled = await flagEvaluator.isEnabled(tenantId, flagKey);
-    
+
     const response: EvaluationResponse = {
       enabled,
       flagKey,
@@ -60,7 +57,7 @@ export const handler = async (
       source: 'database',
       ttl: 300, // 5分
     };
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -69,10 +66,9 @@ export const handler = async (
       },
       body: JSON.stringify(response),
     };
-    
   } catch (error) {
     console.error('Evaluation error:', error);
-    
+
     return {
       statusCode: 500,
       headers: {
@@ -80,7 +76,7 @@ export const handler = async (
         'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({
-        error: 'Internal server error'
+        error: 'Internal server error',
       }),
     };
   }

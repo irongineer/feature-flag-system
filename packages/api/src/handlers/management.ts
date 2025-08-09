@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { FeatureFlagKey } from '@feature-flag/core';
 import { validateFlagRequest, validateTenantOverrideRequest } from '../validators/management';
 import { createResponse, createErrorResponse } from '../utils/response';
