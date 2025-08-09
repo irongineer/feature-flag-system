@@ -25,11 +25,16 @@
     }
   },
   "include": [
-    "packages/*/src/**/*",
+    "packages/core/src/**/*",
+    "packages/sdk/src/**/*",
+    "packages/api/src/**/*",
+    "packages/cli/src/**/*",
+    "packages/audit-service/src/**/*",
     "poc/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "packages/admin-ui"
   ]
 }

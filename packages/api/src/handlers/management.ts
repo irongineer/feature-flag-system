@@ -25,9 +25,9 @@ export const handler = async (
     
     // ルーティング
     if (path.startsWith('/flags')) {
-      return await handleFlagOperations(method, pathParameters, event.body, queryParameters);
+      return await handleFlagOperations(method, pathParameters, event.body);
     } else if (path.startsWith('/tenants')) {
-      return await handleTenantOperations(method, pathParameters, event.body, queryParameters);
+      return await handleTenantOperations(method, pathParameters, event.body);
     } else if (path.startsWith('/emergency')) {
       return await handleEmergencyOperations(method, event.body);
     } else {

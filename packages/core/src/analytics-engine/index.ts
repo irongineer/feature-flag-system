@@ -162,7 +162,7 @@ export class AnalyticsEngine {
     const trend = this.calculateTrend(hourlyData);
     const seasonality = this.detectSeasonality(hourlyData);
 
-    const basePrediction = this.calculateBasePrediction(hourlyData, hoursAhead);
+    const basePrediction = this.calculateBasePrediction(hourlyData);
     const seasonalAdjustment = this.applySeasonalAdjustment(
       basePrediction,
       seasonality,
