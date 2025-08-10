@@ -89,8 +89,12 @@ export class DynamoDbClient {
       throw new Error(`Service temporarily unavailable: Request rate exceeded`);
     }
 
-    // 一般的なエラー
-    throw error;
+    // 一般的なエラー - 元のエラーをそのまま投げる
+    if (error instanceof Error) {
+      throw error;
+    }
+    // errorがErrorインスタンスでない場合
+    throw new Error(error ? String(error) : 'Unknown error');
   }
 
   // フラグのデフォルト値を取得

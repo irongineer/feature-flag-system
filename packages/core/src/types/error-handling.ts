@@ -99,6 +99,12 @@ export function createStructuredError(
   context?: { tenantId?: string; flagKey?: string; environment?: string; [key: string]: any }
 ): StructuredError {
   const err = error as AWSError;
+  
+  // HTTPステータスコードの決定
+  let httpStatusCode = err.$metadata?.httpStatusCode;
+  if (!httpStatusCode && isInternalServerError(error)) {
+    httpStatusCode = 500;
+  }
 
   return {
     operation,
@@ -110,7 +116,7 @@ export function createStructuredError(
     context,
     errorType: err.name,
     isRetryable: isRetryableError(error),
-    httpStatusCode: err.$metadata?.httpStatusCode,
+    httpStatusCode,
   };
 }
 
@@ -118,10 +124,12 @@ export function createStructuredError(
  * Enhanced error handler with AWS error classification
  */
 export const enhancedErrorHandler: ErrorHandler = (
-  errorInfo: string | StructuredError
+  errorInfo: string | StructuredError,
+  error?: Error
 ) => {
   if (typeof errorInfo === 'string') {
     console.error(errorInfo);
+    return;
   } else {
     const logLevel = isClientError(errorInfo.error) ? 'warn' : 'error';
     const retryInfo = errorInfo.isRetryable ? ' [RETRYABLE]' : ' [NON-RETRYABLE]';

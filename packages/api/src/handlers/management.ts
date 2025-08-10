@@ -1,13 +1,5 @@
-<<<<<<< Updated upstream
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { FeatureFlagKey } from '@feature-flag/core';
-||||||| Stash base
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
-import { FeatureFlagKey, FEATURE_FLAGS } from '@feature-flag/core';
-=======
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { FeatureFlagKey, FEATURE_FLAGS } from '@feature-flag/core';
->>>>>>> Stashed changes
 import { validateFlagRequest, validateTenantOverrideRequest } from '../validators/management';
 import { createResponse, createErrorResponse } from '../utils/response';
 import { createDynamoClient } from '../utils/dynamo';

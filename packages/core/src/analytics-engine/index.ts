@@ -167,7 +167,7 @@ export class AnalyticsEngine {
     const trendAdjustment = this.applyTrendAdjustment(seasonalAdjustment, trend, hoursAhead);
 
     return {
-      predictedLoad: Math.max(0, trendAdjustment),
+      predictedLoad: Math.max(0, Math.round(trendAdjustment * 100) / 100), // 小数点2桁で丸め
       confidence: this.calculateConfidence(history, hourlyData),
       trend,
       seasonality,
