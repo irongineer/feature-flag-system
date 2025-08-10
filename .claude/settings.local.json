@@ -52,7 +52,9 @@
       "Bash(npm run lint)",
       "Bash(sed:*)",
       "Bash(npm run:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)"
     ],
     "deny": []
   }

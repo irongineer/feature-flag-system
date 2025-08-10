@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { FeatureFlagKey, FEATURE_FLAGS } from '@feature-flag/core';
 import { validateFlagRequest, validateTenantOverrideRequest } from '../validators/management';
 import { createResponse, createErrorResponse } from '../utils/response';
@@ -14,8 +14,7 @@ function getDynamoClient() {
 }
 
 export const handler = async (
-  event: APIGatewayProxyEvent,
-  context: Context
+  event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   console.log('Management request:', JSON.stringify(event, null, 2));
   
@@ -23,13 +22,12 @@ export const handler = async (
     const method = event.httpMethod;
     const path = event.path;
     const pathParameters = event.pathParameters || {};
-    const queryParameters = event.queryStringParameters || {};
     
     // ルーティング
     if (path.startsWith('/flags')) {
-      return await handleFlagOperations(method, pathParameters, event.body, queryParameters);
+      return await handleFlagOperations(method, pathParameters, event.body);
     } else if (path.startsWith('/tenants')) {
-      return await handleTenantOperations(method, pathParameters, event.body, queryParameters);
+      return await handleTenantOperations(method, pathParameters, event.body);
     } else if (path.startsWith('/emergency')) {
       return await handleEmergencyOperations(method, event.body);
     } else {
@@ -46,8 +44,7 @@ export const handler = async (
 async function handleFlagOperations(
   method: string,
   pathParameters: { [key: string]: string | undefined },
-  body: string | null,
-  queryParameters: { [key: string]: string | undefined }
+  body: string | null
 ): Promise<APIGatewayProxyResult> {
   const client = getDynamoClient();
   
@@ -69,7 +66,7 @@ async function handleFlagOperations(
         return createResponse(200, { flags });
       }
       
-    case 'POST':
+    case 'POST': {
       // 新しいフラグの作成
       const createBody = JSON.parse(body || '{}');
       const { error: createError, value: createValue } = validateFlagRequest(createBody);
@@ -94,8 +91,9 @@ async function handleFlagOperations(
       });
       
       return createResponse(201, { message: 'Flag created successfully' });
+    }
       
-    case 'PUT':
+    case 'PUT': {
       // フラグの更新
       if (!pathParameters.flagKey) {
         return createErrorResponse(400, 'Flag key is required');
@@ -112,10 +110,12 @@ async function handleFlagOperations(
       });
       
       return createResponse(200, { message: 'Flag updated successfully' });
+    }
       
-    case 'DELETE':
+    case 'DELETE': {
       // フラグの削除（実装は要検討）
       return createErrorResponse(405, 'Method not allowed', 'Flag deletion not supported');
+    }
       
     default:
       return createErrorResponse(405, 'Method not allowed');
@@ -126,8 +126,7 @@ async function handleFlagOperations(
 async function handleTenantOperations(
   method: string,
   pathParameters: { [key: string]: string | undefined },
-  body: string | null,
-  queryParameters: { [key: string]: string | undefined }
+  body: string | null
 ): Promise<APIGatewayProxyResult> {
   const client = getDynamoClient();
   const tenantId = pathParameters.tenantId;
@@ -138,7 +137,7 @@ async function handleTenantOperations(
   }
   
   switch (method) {
-    case 'GET':
+    case 'GET': {
       if (flagKey) {
         // 特定テナントの特定フラグオーバーライド取得
         const override = await client.getTenantOverride(tenantId, flagKey);
@@ -153,8 +152,9 @@ async function handleTenantOperations(
         const overrides = await client.listTenantOverrides(tenantId);
         return createResponse(200, { overrides });
       }
+    }
       
-    case 'PUT':
+    case 'PUT': {
       // テナントオーバーライドの設定
       if (!flagKey) {
         return createErrorResponse(400, 'Flag key is required');
@@ -182,8 +182,9 @@ async function handleTenantOperations(
       });
       
       return createResponse(200, { message: 'Tenant override set successfully' });
+    }
       
-    case 'DELETE':
+    case 'DELETE': {
       // テナントオーバーライドの削除
       if (!flagKey) {
         return createErrorResponse(400, 'Flag key is required');
@@ -193,6 +194,7 @@ async function handleTenantOperations(
       // await client.deleteTenantOverride(tenantId, flagKey);
       
       return createResponse(200, { message: 'Tenant override removed successfully' });
+    }
       
     default:
       return createErrorResponse(405, 'Method not allowed');
@@ -207,7 +209,7 @@ async function handleEmergencyOperations(
   const client = getDynamoClient();
   
   switch (method) {
-    case 'POST':
+    case 'POST': {
       // Kill-Switchの有効化
       const activateBody = JSON.parse(body || '{}');
       const { flagKey, reason, activatedBy } = activateBody;
@@ -230,8 +232,9 @@ async function handleEmergencyOperations(
       });
       
       return createResponse(200, { message: 'Kill-switch activated successfully' });
+    }
       
-    case 'DELETE':
+    case 'DELETE': {
       // Kill-Switchの無効化
       const deactivateBody = JSON.parse(body || '{}');
       const { flagKey: deactivateFlagKey, deactivatedBy } = deactivateBody;
@@ -253,6 +256,7 @@ async function handleEmergencyOperations(
       });
       
       return createResponse(200, { message: 'Kill-switch deactivated successfully' });
+    }
       
     default:
       return createErrorResponse(405, 'Method not allowed');

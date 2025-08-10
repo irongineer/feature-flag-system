@@ -3,7 +3,6 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import { FEATURE_FLAGS } from '@feature-flag/core';
 import { getApiClient } from '../utils/api-client';
-import { getConfig } from '../utils/config';
 
 interface CreateFlagOptions {
   key?: string;
@@ -17,8 +16,6 @@ export async function createFlag(options: CreateFlagOptions) {
   console.log(chalk.blue('🚀 Creating new feature flag'));
   
   try {
-    // 設定の取得
-    const config = getConfig();
     
     // 対話式で不足している情報を取得
     const answers = await inquirer.prompt([

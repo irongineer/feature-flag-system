@@ -32,23 +32,23 @@ export const useSetTenantOverride = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      tenantId, 
-      flagKey, 
-      enabled, 
-      updatedBy 
-    }: { 
-      tenantId: string; 
-      flagKey: FeatureFlagKey; 
-      enabled: boolean; 
-      updatedBy: string; 
+    mutationFn: ({
+      tenantId,
+      flagKey,
+      enabled,
+      updatedBy,
+    }: {
+      tenantId: string;
+      flagKey: FeatureFlagKey;
+      enabled: boolean;
+      updatedBy: string;
     }) => tenantApi.setTenantOverride(tenantId, flagKey, enabled, updatedBy),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: TENANT_QUERY_KEYS.TENANT_OVERRIDES(variables.tenantId) 
+      queryClient.invalidateQueries({
+        queryKey: TENANT_QUERY_KEYS.TENANT_OVERRIDES(variables.tenantId),
       });
-      queryClient.invalidateQueries({ 
-        queryKey: TENANT_QUERY_KEYS.FLAG_TENANTS(variables.flagKey) 
+      queryClient.invalidateQueries({
+        queryKey: TENANT_QUERY_KEYS.FLAG_TENANTS(variables.flagKey),
       });
       message.success(
         `テナント "${variables.tenantId}" のフラグ "${variables.flagKey}" を${
@@ -70,11 +70,11 @@ export const useRemoveTenantOverride = () => {
     mutationFn: ({ tenantId, flagKey }: { tenantId: string; flagKey: FeatureFlagKey }) =>
       tenantApi.removeTenantOverride(tenantId, flagKey),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: TENANT_QUERY_KEYS.TENANT_OVERRIDES(variables.tenantId) 
+      queryClient.invalidateQueries({
+        queryKey: TENANT_QUERY_KEYS.TENANT_OVERRIDES(variables.tenantId),
       });
-      queryClient.invalidateQueries({ 
-        queryKey: TENANT_QUERY_KEYS.FLAG_TENANTS(variables.flagKey) 
+      queryClient.invalidateQueries({
+        queryKey: TENANT_QUERY_KEYS.FLAG_TENANTS(variables.flagKey),
       });
       message.success(
         `テナント "${variables.tenantId}" のフラグ "${variables.flagKey}" のオーバーライドを削除しました`
@@ -91,23 +91,23 @@ export const useBulkSetTenantOverrides = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      tenantId, 
-      overrides, 
-      updatedBy 
-    }: { 
-      tenantId: string; 
-      overrides: Array<{ flagKey: FeatureFlagKey; enabled: boolean }>; 
-      updatedBy: string; 
+    mutationFn: ({
+      tenantId,
+      overrides,
+      updatedBy,
+    }: {
+      tenantId: string;
+      overrides: Array<{ flagKey: FeatureFlagKey; enabled: boolean }>;
+      updatedBy: string;
     }) => tenantApi.bulkSetTenantOverrides(tenantId, overrides, updatedBy),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: TENANT_QUERY_KEYS.TENANT_OVERRIDES(variables.tenantId) 
+      queryClient.invalidateQueries({
+        queryKey: TENANT_QUERY_KEYS.TENANT_OVERRIDES(variables.tenantId),
       });
       // Invalidate flag tenant queries for all affected flags
       variables.overrides.forEach(override => {
-        queryClient.invalidateQueries({ 
-          queryKey: TENANT_QUERY_KEYS.FLAG_TENANTS(override.flagKey) 
+        queryClient.invalidateQueries({
+          queryKey: TENANT_QUERY_KEYS.FLAG_TENANTS(override.flagKey),
         });
       });
       message.success(

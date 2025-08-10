@@ -43,7 +43,7 @@ export class ApiClient {
     return this.dynamoClient.setKillSwitch(flagKey, false, `Deactivated by ${deactivatedBy}`, deactivatedBy);
   }
 
-  async evaluateFlag(tenantId: string, flagKey: FeatureFlagKey, userId?: string, environment?: string) {
+  async evaluateFlag(tenantId: string, flagKey: FeatureFlagKey) {
     // 実際のAPI呼び出しの代わりにDynamoClientを直接使用
     const flag = await this.dynamoClient.getFlag(flagKey);
     const tenantOverride = await this.dynamoClient.getTenantOverride(tenantId, flagKey);

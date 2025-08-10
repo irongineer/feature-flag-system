@@ -8,7 +8,7 @@ import {
   isClientError,
   createStructuredError,
   enhancedErrorHandler,
-  silentErrorHandler
+  silentErrorHandler,
 } from '../src/types/error-handling';
 import {
   ResourceNotFoundException,
@@ -18,7 +18,7 @@ import {
   ProvisionedThroughputExceededException,
   RequestLimitExceeded,
   InternalServerError,
-  ServiceUnavailableException
+  ServiceUnavailableException,
 } from '@aws-sdk/client-dynamodb';
 
 describe('AWS SDK v3 Error Handling', () => {
@@ -30,7 +30,7 @@ describe('AWS SDK v3 Error Handling', () => {
     it('should identify ResourceNotFoundException', () => {
       const error = new Error('Resource not found');
       error.name = 'ResourceNotFoundException';
-      
+
       expect(isResourceNotFound(error)).toBe(true);
       expect(isResourceNotFound(new Error('Other error'))).toBe(false);
       expect(isResourceNotFound(null)).toBe(false);
@@ -39,7 +39,7 @@ describe('AWS SDK v3 Error Handling', () => {
     it('should identify ConditionalCheckFailedException', () => {
       const error = new Error('Condition check failed');
       error.name = 'ConditionalCheckFailedException';
-      
+
       expect(isConditionalCheckFailed(error)).toBe(true);
       expect(isConditionalCheckFailed(new Error('Other error'))).toBe(false);
     });
@@ -47,7 +47,7 @@ describe('AWS SDK v3 Error Handling', () => {
     it('should identify ValidationException', () => {
       const error = new Error('Invalid parameters');
       error.name = 'ValidationException';
-      
+
       expect(isValidationError(error)).toBe(true);
       expect(isValidationError(new Error('Other error'))).toBe(false);
     });
@@ -55,13 +55,13 @@ describe('AWS SDK v3 Error Handling', () => {
     it('should identify throttling errors', () => {
       const throttlingError = new Error('Throttled');
       throttlingError.name = 'ThrottlingException';
-      
+
       const throughputError = new Error('Throughput exceeded');
       throughputError.name = 'ProvisionedThroughputExceededException';
-      
+
       const rateLimitError = new Error('Rate limited');
       rateLimitError.name = 'RequestLimitExceeded';
-      
+
       expect(isThrottlingError(throttlingError)).toBe(true);
       expect(isThrottlingError(throughputError)).toBe(true);
       expect(isThrottlingError(rateLimitError)).toBe(true);
@@ -71,16 +71,16 @@ describe('AWS SDK v3 Error Handling', () => {
     it('should classify retryable errors correctly', () => {
       const throttlingError = new Error('Throttled');
       throttlingError.name = 'ThrottlingException';
-      
+
       const serverError = new Error('Internal error');
       serverError.name = 'InternalServerError';
-      
+
       const unavailableError = new Error('Service unavailable');
       unavailableError.name = 'ServiceUnavailableException';
-      
+
       const clientError = new Error('Validation error');
       clientError.name = 'ValidationException';
-      
+
       expect(isRetryableError(throttlingError)).toBe(true);
       expect(isRetryableError(serverError)).toBe(true);
       expect(isRetryableError(unavailableError)).toBe(true);
@@ -90,16 +90,16 @@ describe('AWS SDK v3 Error Handling', () => {
     it('should classify client errors correctly', () => {
       const validationError = new Error('Validation error');
       validationError.name = 'ValidationException';
-      
+
       const conditionalError = new Error('Condition failed');
       conditionalError.name = 'ConditionalCheckFailedException';
-      
+
       const notFoundError = new Error('Not found');
       notFoundError.name = 'ResourceNotFoundException';
-      
+
       const serverError = new Error('Internal error');
       serverError.name = 'InternalServerError';
-      
+
       expect(isClientError(validationError)).toBe(true);
       expect(isClientError(conditionalError)).toBe(true);
       expect(isClientError(notFoundError)).toBe(true);
@@ -114,14 +114,14 @@ describe('AWS SDK v3 Error Handling', () => {
       awsError.$fault = 'client';
       awsError.$metadata = {
         httpStatusCode: 400,
-        requestId: 'test-request-id'
+        requestId: 'test-request-id',
       };
-      
+
       const structuredError = createStructuredError('testOperation', awsError, {
         tenantId: 'test-tenant',
-        flagKey: 'test-flag'
+        flagKey: 'test-flag',
       });
-      
+
       expect(structuredError.operation).toBe('testOperation');
       expect(structuredError.tenantId).toBe('test-tenant');
       expect(structuredError.flagKey).toBe('test-flag');
@@ -133,9 +133,9 @@ describe('AWS SDK v3 Error Handling', () => {
 
     it('should handle error without AWS metadata', () => {
       const standardError = new Error('Standard error');
-      
+
       const structuredError = createStructuredError('testOperation', standardError);
-      
+
       expect(structuredError.operation).toBe('testOperation');
       expect(structuredError.errorType).toBe('Error');
       expect(structuredError.isRetryable).toBe(false);
@@ -145,57 +145,56 @@ describe('AWS SDK v3 Error Handling', () => {
 
   describe('Enhanced Error Handler', () => {
     let consoleSpy: any;
-    
+
     beforeEach(() => {
       consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     it('should handle string errors', () => {
-      const error = new Error('Test error');
-      enhancedErrorHandler('Test message', error);
-      
-      expect(consoleSpy).toHaveBeenCalledWith('Test message', error);
+      enhancedErrorHandler('Test message');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Test message');
     });
 
     it('should handle structured client errors with warn level', () => {
       const clientError = new Error('Validation error');
       clientError.name = 'ValidationException';
-      
+
       const structuredError = createStructuredError('testOp', clientError, {
-        tenantId: 'test-tenant'
+        tenantId: 'test-tenant',
       });
-      
+
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       enhancedErrorHandler(structuredError);
-      
+
       expect(warnSpy).toHaveBeenCalledWith(
         '[testOp] DynamoDB error [NON-RETRYABLE]:',
         expect.objectContaining({
           errorType: 'ValidationException',
           tenantId: 'test-tenant',
-          retryable: false
+          retryable: false,
         })
       );
-      
+
       warnSpy.mockRestore();
     });
 
     it('should handle structured server errors with error level', () => {
       const serverError = new Error('Internal error');
       serverError.name = 'InternalServerError';
-      
+
       const structuredError = createStructuredError('testOp', serverError, {
-        flagKey: 'test-flag'
+        flagKey: 'test-flag',
       });
-      
+
       enhancedErrorHandler(structuredError);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         '[testOp] DynamoDB error [RETRYABLE]:',
         expect.objectContaining({
           errorType: 'InternalServerError',
           flagKey: 'test-flag',
-          retryable: true
+          retryable: true,
         })
       );
     });
@@ -205,10 +204,10 @@ describe('AWS SDK v3 Error Handling', () => {
     it('should not log anything', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const error = new Error('Test error');
-      
+
       silentErrorHandler('Test message', error);
       silentErrorHandler(createStructuredError('testOp', error));
-      
+
       expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
@@ -219,10 +218,10 @@ describe('AWS SDK v3 Error Handling', () => {
       // Note: We test by error name since prototype manipulation is complex in test environment
       const resourceNotFound = new Error('Resource not found');
       resourceNotFound.name = 'ResourceNotFoundException';
-      
+
       const validationError = new Error('Validation failed');
       validationError.name = 'ValidationException';
-      
+
       expect(isResourceNotFound(resourceNotFound)).toBe(true);
       expect(isValidationError(validationError)).toBe(true);
     });
@@ -233,13 +232,13 @@ describe('AWS SDK v3 Error Handling', () => {
       throttlingError.$fault = 'server';
       throttlingError.$metadata = {
         httpStatusCode: 400,
-        requestId: 'throttle-request-id'
+        requestId: 'throttle-request-id',
       };
-      
+
       const structuredError = createStructuredError('batchOperation', throttlingError, {
-        flagKeys: ['flag1', 'flag2', 'flag3']
+        flagKeys: ['flag1', 'flag2', 'flag3'],
       });
-      
+
       expect(structuredError.isRetryable).toBe(true);
       expect(structuredError.errorType).toBe('ProvisionedThroughputExceededException');
       expect(structuredError.context?.flagKeys).toEqual(['flag1', 'flag2', 'flag3']);
@@ -254,11 +253,11 @@ describe('AWS SDK v3 Error Handling', () => {
         flagKey: 'billing_v2_enable',
         operation: 'evaluation',
         requestId: 'req-456',
-        custom: { foo: 'bar' }
+        custom: { foo: 'bar' },
       };
-      
+
       const structuredError = createStructuredError('complexOperation', error, context);
-      
+
       expect(structuredError.tenantId).toBe('tenant-123');
       expect(structuredError.flagKey).toBe('billing_v2_enable');
       expect(structuredError.context).toEqual(context);
@@ -266,9 +265,9 @@ describe('AWS SDK v3 Error Handling', () => {
 
     it('should handle missing context gracefully', () => {
       const error = new Error('Test error');
-      
+
       const structuredError = createStructuredError('simpleOperation', error);
-      
+
       expect(structuredError.tenantId).toBeUndefined();
       expect(structuredError.flagKey).toBeUndefined();
       expect(structuredError.context).toBeUndefined();

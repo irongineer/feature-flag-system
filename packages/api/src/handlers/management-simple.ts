@@ -1,4 +1,4 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { DynamoDbClient } from '@feature-flag/core';
 
 let dynamoClient: DynamoDbClient | null = null;
@@ -14,16 +14,13 @@ function getDynamoClient(): DynamoDbClient {
   return dynamoClient;
 }
 
-export const handler = async (
-  event: APIGatewayProxyEvent,
-  context: Context
-): Promise<APIGatewayProxyResult> => {
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Management request:', JSON.stringify(event, null, 2));
-  
+
   try {
     const { httpMethod, path } = event;
     const dynamoClient = getDynamoClient();
-    
+
     // フラグ一覧取得
     if (httpMethod === 'GET' && path.includes('/flags')) {
       const flags = await dynamoClient.listFlags();
@@ -36,12 +33,12 @@ export const handler = async (
         body: JSON.stringify(flags),
       };
     }
-    
+
     // フラグ作成
     if (httpMethod === 'POST' && path.includes('/flags')) {
       const body = JSON.parse(event.body || '{}');
       const { flagKey, description, defaultEnabled, owner } = body;
-      
+
       if (!flagKey || !description || !owner) {
         return {
           statusCode: 400,
@@ -50,11 +47,11 @@ export const handler = async (
             'Access-Control-Allow-Origin': '*',
           },
           body: JSON.stringify({
-            error: 'flagKey, description, and owner are required'
+            error: 'flagKey, description, and owner are required',
           }),
         };
       }
-      
+
       await dynamoClient.createFlag({
         flagKey,
         description,
@@ -62,7 +59,7 @@ export const handler = async (
         owner,
         createdAt: new Date().toISOString(),
       });
-      
+
       return {
         statusCode: 201,
         headers: {
@@ -75,7 +72,7 @@ export const handler = async (
         }),
       };
     }
-    
+
     // その他のエンドポイント
     return {
       statusCode: 404,
@@ -84,13 +81,12 @@ export const handler = async (
         'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({
-        error: 'Not found'
+        error: 'Not found',
       }),
     };
-    
   } catch (error) {
     console.error('Management error:', error);
-    
+
     return {
       statusCode: 500,
       headers: {
@@ -98,7 +94,7 @@ export const handler = async (
         'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({
-        error: 'Internal server error'
+        error: 'Internal server error',
       }),
     };
   }
