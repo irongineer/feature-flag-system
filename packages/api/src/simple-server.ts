@@ -14,7 +14,8 @@ app.use(express.json());
 const dynamoClient = new DynamoDbClient({
   region: process.env.AWS_REGION || 'ap-northeast-1',
   tableName: process.env.FEATURE_FLAGS_TABLE_NAME || 'feature-flags',
-  endpoint: process.env.DYNAMODB_ENDPOINT || 'http://localhost:8000'
+  endpoint: process.env.DYNAMODB_ENDPOINT || 'http://localhost:8000',
+  environment: (process.env.ENVIRONMENT as any) || 'development',
 });
 
 // Create evaluator

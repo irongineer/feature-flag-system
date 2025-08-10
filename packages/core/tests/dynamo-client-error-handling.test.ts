@@ -7,9 +7,9 @@ const mockSend = vi.fn();
 
 vi.mock('@aws-sdk/lib-dynamodb', () => {
   const MockDynamoDBDocumentClient = {
-    from: vi.fn(() => ({ send: mockSend }))
+    from: vi.fn(() => ({ send: mockSend })),
   };
-  
+
   return {
     DynamoDBDocumentClient: MockDynamoDBDocumentClient,
     GetCommand: vi.fn(),
@@ -17,12 +17,12 @@ vi.mock('@aws-sdk/lib-dynamodb', () => {
     UpdateCommand: vi.fn(),
     QueryCommand: vi.fn(),
     ScanCommand: vi.fn(),
-    BatchGetCommand: vi.fn()
+    BatchGetCommand: vi.fn(),
   };
 });
 
 vi.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: vi.fn()
+  DynamoDBClient: vi.fn(),
 }));
 
 describe('DynamoDbClient Error Handling Integration', () => {
@@ -32,14 +32,14 @@ describe('DynamoDbClient Error Handling Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSend.mockClear();
-    
+
     errorHandlerSpy = vi.fn();
-    
+
     client = new DynamoDbClient({
       environment: 'development',
       region: 'ap-northeast-1',
       tableName: 'test-table',
-      errorHandler: errorHandlerSpy
+      errorHandler: errorHandlerSpy,
     });
   });
 
@@ -49,13 +49,17 @@ describe('DynamoDbClient Error Handling Integration', () => {
       notFoundError.name = 'ResourceNotFoundException';
       mockSend.mockRejectedValue(notFoundError);
 
-      await expect(client.getFlag('nonexistent-flag')).rejects.toThrow('Resource not found: nonexistent-flag');
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'getFlag',
-        flagKey: 'nonexistent-flag',
-        errorType: 'ResourceNotFoundException'
-      }));
+      await expect(client.getFlag('nonexistent-flag')).rejects.toThrow(
+        'Resource not found: nonexistent-flag'
+      );
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'getFlag',
+          flagKey: 'nonexistent-flag',
+          errorType: 'ResourceNotFoundException',
+        })
+      );
     });
 
     it('should handle ValidationException', async () => {
@@ -63,13 +67,17 @@ describe('DynamoDbClient Error Handling Integration', () => {
       validationError.name = 'ValidationException';
       mockSend.mockRejectedValue(validationError);
 
-      await expect(client.getFlag('invalid-flag')).rejects.toThrow('Validation error: Invalid request parameters');
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'getFlag',
-        errorType: 'ValidationException',
-        isRetryable: false
-      }));
+      await expect(client.getFlag('invalid-flag')).rejects.toThrow(
+        'Validation error: Invalid request parameters'
+      );
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'getFlag',
+          errorType: 'ValidationException',
+          isRetryable: false,
+        })
+      );
     });
 
     it('should handle ThrottlingException', async () => {
@@ -77,13 +85,17 @@ describe('DynamoDbClient Error Handling Integration', () => {
       throttlingError.name = 'ThrottlingException';
       mockSend.mockRejectedValue(throttlingError);
 
-      await expect(client.getFlag('test-flag')).rejects.toThrow('Service temporarily unavailable: Request rate exceeded');
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'getFlag',
-        errorType: 'ThrottlingException',
-        isRetryable: true
-      }));
+      await expect(client.getFlag('test-flag')).rejects.toThrow(
+        'Service temporarily unavailable: Request rate exceeded'
+      );
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'getFlag',
+          errorType: 'ThrottlingException',
+          isRetryable: true,
+        })
+      );
     });
   });
 
@@ -98,16 +110,20 @@ describe('DynamoDbClient Error Handling Integration', () => {
         description: 'Test flag',
         defaultEnabled: false,
         owner: 'test-team',
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: '2025-01-01T00:00:00Z',
       };
 
-      await expect(client.createFlag(flagData)).rejects.toThrow('Condition check failed: Resource already exists or has been modified');
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'createFlag',
-        flagKey: 'existing-flag',
-        errorType: 'ConditionalCheckFailedException'
-      }));
+      await expect(client.createFlag(flagData)).rejects.toThrow(
+        'Condition check failed: Resource already exists or has been modified'
+      );
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'createFlag',
+          flagKey: 'existing-flag',
+          errorType: 'ConditionalCheckFailedException',
+        })
+      );
     });
 
     it('should handle ProvisionedThroughputExceededException', async () => {
@@ -121,17 +137,21 @@ describe('DynamoDbClient Error Handling Integration', () => {
         description: 'Test flag',
         defaultEnabled: true,
         owner: 'test-team',
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: '2025-01-01T00:00:00Z',
       };
 
-      await expect(client.createFlag(flagData)).rejects.toThrow('Service temporarily unavailable: Request rate exceeded');
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'createFlag',
-        errorType: 'ProvisionedThroughputExceededException',
-        isRetryable: true,
-        httpStatusCode: 400
-      }));
+      await expect(client.createFlag(flagData)).rejects.toThrow(
+        'Service temporarily unavailable: Request rate exceeded'
+      );
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'createFlag',
+          errorType: 'ProvisionedThroughputExceededException',
+          isRetryable: true,
+          httpStatusCode: 400,
+        })
+      );
     });
   });
 
@@ -142,12 +162,14 @@ describe('DynamoDbClient Error Handling Integration', () => {
       mockSend.mockRejectedValue(error);
 
       await expect(client.getTenantOverride('tenant-123', 'billing-flag')).rejects.toThrow();
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'getTenantOverride',
-        tenantId: 'tenant-123',
-        flagKey: 'billing-flag'
-      }));
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'getTenantOverride',
+          tenantId: 'tenant-123',
+          flagKey: 'billing-flag',
+        })
+      );
     });
   });
 
@@ -157,14 +179,18 @@ describe('DynamoDbClient Error Handling Integration', () => {
       serverError.name = 'InternalServerError';
       mockSend.mockRejectedValue(serverError);
 
-      await expect(client.setTenantOverride('tenant-456', 'feature-flag', true, 'admin')).rejects.toThrow();
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'setTenantOverride',
-        tenantId: 'tenant-456',
-        flagKey: 'feature-flag',
-        isRetryable: true
-      }));
+      await expect(
+        client.setTenantOverride('tenant-456', 'feature-flag', true, 'admin')
+      ).rejects.toThrow();
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'setTenantOverride',
+          tenantId: 'tenant-456',
+          flagKey: 'feature-flag',
+          isRetryable: true,
+        })
+      );
     });
   });
 
@@ -175,10 +201,12 @@ describe('DynamoDbClient Error Handling Integration', () => {
       mockSend.mockRejectedValue(error);
 
       await expect(client.listFlags()).rejects.toThrow();
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'listFlags'
-      }));
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'listFlags',
+        })
+      );
     });
   });
 
@@ -190,14 +218,16 @@ describe('DynamoDbClient Error Handling Integration', () => {
 
       const flagKeys = ['flag1', 'flag2', 'flag3'];
       await expect(client.batchGetFlags(flagKeys)).rejects.toThrow();
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'batchGetFlags',
-        context: expect.objectContaining({
-          flagKeys: ['flag1', 'flag2', 'flag3']
-        }),
-        isRetryable: true
-      }));
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'batchGetFlags',
+          context: expect.objectContaining({
+            flagKeys: ['flag1', 'flag2', 'flag3'],
+          }),
+          isRetryable: true,
+        })
+      );
     });
   });
 
@@ -208,19 +238,21 @@ describe('DynamoDbClient Error Handling Integration', () => {
       mockSend.mockRejectedValue(error);
 
       const result = await client.healthCheck();
-      
+
       expect(result).toBe(false);
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'healthCheck',
-        errorType: 'ResourceNotFoundException'
-      }));
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'healthCheck',
+          errorType: 'ResourceNotFoundException',
+        })
+      );
     });
 
     it('should return true on successful scan', async () => {
       mockSend.mockResolvedValue({ Items: [] });
 
       const result = await client.healthCheck();
-      
+
       expect(result).toBe(true);
       expect(errorHandlerSpy).not.toHaveBeenCalled();
     });
@@ -231,7 +263,7 @@ describe('DynamoDbClient Error Handling Integration', () => {
       const defaultClient = new DynamoDbClient({
         environment: 'development',
         region: 'ap-northeast-1',
-        tableName: 'test-table'
+        tableName: 'test-table',
       });
 
       // Should not throw during construction
@@ -243,7 +275,7 @@ describe('DynamoDbClient Error Handling Integration', () => {
         environment: 'development',
         region: 'ap-northeast-1',
         tableName: 'test-table',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
 
       const error = new Error('Test error');
@@ -251,9 +283,9 @@ describe('DynamoDbClient Error Handling Integration', () => {
       mockSend.mockRejectedValue(error);
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       await expect(silentClient.getFlag('test-flag')).rejects.toThrow();
-      
+
       expect(consoleSpy).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
@@ -265,21 +297,23 @@ describe('DynamoDbClient Error Handling Integration', () => {
       complexError.name = 'InternalServerError';
       complexError.$fault = 'server';
       complexError.$metadata = {
-        httpStatusCode: 500,
+        httpStatusCode: undefined,
         requestId: 'aws-request-id-123',
-        cfId: 'cloudfront-id-456'
+        cfId: 'cloudfront-id-456',
       };
       mockSend.mockRejectedValue(complexError);
 
       await expect(client.updateFlag('test-flag', { description: 'Updated' })).rejects.toThrow();
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'updateFlag',
-        flagKey: 'test-flag',
-        errorType: 'InternalServerError',
-        isRetryable: true,
-        httpStatusCode: 500
-      }));
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'updateFlag',
+          flagKey: 'test-flag',
+          errorType: 'InternalServerError',
+          isRetryable: true,
+          httpStatusCode: 500,
+        })
+      );
     });
 
     it('should handle unknown error types gracefully', async () => {
@@ -288,12 +322,14 @@ describe('DynamoDbClient Error Handling Integration', () => {
       mockSend.mockRejectedValue(unknownError);
 
       await expect(client.getFlag('test-flag')).rejects.toThrow(unknownError);
-      
-      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
-        operation: 'getFlag',
-        errorType: 'UnknownServiceError',
-        isRetryable: false
-      }));
+
+      expect(errorHandlerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'getFlag',
+          errorType: 'UnknownServiceError',
+          isRetryable: false,
+        })
+      );
     });
   });
 });

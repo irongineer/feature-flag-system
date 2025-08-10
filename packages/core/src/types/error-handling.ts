@@ -1,16 +1,16 @@
 /**
  * Error Handling Types
- * 
+ *
  * エラーハンドリングの型定義とインターフェース
  */
 
-import { 
+import {
   ResourceNotFoundException,
   ConditionalCheckFailedException,
   ProvisionedThroughputExceededException,
   ItemCollectionSizeLimitExceededException,
   RequestLimitExceeded,
-  InternalServerError
+  InternalServerError,
 } from '@aws-sdk/client-dynamodb';
 
 // AWS SDK v3 DynamoDB エラー型の統合インターフェース
@@ -34,6 +34,7 @@ export interface StructuredError {
   errorType?: string;
   isRetryable?: boolean;
   httpStatusCode?: number;
+  rolloutConfig?: string; // ロールアウト設定情報を追加
 }
 
 export type ErrorHandler = (errorInfo: string | StructuredError, error?: Error) => void;
@@ -56,15 +57,20 @@ export function isValidationError(error: unknown): error is Error {
   return error instanceof Error && error.name === 'ValidationException';
 }
 
-export function isThrottlingError(error: unknown): error is ProvisionedThroughputExceededException | RequestLimitExceeded | Error {
-  return error instanceof Error && (
-    error.name === 'ThrottlingException' ||
-    error.name === 'ProvisionedThroughputExceededException' ||
-    error.name === 'RequestLimitExceeded'
+export function isThrottlingError(
+  error: unknown
+): error is ProvisionedThroughputExceededException | RequestLimitExceeded | Error {
+  return (
+    error instanceof Error &&
+    (error.name === 'ThrottlingException' ||
+      error.name === 'ProvisionedThroughputExceededException' ||
+      error.name === 'RequestLimitExceeded')
   );
 }
 
-export function isItemCollectionSizeLimit(error: unknown): error is ItemCollectionSizeLimitExceededException {
+export function isItemCollectionSizeLimit(
+  error: unknown
+): error is ItemCollectionSizeLimitExceededException {
   return error instanceof Error && error.name === 'ItemCollectionSizeLimitExceededException';
 }
 
@@ -94,6 +100,12 @@ export function createStructuredError(
 ): StructuredError {
   const err = error as AWSError;
   
+  // HTTPステータスコードの決定
+  let httpStatusCode = err.$metadata?.httpStatusCode;
+  if (!httpStatusCode && isInternalServerError(error)) {
+    httpStatusCode = 500;
+  }
+
   return {
     operation,
     tenantId: context?.tenantId,
@@ -104,20 +116,24 @@ export function createStructuredError(
     context,
     errorType: err.name,
     isRetryable: isRetryableError(error),
-    httpStatusCode: err.$metadata?.httpStatusCode
+    httpStatusCode,
   };
 }
 
 /**
  * Enhanced error handler with AWS error classification
  */
-export const enhancedErrorHandler: ErrorHandler = (errorInfo: string | StructuredError, error?: Error) => {
+export const enhancedErrorHandler: ErrorHandler = (
+  errorInfo: string | StructuredError,
+  error?: Error
+) => {
   if (typeof errorInfo === 'string') {
-    console.error(errorInfo, error);
+    console.error(errorInfo);
+    return;
   } else {
     const logLevel = isClientError(errorInfo.error) ? 'warn' : 'error';
     const retryInfo = errorInfo.isRetryable ? ' [RETRYABLE]' : ' [NON-RETRYABLE]';
-    
+
     console[logLevel](`[${errorInfo.operation}] DynamoDB error${retryInfo}:`, {
       errorType: errorInfo.errorType,
       httpStatus: errorInfo.httpStatusCode,
@@ -126,7 +142,7 @@ export const enhancedErrorHandler: ErrorHandler = (errorInfo: string | Structure
       timestamp: errorInfo.timestamp,
       message: errorInfo.error.message,
       retryable: errorInfo.isRetryable,
-      context: errorInfo.context
+      context: errorInfo.context,
     });
   }
 };
@@ -134,13 +150,16 @@ export const enhancedErrorHandler: ErrorHandler = (errorInfo: string | Structure
 /**
  * Default error handler that logs to console
  */
-export const defaultErrorHandler: ErrorHandler = (errorInfo: string | StructuredError, error?: Error) => {
+export const defaultErrorHandler: ErrorHandler = (
+  errorInfo: string | StructuredError,
+  _error?: Error
+) => {
   if (typeof errorInfo === 'string') {
-    console.error(errorInfo, error);
+    console.error(errorInfo);
   } else {
     console.error(`[${errorInfo.operation}] Error in feature flag evaluation:`, {
       ...errorInfo,
-      timestamp: errorInfo.timestamp || new Date().toISOString()
+      timestamp: errorInfo.timestamp || new Date().toISOString(),
     });
   }
 };

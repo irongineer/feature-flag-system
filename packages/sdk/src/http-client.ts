@@ -51,7 +51,7 @@ export class HttpClient {
         });
 
         if (response.ok) {
-          return await response.json();
+          return await response.json() as EvaluationResponse;
         }
 
         // 4xx エラーはリトライしない（即座に失敗）
@@ -107,7 +107,7 @@ export class HttpClient {
       throw new Error(`Failed to list flags: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    return await response.json() as { flagKey: string; description: string; enabled: boolean; }[];
   }
 
   async createFlag(flagData: {

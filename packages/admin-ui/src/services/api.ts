@@ -1,5 +1,10 @@
 import axios from 'axios';
-import type { FeatureFlagKey, FeatureFlagsTable, TenantOverridesTable, EmergencyControlTable } from '@feature-flag/core';
+import type {
+  FeatureFlagKey,
+  FeatureFlagsTable,
+  TenantOverridesTable,
+  EmergencyControlTable,
+} from '@feature-flag/core';
 
 // API Base Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
@@ -14,22 +19,22 @@ const apiClient = axios.create({
 
 // Request interceptor for authentication
 apiClient.interceptors.request.use(
-  (config) => {
+  config => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  response => response,
+  error => {
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
@@ -53,13 +58,18 @@ export const featureFlagApi = {
   },
 
   // Create new flag
-  async createFlag(flag: Omit<FeatureFlagsTable, 'PK' | 'SK' | 'createdAt'>): Promise<FeatureFlagsTable> {
+  async createFlag(
+    flag: Omit<FeatureFlagsTable, 'PK' | 'SK' | 'createdAt'>
+  ): Promise<FeatureFlagsTable> {
     const response = await apiClient.post('/flags', flag);
     return response.data;
   },
 
   // Update flag
-  async updateFlag(flagKey: FeatureFlagKey, updates: Partial<FeatureFlagsTable>): Promise<FeatureFlagsTable> {
+  async updateFlag(
+    flagKey: FeatureFlagKey,
+    updates: Partial<FeatureFlagsTable>
+  ): Promise<FeatureFlagsTable> {
     const response = await apiClient.put(`/flags/${flagKey}`, updates);
     return response.data;
   },
@@ -70,7 +80,10 @@ export const featureFlagApi = {
   },
 
   // Evaluate flag for tenant
-  async evaluateFlag(tenantId: string, flagKey: FeatureFlagKey): Promise<{ enabled: boolean; reason: string }> {
+  async evaluateFlag(
+    tenantId: string,
+    flagKey: FeatureFlagKey
+  ): Promise<{ enabled: boolean; reason: string }> {
     const response = await apiClient.get(`/flags/${flagKey}/evaluate`, {
       params: { tenantId },
     });
@@ -182,13 +195,15 @@ export const dashboardApi = {
   },
 
   // Get recent activities
-  async getRecentActivities(): Promise<Array<{
-    id: string;
-    type: 'flag_created' | 'flag_updated' | 'tenant_override' | 'kill_switch';
-    message: string;
-    timestamp: string;
-    user: string;
-  }>> {
+  async getRecentActivities(): Promise<
+    Array<{
+      id: string;
+      type: 'flag_created' | 'flag_updated' | 'tenant_override' | 'kill_switch';
+      message: string;
+      timestamp: string;
+      user: string;
+    }>
+  > {
     const response = await apiClient.get('/dashboard/activities');
     return response.data;
   },
