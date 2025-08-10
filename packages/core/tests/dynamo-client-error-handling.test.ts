@@ -297,7 +297,7 @@ describe('DynamoDbClient Error Handling Integration', () => {
       complexError.name = 'InternalServerError';
       complexError.$fault = 'server';
       complexError.$metadata = {
-        httpStatusCode: 500,
+        httpStatusCode: undefined,
         requestId: 'aws-request-id-123',
         cfId: 'cloudfront-id-456',
       };

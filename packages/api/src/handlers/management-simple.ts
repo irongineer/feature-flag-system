@@ -14,7 +14,18 @@ function getDynamoClient(): DynamoDbClient {
   return dynamoClient;
 }
 
+<<<<<<< Updated upstream
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+||||||| Stash base
+export const handler = async (
+  event: APIGatewayProxyEvent,
+  context: Context
+): Promise<APIGatewayProxyResult> => {
+=======
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+>>>>>>> Stashed changes
   console.log('Management request:', JSON.stringify(event, null, 2));
 
   try {
