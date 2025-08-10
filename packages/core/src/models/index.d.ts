@@ -1,27 +1,4 @@
 export interface FeatureFlagsTable {
-<<<<<<< Updated upstream
-  PK: string;
-  SK: string;
-  flagKey: string;
-  description: string;
-  defaultEnabled: boolean;
-  owner: string;
-  createdAt: string;
-  expiresAt?: string;
-  GSI1PK?: string;
-  GSI1SK?: string;
-||||||| Stash base
-    PK: string;
-    SK: string;
-    flagKey: string;
-    description: string;
-    defaultEnabled: boolean;
-    owner: string;
-    createdAt: string;
-    expiresAt?: string;
-    GSI1PK?: string;
-    GSI1SK?: string;
-=======
     PK: string;
     SK: string;
     flagKey: string;
@@ -39,26 +16,8 @@ export interface FeatureFlagsTable {
     GSI3SK?: string;
     GSI4PK?: string;
     GSI4SK?: string;
->>>>>>> Stashed changes
 }
 export interface TenantOverridesTable {
-<<<<<<< Updated upstream
-  PK: string;
-  SK: string;
-  enabled: boolean;
-  updatedAt: string;
-  updatedBy: string;
-  GSI1PK: string;
-  GSI1SK: string;
-||||||| Stash base
-    PK: string;
-    SK: string;
-    enabled: boolean;
-    updatedAt: string;
-    updatedBy: string;
-    GSI1PK: string;
-    GSI1SK: string;
-=======
     PK: string;
     SK: string;
     enabled: boolean;
@@ -67,24 +26,8 @@ export interface TenantOverridesTable {
     updatedBy: string;
     GSI1PK: string;
     GSI1SK: string;
->>>>>>> Stashed changes
 }
 export interface EmergencyControlTable {
-<<<<<<< Updated upstream
-  PK: string;
-  SK: string;
-  enabled: boolean;
-  reason: string;
-  activatedAt: string;
-  activatedBy: string;
-||||||| Stash base
-    PK: string;
-    SK: string;
-    enabled: boolean;
-    reason: string;
-    activatedAt: string;
-    activatedBy: string;
-=======
     PK: string;
     SK: string;
     enabled: boolean;
@@ -92,7 +35,6 @@ export interface EmergencyControlTable {
     reason: string;
     activatedAt: string;
     activatedBy: string;
->>>>>>> Stashed changes
 }
 export declare const FEATURE_FLAGS: {
   readonly BILLING_V2: 'billing_v2_enable';
@@ -120,30 +62,13 @@ export declare const ENVIRONMENTS: {
     readonly PRODUCTION: "production";
 };
 export interface FeatureFlagContext {
-<<<<<<< Updated upstream
-  tenantId: string;
-  userId?: string;
-  environment?: string;
-  metadata?: Record<string, any>;
-||||||| Stash base
-    tenantId: string;
-    userId?: string;
-    environment?: string;
-    metadata?: Record<string, any>;
-=======
     tenantId: string;
     userId?: string;
     userRole?: string;
     plan?: string;
     environment?: Environment;
     metadata?: Record<string, any>;
->>>>>>> Stashed changes
 }
-<<<<<<< Updated upstream
-//# sourceMappingURL=index.d.ts.map
-||||||| Stash base
-//# sourceMappingURL=index.d.ts.map
-=======
 export interface EnvironmentConfig {
     environment: Environment;
     tableName: string;
@@ -156,4 +81,3 @@ export interface EnvironmentConfig {
     };
 }
 //# sourceMappingURL=index.d.ts.map
->>>>>>> Stashed changes
