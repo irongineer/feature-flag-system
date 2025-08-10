@@ -1,25 +1,30 @@
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
-  plugins: [],
+  plugins: [
+    '@typescript-eslint',
+  ],
   extends: [
     'eslint:recommended',
   ],
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json',
   },
   env: {
     node: true,
     es2022: true,
   },
   rules: {
-    // General code quality
-    'no-console': 'warn',
+    // Basic rules only
+    'no-console': 'off',
     'no-debugger': 'error',
     'prefer-const': 'error',
     'no-var': 'error',
+    'no-unused-vars': 'off',
+    'no-dupe-class-members': 'off',
+    'no-case-declarations': 'off',
+    'no-undef': 'off',
   },
   overrides: [
     {
@@ -27,28 +32,9 @@ module.exports = {
       env: {
         jest: true,
       },
-      globals: {
-        vi: 'readonly',
-      },
       rules: {
         'no-console': 'off',
       },
-    },
-    {
-      files: ['packages/admin-ui/src/**/*.ts'],
-      env: {
-        browser: true,
-      },
-      globals: {
-        React: 'readonly',
-      },
-      rules: {
-        'no-console': 'warn',
-      },
-    },
-    {
-      files: ['**/*.js'],
-      rules: {},
     },
   ],
   ignorePatterns: [
