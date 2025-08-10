@@ -67,7 +67,7 @@ export class ABTestEngine {
     }
 
     // 2. 時間窓チェック
-    if (!this.isWithinTestPeriod(testConfig, context.timestamp)) {
+    if (!this.isWithinTestPeriod(testConfig, new Date().toISOString())) {
       return this.getControlVariant(testConfig);
     }
 

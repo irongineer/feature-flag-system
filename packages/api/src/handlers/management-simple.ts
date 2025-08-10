@@ -8,6 +8,7 @@ function getDynamoClient(): DynamoDbClient {
     dynamoClient = new DynamoDbClient({
       region: process.env.AWS_REGION || 'ap-northeast-1',
       tableName: process.env.FEATURE_FLAGS_TABLE_NAME || 'feature-flags',
+      environment: (process.env.ENVIRONMENT as any) || 'development',
     });
   }
   return dynamoClient;

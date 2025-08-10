@@ -1,4 +1,3 @@
-import AWS from 'aws-sdk';
 import { DynamoDbClient, FeatureFlagKey } from '@feature-flag/core';
 import { getConfig } from './config';
 
@@ -12,6 +11,7 @@ export class ApiClient {
       region: this.config.region,
       tableName: this.config.tableName,
       endpoint: this.config.endpoint,
+      environment: this.config.environment || 'development',
     });
   }
 
