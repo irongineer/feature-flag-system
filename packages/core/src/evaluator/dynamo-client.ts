@@ -22,6 +22,12 @@ import {
   isValidationError,
   isThrottlingError,
   isRetryableError,
+  isAccessDenied,
+  isTableNotFound,
+  isTableInUse,
+  isLimitExceeded,
+  createOperationalErrorMessage,
+  FeatureFlagValidator,
   ErrorHandler,
   ErrorHandlingOptions
 } from '../types/error-handling';
@@ -72,27 +78,70 @@ export class DynamoDbClient {
 
   /**
    * 構造化エラーハンドリング用のヘルパーメソッド
+   * AWS SDK v3 特定エラー型を活用し、運用者向けメッセージを生成
    */
   private handleError(operation: string, error: unknown, context?: { tenantId?: string; flagKey?: string; [key: string]: any }): never {
-    const structuredError = createStructuredError(operation, error, context);
+    // 構造化エラー情報を作成してログ出力
+    const errorContext = {
+      ...context,
+      environment: this.environment,
+      tableName: this.tableName
+    };
+    const structuredError = createStructuredError(operation, error, errorContext);
     this.errorHandler(structuredError);
     
-    // ビジネスロジック向けエラー分類
+    // 運用者向けの詳細メッセージを生成
+    const operationalMessage = createOperationalErrorMessage(error, {
+      operation,
+      flagKey: context?.flagKey,
+      tenantId: context?.tenantId,
+      tableName: this.tableName
+    });
+    
+    // AWS SDK v3 特定エラー型による分類とビジネスロジック向けエラー
     if (isResourceNotFound(error)) {
-      throw new Error(`Resource not found: ${context?.flagKey || 'unknown resource'}`);
-    }
-    if (isConditionalCheckFailed(error)) {
-      throw new Error(`Condition check failed: Resource already exists or has been modified`);
-    }
-    if (isValidationError(error)) {
-      throw new Error(`Validation error: Invalid request parameters`);
-    }
-    if (isThrottlingError(error)) {
-      throw new Error(`Service temporarily unavailable: Request rate exceeded`);
+      debugLog(this.environment, `Resource not found: ${operation}`, errorContext);
+      throw new Error(`${operationalMessage}`);
     }
     
-    // 一般的なエラー
-    throw error;
+    if (isTableNotFound(error)) {
+      debugLog(this.environment, `Table not found: ${this.tableName}`, errorContext);
+      throw new Error(`${operationalMessage}`);
+    }
+    
+    if (isAccessDenied(error)) {
+      debugLog(this.environment, `Access denied to table: ${this.tableName}`, errorContext);
+      throw new Error(`${operationalMessage}`);
+    }
+    
+    if (isConditionalCheckFailed(error)) {
+      debugLog(this.environment, `Conditional check failed: ${operation}`, errorContext);
+      throw new Error(`${operationalMessage}`);
+    }
+    
+    if (isValidationError(error)) {
+      debugLog(this.environment, `Validation error: ${operation}`, errorContext);
+      throw new Error(`${operationalMessage}`);
+    }
+    
+    if (isThrottlingError(error)) {
+      debugLog(this.environment, `Throttling error: ${operation}`, errorContext);
+      throw new Error(`${operationalMessage}`);
+    }
+    
+    if (isTableInUse(error)) {
+      debugLog(this.environment, `Table in use: ${this.tableName}`, errorContext);
+      throw new Error(`${operationalMessage}`);
+    }
+    
+    if (isLimitExceeded(error)) {
+      debugLog(this.environment, `Limit exceeded: ${operation}`, errorContext);
+      throw new Error(`${operationalMessage}`);
+    }
+    
+    // 一般的なエラー（予期しないもの）
+    debugLog(this.environment, `Unexpected error: ${operation}`, { ...errorContext, originalError: error });
+    throw new Error(operationalMessage);
   }
 
   // フラグのデフォルト値を取得
@@ -110,7 +159,11 @@ export class DynamoDbClient {
         },
       }));
 
-      return result.Item as FeatureFlagsTable || null;
+      // 型安全性の向上: レスポンスデータの検証
+      if (result.Item) {
+        return FeatureFlagValidator.validateFeatureFlag(result.Item);
+      }
+      return null;
     } catch (error) {
       this.handleError('getFlag', error, { flagKey, environment: this.environment });
     }
@@ -131,7 +184,11 @@ export class DynamoDbClient {
         },
       }));
 
-      return result.Item as TenantOverridesTable || null;
+      // 型安全性の向上: レスポンスデータの検証
+      if (result.Item) {
+        return FeatureFlagValidator.validateTenantOverride(result.Item);
+      }
+      return null;
     } catch (error) {
       this.handleError('getTenantOverride', error, { tenantId, flagKey, environment: this.environment });
     }
@@ -153,7 +210,11 @@ export class DynamoDbClient {
         },
       }));
 
-      return result.Item as EmergencyControlTable || null;
+      // 型安全性の向上: レスポンスデータの検証
+      if (result.Item) {
+        return FeatureFlagValidator.validateKillSwitch(result.Item);
+      }
+      return null;
     } catch (error) {
       this.handleError('getKillSwitch', error, { flagKey, environment: this.environment });
     }
