@@ -3,8 +3,8 @@
 import express from 'express';
 import cors from 'cors';
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
-import { evaluationHandler } from './handlers/evaluation';
-import { managementHandler } from './handlers/management';
+import { handler as evaluationHandler } from './handlers/evaluation';
+import { handler as managementHandler } from './handlers/management';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -40,13 +40,13 @@ function createLambdaEvent(req: express.Request): APIGatewayProxyEvent {
         accountId: null,
         cognitoIdentityId: null,
         caller: null,
-        sourceIp: req.ip,
+        sourceIp: req.ip || '127.0.0.1',
         principalOrgId: null,
         accessKey: null,
         cognitoAuthenticationType: null,
         cognitoAuthenticationProvider: null,
         userArn: null,
-        userAgent: req.get('User-Agent'),
+        userAgent: req.get('User-Agent') || null,
         user: null,
         apiKey: null,
         apiKeyId: null,
@@ -96,7 +96,8 @@ async function handleLambda(
     }
     
     if (result.body) {
-      if (result.headers?.['Content-Type']?.includes('application/json')) {
+      const contentType = result.headers?.['Content-Type'];
+      if (typeof contentType === 'string' && contentType.includes('application/json')) {
         res.json(JSON.parse(result.body));
       } else {
         res.send(result.body);
