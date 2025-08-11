@@ -16,10 +16,10 @@ import { featureFlagApi } from '../services/api';
 
 /**
  * Feature Flag Hooks Specification
- * 
+ *
  * フィーチャーフラグ管理フックは、React Query を活用して
  * フィーチャーフラグのCRUD操作とキャッシュ管理を提供する。
- * 
+ *
  * Key Responsibilities:
  * 1. フラグデータの取得・キャッシュ管理
  * 2. フラグのCRUD操作 (Create/Read/Update/Delete)
@@ -27,7 +27,7 @@ import { featureFlagApi } from '../services/api';
  * 4. 楽観的更新によるユーザー体験向上
  * 5. エラーハンドリングとユーザー通知
  * 6. クエリキーの一元管理
- * 
+ *
  * Business Rules:
  * - フラグ一覧: 5分間キャッシュ
  * - フラグ評価: 1分間キャッシュ
@@ -64,9 +64,8 @@ const createTestQueryClient = () =>
 
 // React Query Wrapper
 const createWrapper = (queryClient: QueryClient) => {
-  return ({ children }: { children: React.ReactNode }) => (
-    React.createElement(QueryClientProvider, { client: queryClient }, children)
-  );
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
 };
 
 describe('Feature Flag Hooks Specification', () => {
@@ -170,10 +169,7 @@ describe('Feature Flag Hooks Specification', () => {
             mockedFeatureFlagApi.getFlag.mockResolvedValue(mockFlag);
 
             // When: Rendering useFeatureFlag with specific key
-            const { result } = renderHook(
-              () => useFeatureFlag('billing_v2_enable'),
-              { wrapper }
-            );
+            const { result } = renderHook(() => useFeatureFlag('billing_v2_enable'), { wrapper });
 
             // Then: Should fetch specific flag
             await waitFor(() => {
@@ -249,10 +245,7 @@ describe('Feature Flag Hooks Specification', () => {
             const flagKey = 'billing_v2_enable';
 
             // When: Rendering hook with missing tenantId
-            const { result } = renderHook(
-              () => useFlagEvaluation(tenantId, flagKey),
-              { wrapper }
-            );
+            const { result } = renderHook(() => useFlagEvaluation(tenantId, flagKey), { wrapper });
 
             // Then: Should not execute evaluation
             expect(result.current.isLoading).toBe(false);

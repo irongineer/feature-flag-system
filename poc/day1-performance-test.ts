@@ -60,7 +60,7 @@ class PerformanceTest {
       const context: FeatureFlagContext = {
         tenantId,
         userId: `user-${i}`,
-        environment: 'test',
+        environment: 'development',
         metadata: { testRun: i }
       };
       

@@ -4,10 +4,10 @@ import { featureFlagApi, tenantApi, killSwitchApi, dashboardApi, auditApi } from
 
 /**
  * API Service Layer Specification
- * 
+ *
  * APIサービス層は、フィーチャーフラグシステムのフロントエンド
  * とバックエンド間の通信を担当する。以下の責務を持つ：
- * 
+ *
  * Key Responsibilities:
  * 1. HTTP通信の抽象化とエラーハンドリング
  * 2. 認証トークンの自動付与
@@ -15,7 +15,7 @@ import { featureFlagApi, tenantApi, killSwitchApi, dashboardApi, auditApi } from
  * 4. API エンドポイントの一元管理
  * 5. 401エラー時の自動ログアウト処理
  * 6. タイムアウト・リトライ機能
- * 
+ *
  * Business Rules:
  * - 全てのAPIコールに認証トークンを自動付与
  * - タイムアウト: 10秒
@@ -35,7 +35,7 @@ vi.mock('axios', () => {
       response: { use: vi.fn() },
     },
   };
-  
+
   return {
     default: {
       create: vi.fn(() => mockAxiosInstance),
@@ -54,7 +54,7 @@ const mockLocalStorage = {
 };
 Object.defineProperty(window, 'localStorage', { value: mockLocalStorage });
 
-// Location mock  
+// Location mock
 const mockLocation = {
   href: '',
   assign: vi.fn(),
@@ -70,7 +70,7 @@ describe('Feature Flag API Service Specification', () => {
     vi.clearAllMocks();
     mockLocalStorage.getItem.mockReturnValue('test-token');
     mockLocation.href = '';
-    
+
     // Get the mocked axios instance
     mockAxiosInstance = (axios.create as any)();
   });
@@ -110,7 +110,7 @@ describe('Feature Flag API Service Specification', () => {
             // Then: Should return properly typed flag list
             expect(result).toEqual(mockFlags);
             expect(mockAxiosInstance.get).toHaveBeenCalledWith('/flags');
-            
+
             // And: Should have proper type structure
             expect(result[0]).toHaveProperty('flagKey');
             expect(result[0]).toHaveProperty('description');
@@ -158,7 +158,7 @@ describe('Feature Flag API Service Specification', () => {
             // Then: Should return single flag object
             expect(result).toEqual(mockFlag);
             expect(mockAxiosInstance.get).toHaveBeenCalledWith('/flags/billing_v2_enable');
-            
+
             // And: Should have optional expiration field
             expect(result.expiresAt).toBeDefined();
           });
@@ -173,7 +173,9 @@ describe('Feature Flag API Service Specification', () => {
             mockAxiosInstance.get.mockRejectedValue(notFoundError);
 
             // When/Then: Should propagate 404 error
-            await expect(featureFlagApi.getFlag('non_existent_flag')).rejects.toEqual(notFoundError);
+            await expect(featureFlagApi.getFlag('non_existent_flag')).rejects.toEqual(
+              notFoundError
+            );
             expect(mockAxiosInstance.get).toHaveBeenCalledWith('/flags/non_existent_flag');
           });
         });
@@ -207,7 +209,7 @@ describe('Feature Flag API Service Specification', () => {
             // Then: Should create flag successfully
             expect(result).toEqual(createdFlag);
             expect(mockAxiosInstance.post).toHaveBeenCalledWith('/flags', newFlagData);
-            
+
             // And: Should include auto-generated fields
             expect(result.PK).toBe('FLAG#new_feature_enable');
             expect(result.SK).toBe('METADATA');
@@ -234,7 +236,9 @@ describe('Feature Flag API Service Specification', () => {
             mockAxiosInstance.post.mockRejectedValue(validationError);
 
             // When/Then: Should propagate validation error
-            await expect(featureFlagApi.createFlag(invalidFlagData)).rejects.toEqual(validationError);
+            await expect(featureFlagApi.createFlag(invalidFlagData)).rejects.toEqual(
+              validationError
+            );
             expect(mockAxiosInstance.post).toHaveBeenCalledWith('/flags', invalidFlagData);
           });
         });
@@ -269,8 +273,11 @@ describe('Feature Flag API Service Specification', () => {
 
             // Then: Should update flag successfully
             expect(result).toEqual(updatedFlag);
-            expect(mockAxiosInstance.put).toHaveBeenCalledWith('/flags/billing_v2_enable', updateData);
-            
+            expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+              '/flags/billing_v2_enable',
+              updateData
+            );
+
             // And: Should include updated timestamp
             expect(result.updatedAt).toBeDefined();
           });
@@ -330,10 +337,13 @@ describe('Feature Flag API Service Specification', () => {
 
             // Then: Should return evaluation result
             expect(result).toEqual(evaluationResult);
-            expect(mockAxiosInstance.get).toHaveBeenCalledWith('/flags/billing_v2_enable/evaluate', {
-              params: { tenantId: 'tenant-123' },
-            });
-            
+            expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+              '/flags/billing_v2_enable/evaluate',
+              {
+                params: { tenantId: 'tenant-123' },
+              }
+            );
+
             // And: Should include reasoning
             expect(result.enabled).toBe(true);
             expect(result.reason).toBe('tenant_override');
@@ -378,7 +388,7 @@ describe('Feature Flag API Service Specification', () => {
             // Then: Should return tenant overrides
             expect(result).toEqual(mockOverrides);
             expect(mockAxiosInstance.get).toHaveBeenCalledWith('/tenants/tenant-123/overrides');
-            
+
             // And: Should have proper override structure
             expect(result[0]).toHaveProperty('tenantId');
             expect(result[0]).toHaveProperty('flagKey');
@@ -427,7 +437,7 @@ describe('Feature Flag API Service Specification', () => {
                 updatedBy: 'customer-success',
               }
             );
-            
+
             // And: Should include metadata
             expect(result.updatedAt).toBeDefined();
           });
@@ -467,11 +477,14 @@ describe('Feature Flag API Service Specification', () => {
 
             // Then: Should create all overrides
             expect(result).toEqual(createdOverrides);
-            expect(mockAxiosInstance.post).toHaveBeenCalledWith('/tenants/tenant-bulk/overrides/bulk', {
-              overrides: bulkOverrides,
-              updatedBy: 'bulk-admin',
-            });
-            
+            expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+              '/tenants/tenant-bulk/overrides/bulk',
+              {
+                overrides: bulkOverrides,
+                updatedBy: 'bulk-admin',
+              }
+            );
+
             // And: Should have correct count
             expect(result).toHaveLength(3);
           });
@@ -613,7 +626,7 @@ describe('Feature Flag API Service Specification', () => {
               reason: 'Critical security vulnerability detected',
               activatedBy: 'security-team',
             });
-            
+
             // And: Should be marked as active
             expect(result.active).toBe(true);
             expect(result.activatedAt).toBeDefined();
@@ -679,7 +692,7 @@ describe('Feature Flag API Service Specification', () => {
               flagKey: null,
               deactivatedBy: 'security-team',
             });
-            
+
             // And: Should record deactivation details
             expect(result.active).toBe(false);
             expect(result.deactivatedBy).toBe('security-team');
@@ -723,7 +736,7 @@ describe('Feature Flag API Service Specification', () => {
             // Then: Should return comprehensive metrics
             expect(result).toEqual(mockMetrics);
             expect(mockAxiosInstance.get).toHaveBeenCalledWith('/dashboard/metrics');
-            
+
             // And: Should have all metric categories
             expect(result.totalFlags).toBe(25);
             expect(result.activeFlags).toBe(18);
@@ -772,7 +785,7 @@ describe('Feature Flag API Service Specification', () => {
             // Then: Should return activity timeline
             expect(result).toEqual(mockActivities);
             expect(mockAxiosInstance.get).toHaveBeenCalledWith('/dashboard/activities');
-            
+
             // And: Should have proper activity structure
             expect(result[0]).toHaveProperty('id');
             expect(result[0]).toHaveProperty('type');
@@ -835,7 +848,7 @@ describe('Feature Flag API Service Specification', () => {
             expect(mockAxiosInstance.get).toHaveBeenCalledWith('/audit/logs', {
               params: queryParams,
             });
-            
+
             // And: Should have detailed change tracking
             expect(result.logs[0].changes).toHaveProperty('defaultEnabled');
             expect(result.logs[0].changes.defaultEnabled).toEqual({ from: false, to: true });
@@ -868,7 +881,7 @@ describe('Feature Flag API Service Specification', () => {
               params: exportParams,
               responseType: 'blob',
             });
-            
+
             // And: Should be proper blob format
             expect(result instanceof Blob).toBe(true);
           });
@@ -885,7 +898,7 @@ describe('Feature Flag API Service Specification', () => {
             // Given: Axios create was called during module import
             // Then: Should have created axios instance (exact config varies)
             expect(axios.create).toHaveBeenCalled();
-            
+
             // And: Mock axios instance should have interceptors setup
             expect(mockAxiosInstance.interceptors).toBeDefined();
             expect(mockAxiosInstance.interceptors.request).toBeDefined();
@@ -1042,8 +1055,10 @@ describe('Feature Flag API Service Specification', () => {
 
               // Then: Should return flag tenant overrides
               expect(result).toEqual(mockFlagTenants);
-              expect(mockAxiosInstance.get).toHaveBeenCalledWith('/flags/payment_v3_enable/tenants');
-              
+              expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                '/flags/payment_v3_enable/tenants'
+              );
+
               // And: Should have proper tenant override structure
               expect(result[0]).toHaveProperty('tenantId');
               expect(result[0]).toHaveProperty('flagKey');
@@ -1063,11 +1078,16 @@ describe('Feature Flag API Service Specification', () => {
               mockAxiosInstance.delete.mockResolvedValue({ data: {} });
 
               // When: Removing tenant override
-              const result = await tenantApi.removeTenantOverride('tenant-removal', 'legacy_feature');
+              const result = await tenantApi.removeTenantOverride(
+                'tenant-removal',
+                'legacy_feature'
+              );
 
               // Then: Should complete removal
               expect(result).toBeUndefined();
-              expect(mockAxiosInstance.delete).toHaveBeenCalledWith('/tenants/tenant-removal/overrides/legacy_feature');
+              expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
+                '/tenants/tenant-removal/overrides/legacy_feature'
+              );
             });
           });
         });

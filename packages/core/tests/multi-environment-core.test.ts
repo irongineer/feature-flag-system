@@ -10,16 +10,16 @@ const mockSend = vi.fn();
 
 vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: {
-    from: vi.fn(() => ({ send: mockSend }))
+    from: vi.fn(() => ({ send: mockSend })),
   },
-  GetCommand: vi.fn((params) => ({ input: params })),
-  PutCommand: vi.fn((params) => ({ input: params })),
-  QueryCommand: vi.fn((params) => ({ input: params })),
-  UpdateCommand: vi.fn((params) => ({ input: params }))
+  GetCommand: vi.fn(params => ({ input: params })),
+  PutCommand: vi.fn(params => ({ input: params })),
+  QueryCommand: vi.fn(params => ({ input: params })),
+  UpdateCommand: vi.fn(params => ({ input: params })),
 }));
 
 vi.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: vi.fn()
+  DynamoDBClient: vi.fn(),
 }));
 
 describe('Multi-Environment Core Functionality', () => {
@@ -55,7 +55,7 @@ describe('Multi-Environment Core Functionality', () => {
         environment: ENVIRONMENTS.DEVELOPMENT,
         region: 'ap-northeast-1',
         tableName: 'test-table',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
 
       const flagData = {
@@ -63,7 +63,7 @@ describe('Multi-Environment Core Functionality', () => {
         description: 'Test flag',
         defaultEnabled: true,
         owner: 'test-team',
-        createdAt: '2025-01-01T00:00:00Z'
+        createdAt: '2025-01-01T00:00:00Z',
       };
 
       await devClient.createFlag(flagData);
@@ -82,7 +82,7 @@ describe('Multi-Environment Core Functionality', () => {
         environment: ENVIRONMENTS.PRODUCTION,
         region: 'ap-northeast-1',
         tableName: 'test-table',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
 
       await prodClient.setTenantOverride('tenant-123', 'test_flag', true, 'admin');
@@ -100,7 +100,7 @@ describe('Multi-Environment Core Functionality', () => {
         environment: ENVIRONMENTS.STAGING,
         region: 'ap-northeast-1',
         tableName: 'test-table',
-        errorHandler: silentErrorHandler
+        errorHandler: silentErrorHandler,
       });
 
       await stagingClient.setKillSwitch('test_flag', true, 'Emergency', 'admin');
@@ -118,18 +118,18 @@ describe('Multi-Environment Core Functionality', () => {
         environment: ENVIRONMENTS.DEVELOPMENT,
         cache: new FeatureFlagCache(),
         errorHandler: silentErrorHandler,
-        useMock: true
+        useMock: true,
       });
 
       const stagingContext: FeatureFlagContext = {
         tenantId: 'test-tenant',
-        environment: ENVIRONMENTS.STAGING
+        environment: ENVIRONMENTS.STAGING,
       };
 
       // Should throw environment mismatch error
-      await expect(
-        devEvaluator.isEnabled(stagingContext, 'billing_v2_enable')
-      ).rejects.toThrow('Environment mismatch');
+      await expect(devEvaluator.isEnabled(stagingContext, 'billing_v2_enable')).rejects.toThrow(
+        'Environment mismatch'
+      );
     });
 
     it('should work correctly with matching environment', async () => {
@@ -137,12 +137,12 @@ describe('Multi-Environment Core Functionality', () => {
         environment: ENVIRONMENTS.PRODUCTION,
         cache: new FeatureFlagCache(),
         errorHandler: silentErrorHandler,
-        useMock: true
+        useMock: true,
       });
 
       const prodContext: FeatureFlagContext = {
         tenantId: 'test-tenant',
-        environment: ENVIRONMENTS.PRODUCTION
+        environment: ENVIRONMENTS.PRODUCTION,
       };
 
       // Should work without errors
@@ -155,7 +155,7 @@ describe('Multi-Environment Core Functionality', () => {
         environment: ENVIRONMENTS.STAGING,
         cache: new FeatureFlagCache(),
         errorHandler: silentErrorHandler,
-        useMock: true
+        useMock: true,
       });
 
       // Test backward compatibility with string tenantId
@@ -167,17 +167,17 @@ describe('Multi-Environment Core Functionality', () => {
   describe('Debug Logging', () => {
     it('should log only when enabled for the environment', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
+
       // Development should log
       debugLog(ENVIRONMENTS.DEVELOPMENT, 'Development message');
       expect(consoleSpy).toHaveBeenCalledWith('[DEVELOPMENT] Development message', '');
-      
+
       consoleSpy.mockClear();
-      
+
       // Production should not log
       debugLog(ENVIRONMENTS.PRODUCTION, 'Production message');
       expect(consoleSpy).not.toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -185,13 +185,13 @@ describe('Multi-Environment Core Functionality', () => {
   describe('Environment Isolation', () => {
     it('should demonstrate complete data isolation', () => {
       const environments: Environment[] = ['development', 'staging', 'production'];
-      
+
       environments.forEach(env => {
         const client = new DynamoDbClient({
           environment: env,
           region: 'ap-northeast-1',
           tableName: 'test-table',
-          errorHandler: silentErrorHandler
+          errorHandler: silentErrorHandler,
         });
 
         // Each environment should have its own key structure

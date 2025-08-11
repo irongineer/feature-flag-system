@@ -1,19 +1,14 @@
 import { DynamoDBClient, DynamoDBClientConfig } from '@aws-sdk/client-dynamodb';
-import { 
-  DynamoDBDocumentClient, 
-  GetCommand, 
-  PutCommand, 
-  UpdateCommand, 
-  QueryCommand, 
-  BatchGetCommand, 
-  ScanCommand 
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+  QueryCommand,
+  BatchGetCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { 
-  FeatureFlagKey, 
-  FeatureFlagsTable, 
-  TenantOverridesTable, 
-  EmergencyControlTable 
-} from '../models';
+import { FeatureFlagsTable, TenantOverridesTable, EmergencyControlTable } from '../models';
 import {
   createStructuredError,
   enhancedErrorHandler,
@@ -29,10 +24,10 @@ import {
   createOperationalErrorMessage,
   FeatureFlagValidator,
   ErrorHandler,
-  ErrorHandlingOptions
+  ErrorHandlingOptions,
 } from '../types/error-handling';
-import { Environment, ENVIRONMENTS } from '../models';
-import { getEnvironmentConfig, addEnvironmentToKey, debugLog } from '../config/environment';
+import { Environment } from '../models';
+import { getEnvironmentConfig, debugLog } from '../config/environment';
 
 export interface DynamoDbClientConfig extends ErrorHandlingOptions {
   environment: Environment; // 必須: 環境指定
@@ -49,10 +44,10 @@ export class DynamoDbClient {
 
   constructor(config: DynamoDbClientConfig) {
     this.environment = config.environment;
-    
+
     // 環境固有設定を取得
     const envConfig = getEnvironmentConfig(this.environment);
-    
+
     const dynamoConfig: DynamoDBClientConfig = {
       region: config.region || envConfig.region,
     };
@@ -65,14 +60,14 @@ export class DynamoDbClient {
     const client = new DynamoDBClient(dynamoConfig);
     this.dynamoDb = DynamoDBDocumentClient.from(client);
     this.tableName = config.tableName || envConfig.tableName;
-    
+
     // エラーハンドラーの設定
     this.errorHandler = config.errorHandler || enhancedErrorHandler;
-    
+
     debugLog(this.environment, 'DynamoDbClient initialized', {
       tableName: this.tableName,
       region: dynamoConfig.region,
-      endpoint: dynamoConfig.endpoint
+      endpoint: dynamoConfig.endpoint,
     });
   }
 
@@ -190,7 +185,11 @@ export class DynamoDbClient {
       }
       return null;
     } catch (error) {
-      this.handleError('getTenantOverride', error, { tenantId, flagKey, environment: this.environment });
+      this.handleError('getTenantOverride', error, {
+        tenantId,
+        flagKey,
+        environment: this.environment,
+      });
     }
   }
 
@@ -252,13 +251,18 @@ export class DynamoDbClient {
 
       debugLog(this.environment, `Creating flag: ${flag.flagKey}`, { item });
 
-      await this.dynamoDb.send(new PutCommand({
-        TableName: this.tableName,
-        Item: item,
-        ConditionExpression: 'attribute_not_exists(PK)', // 重複防止
-      }));
+      await this.dynamoDb.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: item,
+          ConditionExpression: 'attribute_not_exists(PK)', // 重複防止
+        })
+      );
     } catch (error) {
-      this.handleError('createFlag', error, { flagKey: flag.flagKey, environment: this.environment });
+      this.handleError('createFlag', error, {
+        flagKey: flag.flagKey,
+        environment: this.environment,
+      });
     }
   }
 
@@ -295,19 +299,24 @@ export class DynamoDbClient {
         expressionAttributeValues[':gsi1sk'] = updates.expiresAt;
       }
 
-      debugLog(this.environment, `Updating flag: ${flagKey}`, { updates, environment: this.environment });
+      debugLog(this.environment, `Updating flag: ${flagKey}`, {
+        updates,
+        environment: this.environment,
+      });
 
-      await this.dynamoDb.send(new UpdateCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: `FLAG#${this.environment}#${flagKey}`,
-          SK: 'METADATA',
-        },
-        UpdateExpression: `SET ${updateExpression.join(', ')}`,
-        ExpressionAttributeNames: expressionAttributeNames,
-        ExpressionAttributeValues: expressionAttributeValues,
-        ConditionExpression: 'attribute_exists(PK)', // 存在確認
-      }));
+      await this.dynamoDb.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: `FLAG#${this.environment}#${flagKey}`,
+            SK: 'METADATA',
+          },
+          UpdateExpression: `SET ${updateExpression.join(', ')}`,
+          ExpressionAttributeNames: expressionAttributeNames,
+          ExpressionAttributeValues: expressionAttributeValues,
+          ConditionExpression: 'attribute_exists(PK)', // 存在確認
+        })
+      );
     } catch (error) {
       this.handleError('updateFlag', error, { flagKey, environment: this.environment });
     }
@@ -315,9 +324,9 @@ export class DynamoDbClient {
 
   // テナント別オーバーライドを設定
   async setTenantOverride(
-    tenantId: string, 
-    flagKey: string, 
-    enabled: boolean, 
+    tenantId: string,
+    flagKey: string,
+    enabled: boolean,
     updatedBy: string
   ): Promise<void> {
     try {
@@ -332,22 +341,31 @@ export class DynamoDbClient {
         GSI1SK: `TENANT#${tenantId}`,
       };
 
-      debugLog(this.environment, `Setting tenant override: ${tenantId}/${flagKey}`, { enabled, environment: this.environment });
+      debugLog(this.environment, `Setting tenant override: ${tenantId}/${flagKey}`, {
+        enabled,
+        environment: this.environment,
+      });
 
-      await this.dynamoDb.send(new PutCommand({
-        TableName: this.tableName,
-        Item: item,
-      }));
+      await this.dynamoDb.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: item,
+        })
+      );
     } catch (error) {
-      this.handleError('setTenantOverride', error, { tenantId, flagKey, environment: this.environment });
+      this.handleError('setTenantOverride', error, {
+        tenantId,
+        flagKey,
+        environment: this.environment,
+      });
     }
   }
 
   // Kill-Switchを設定
   async setKillSwitch(
-    flagKey: string | null, 
-    enabled: boolean, 
-    reason: string, 
+    flagKey: string | null,
+    enabled: boolean,
+    reason: string,
     activatedBy: string
   ): Promise<void> {
     try {
@@ -363,14 +381,23 @@ export class DynamoDbClient {
         activatedBy,
       };
 
-      debugLog(this.environment, `Setting kill switch: ${flagKey || 'GLOBAL'}`, { enabled, reason, environment: this.environment });
+      debugLog(this.environment, `Setting kill switch: ${flagKey || 'GLOBAL'}`, {
+        enabled,
+        reason,
+        environment: this.environment,
+      });
 
-      await this.dynamoDb.send(new PutCommand({
-        TableName: this.tableName,
-        Item: item,
-      }));
+      await this.dynamoDb.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: item,
+        })
+      );
     } catch (error) {
-      this.handleError('setKillSwitch', error, { flagKey: flagKey || undefined, environment: this.environment });
+      this.handleError('setKillSwitch', error, {
+        flagKey: flagKey || undefined,
+        environment: this.environment,
+      });
     }
   }
 
@@ -378,21 +405,24 @@ export class DynamoDbClient {
   async listFlags(): Promise<FeatureFlagsTable[]> {
     try {
       const gsi3pk = `FLAGS#${this.environment}`;
-      
-      debugLog(this.environment, `Listing flags for environment: ${this.environment}`, { gsi3pk });
-      
-      const result = await this.dynamoDb.send(new QueryCommand({
-        TableName: this.tableName,
-        IndexName: 'GSI3-FLAGS-INDEX',
-        KeyConditionExpression: 'GSI3PK = :gsi3pk',
-        ExpressionAttributeValues: {
-          ':gsi3pk': gsi3pk,
-        },
-        ProjectionExpression: 'flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
-        ScanIndexForward: false, // 新しいフラグから順に取得
-      }));
 
-      return result.Items as FeatureFlagsTable[] || [];
+      debugLog(this.environment, `Listing flags for environment: ${this.environment}`, { gsi3pk });
+
+      const result = await this.dynamoDb.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: 'GSI3-FLAGS-INDEX',
+          KeyConditionExpression: 'GSI3PK = :gsi3pk',
+          ExpressionAttributeValues: {
+            ':gsi3pk': gsi3pk,
+          },
+          ProjectionExpression:
+            'flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
+          ScanIndexForward: false, // 新しいフラグから順に取得
+        })
+      );
+
+      return (result.Items as FeatureFlagsTable[]) || [];
     } catch (error) {
       this.handleError('listFlags', error, { environment: this.environment });
     }
@@ -402,20 +432,26 @@ export class DynamoDbClient {
   async listFlagsByOwner(owner: string): Promise<FeatureFlagsTable[]> {
     try {
       const gsi2pk = `OWNER#${this.environment}#${owner}`;
-      
-      debugLog(this.environment, `Listing flags by owner: ${owner}`, { gsi2pk, environment: this.environment });
-      
-      const result = await this.dynamoDb.send(new QueryCommand({
-        TableName: this.tableName,
-        IndexName: 'GSI2-OWNER-INDEX',
-        KeyConditionExpression: 'GSI2PK = :gsi2pk',
-        ExpressionAttributeValues: {
-          ':gsi2pk': gsi2pk,
-        },
-        ProjectionExpression: 'flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
-      }));
 
-      return result.Items as FeatureFlagsTable[] || [];
+      debugLog(this.environment, `Listing flags by owner: ${owner}`, {
+        gsi2pk,
+        environment: this.environment,
+      });
+
+      const result = await this.dynamoDb.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: 'GSI2-OWNER-INDEX',
+          KeyConditionExpression: 'GSI2PK = :gsi2pk',
+          ExpressionAttributeValues: {
+            ':gsi2pk': gsi2pk,
+          },
+          ProjectionExpression:
+            'flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
+        })
+      );
+
+      return (result.Items as FeatureFlagsTable[]) || [];
     } catch (error) {
       this.handleError('listFlagsByOwner', error, { owner, environment: this.environment });
     }
@@ -425,20 +461,25 @@ export class DynamoDbClient {
   async listFlagsWithScan(): Promise<FeatureFlagsTable[]> {
     try {
       const pkPrefix = `FLAG#${this.environment}#`;
-      
-      debugLog(this.environment, `Scanning flags with prefix: ${pkPrefix}`, { environment: this.environment });
-      
-      const result = await this.dynamoDb.send(new ScanCommand({
-        TableName: this.tableName,
-        FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
-        ExpressionAttributeValues: {
-          ':pk': pkPrefix,
-          ':sk': 'METADATA',
-        },
-        ProjectionExpression: 'PK, SK, flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
-      }));
 
-      return result.Items as FeatureFlagsTable[] || [];
+      debugLog(this.environment, `Scanning flags with prefix: ${pkPrefix}`, {
+        environment: this.environment,
+      });
+
+      const result = await this.dynamoDb.send(
+        new ScanCommand({
+          TableName: this.tableName,
+          FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
+          ExpressionAttributeValues: {
+            ':pk': pkPrefix,
+            ':sk': 'METADATA',
+          },
+          ProjectionExpression:
+            'PK, SK, flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
+        })
+      );
+
+      return (result.Items as FeatureFlagsTable[]) || [];
     } catch (error) {
       this.handleError('listFlagsWithScan', error, { environment: this.environment });
     }
@@ -448,17 +489,22 @@ export class DynamoDbClient {
   async listTenantOverrides(tenantId: string): Promise<TenantOverridesTable[]> {
     try {
       const pk = `TENANT#${this.environment}#${tenantId}`;
-      
-      debugLog(this.environment, `Listing tenant overrides: ${tenantId}`, { pk, environment: this.environment });
-      
-      const result = await this.dynamoDb.send(new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: {
-          ':pk': pk,
-          ':sk': 'FLAG#',
-        },
-      }));
+
+      debugLog(this.environment, `Listing tenant overrides: ${tenantId}`, {
+        pk,
+        environment: this.environment,
+      });
+
+      const result = await this.dynamoDb.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+          ExpressionAttributeValues: {
+            ':pk': pk,
+            ':sk': 'FLAG#',
+          },
+        })
+      );
 
       return result.Items as TenantOverridesTable[];
     } catch (error) {
@@ -474,17 +520,22 @@ export class DynamoDbClient {
         SK: 'METADATA',
       }));
 
-      debugLog(this.environment, `Batch getting flags: ${flagKeys.join(', ')}`, { flagKeys, environment: this.environment });
+      debugLog(this.environment, `Batch getting flags: ${flagKeys.join(', ')}`, {
+        flagKeys,
+        environment: this.environment,
+      });
 
-      const result = await this.dynamoDb.send(new BatchGetCommand({
-        RequestItems: {
-          [this.tableName]: {
-            Keys: requestItems,
+      const result = await this.dynamoDb.send(
+        new BatchGetCommand({
+          RequestItems: {
+            [this.tableName]: {
+              Keys: requestItems,
+            },
           },
-        },
-      }));
+        })
+      );
 
-      return result.Responses?.[this.tableName] as FeatureFlagsTable[] || [];
+      return (result.Responses?.[this.tableName] as FeatureFlagsTable[]) || [];
     } catch (error) {
       this.handleError('batchGetFlags', error, { flagKeys, environment: this.environment });
     }
@@ -494,10 +545,12 @@ export class DynamoDbClient {
   async healthCheck(): Promise<boolean> {
     try {
       // DocumentClientではdescribeTableが使えないので、代わりにscanを使用
-      await this.dynamoDb.send(new ScanCommand({
-        TableName: this.tableName,
-        Limit: 1,
-      }));
+      await this.dynamoDb.send(
+        new ScanCommand({
+          TableName: this.tableName,
+          Limit: 1,
+        })
+      );
       return true;
     } catch (error) {
       // ヘルスチェックではエラーログだけ出力し、falseを返す

@@ -8,19 +8,19 @@ export interface FeatureFlagsTable {
   environment: Environment; // 環境情報を明示的に保存
   createdAt: string;
   expiresAt?: string;
-  
+
   // GSI1: 有効期限でのクエリ用
   GSI1PK?: string; // "EXPIRES#{environment}"
   GSI1SK?: string; // expiresAt
-  
+
   // GSI2: オーナー別フラグ一覧用
   GSI2PK?: string; // "OWNER#{environment}#{owner}"
   GSI2SK?: string; // "FLAG#{flagKey}"
-  
+
   // GSI3: 全フラグ一覧効率化用 (Scan代替)
   GSI3PK?: string; // "FLAGS#{environment}"
   GSI3SK?: string; // "METADATA#{createdAt}"
-  
+
   // GSI4: 環境横断フラグ一覧用
   GSI4PK?: string; // "GLOBAL_FLAG#{flagKey}"
   GSI4SK?: string; // "ENV#{environment}"
@@ -33,7 +33,7 @@ export interface TenantOverridesTable {
   environment: Environment; // 環境情報を明示的に保存
   updatedAt: string;
   updatedBy: string;
-  
+
   // GSI1: フラグ別のテナント一覧用
   GSI1PK: string; // "FLAG#{environment}#{flagKey}"
   GSI1SK: string; // "TENANT#{tenantId}"
@@ -83,9 +83,9 @@ export const ENVIRONMENTS = {
 
 export interface FeatureFlagContext {
   tenantId: string;
-  userId?: string;        // オプショナル: ユーザー固有の評価が不要な場合
-  userRole?: string;      // オプショナル: 権限ベースの制御が不要な場合
-  plan?: string;          // オプショナル: プラン情報が利用できない場合
+  userId?: string; // オプショナル: ユーザー固有の評価が不要な場合
+  userRole?: string; // オプショナル: 権限ベースの制御が不要な場合
+  plan?: string; // オプショナル: プラン情報が利用できない場合
   environment?: Environment; // オプショナル: 未指定時はgetCurrentEnvironment()を使用
   metadata?: Record<string, any>;
 }

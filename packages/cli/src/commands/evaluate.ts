@@ -59,7 +59,7 @@ export async function evaluate(options: EvaluateOptions) {
     const spinner = ora('Evaluating flag...').start();
     const apiClient = getApiClient();
     
-    const result = await apiClient.evaluateFlag(tenantId, flagKey, userId, environment);
+    const result = await apiClient.evaluateFlag(tenantId, flagKey);
     
     spinner.succeed(chalk.green('✅ Flag evaluated successfully'));
     

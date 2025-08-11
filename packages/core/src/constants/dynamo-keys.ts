@@ -1,11 +1,11 @@
 /**
  * DynamoDB Key Construction Constants
- * 
+ *
  * マジックストリングを排除し、保守性と型安全性を向上
  */
 export const DYNAMO_KEY_PREFIXES = {
   FLAG: 'FLAG#',
-  TENANT: 'TENANT#', 
+  TENANT: 'TENANT#',
   EMERGENCY: 'EMERGENCY#',
 } as const;
 

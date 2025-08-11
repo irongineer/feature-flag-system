@@ -17,6 +17,7 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "composite": true,
     "baseUrl": ".",
     "paths": {
       "@feature-flag/core": ["packages/core/src"],
@@ -25,12 +26,17 @@
     }
   },
   "include": [
-    "packages/*/src/**/*",
+    "packages/core/src/**/*",
+    "packages/sdk/src/**/*",
+    "packages/api/src/**/*",
+    "packages/cli/src/**/*",
+    "packages/audit-service/src/**/*",
     "poc/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
+    "packages/admin-ui",
     "**/*.test.ts",
     "**/*.spec.ts"
   ]
