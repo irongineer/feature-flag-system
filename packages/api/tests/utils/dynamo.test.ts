@@ -52,8 +52,8 @@ describe('dynamo utils', () => {
       expect(mockDynamoClient).toHaveBeenCalledWith({
         region: 'ap-northeast-1',
         tableName: 'feature-flags',
-        endpoint: 'http://localhost:8000',
-        environment: 'development'
+        environment: 'development',
+        endpoint: 'http://localhost:8000'
       });
     });
 
@@ -65,8 +65,8 @@ describe('dynamo utils', () => {
       expect(mockDynamoClient).toHaveBeenCalledWith({
         region: 'ap-northeast-1',
         tableName: 'feature-flags',
-        endpoint: 'http://localhost:8000',
-        environment: 'development'
+        environment: 'development',
+        endpoint: 'http://localhost:8000'
       });
     });
 
@@ -79,8 +79,8 @@ describe('dynamo utils', () => {
       expect(mockDynamoClient).toHaveBeenCalledWith({
         region: 'ap-northeast-1',
         tableName: 'feature-flags',
-        endpoint: 'http://custom-dynamo:8000',
-        environment: 'development'
+        environment: 'development',
+        endpoint: 'http://custom-dynamo:8000'
       });
     });
 
@@ -104,8 +104,8 @@ describe('dynamo utils', () => {
       expect(mockDynamoClient).toHaveBeenCalledWith({
         region: 'eu-central-1',
         tableName: 'prod-flags',
-        endpoint: 'http://localstack:4566',
-        environment: 'development'
+        environment: 'development',
+        endpoint: 'http://localstack:4566'
       });
     });
   });

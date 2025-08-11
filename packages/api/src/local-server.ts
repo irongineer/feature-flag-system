@@ -46,7 +46,7 @@ function createLambdaEvent(req: express.Request): APIGatewayProxyEvent {
         cognitoAuthenticationType: null,
         cognitoAuthenticationProvider: null,
         userArn: null,
-        userAgent: req.get('User-Agent') || '',
+        userAgent: req.get('User-Agent') || null,
         user: null,
         apiKey: null,
         apiKeyId: null,
@@ -96,7 +96,8 @@ async function handleLambda(
     }
     
     if (result.body) {
-      if (typeof result.headers?.['Content-Type'] === 'string' && result.headers['Content-Type'].includes('application/json')) {
+      const contentType = result.headers?.['Content-Type'];
+      if (typeof contentType === 'string' && contentType.includes('application/json')) {
         res.json(JSON.parse(result.body));
       } else {
         res.send(result.body);
