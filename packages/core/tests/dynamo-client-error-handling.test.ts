@@ -49,17 +49,13 @@ describe('DynamoDbClient Error Handling Integration', () => {
       notFoundError.name = 'ResourceNotFoundException';
       mockSend.mockRejectedValue(notFoundError);
 
-      await expect(client.getFlag('nonexistent-flag')).rejects.toThrow(
-        'Resource not found: nonexistent-flag'
-      );
-
-      expect(errorHandlerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'getFlag',
-          flagKey: 'nonexistent-flag',
-          errorType: 'ResourceNotFoundException',
-        })
-      );
+      await expect(client.getFlag('nonexistent-flag')).rejects.toThrow('DynamoDB resource not found');
+      
+      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
+        operation: 'getFlag',
+        flagKey: 'nonexistent-flag',
+        errorType: 'ResourceNotFoundException'
+      }));
     });
 
     it('should handle ValidationException', async () => {
@@ -67,17 +63,13 @@ describe('DynamoDbClient Error Handling Integration', () => {
       validationError.name = 'ValidationException';
       mockSend.mockRejectedValue(validationError);
 
-      await expect(client.getFlag('invalid-flag')).rejects.toThrow(
-        'Validation error: Invalid request parameters'
-      );
-
-      expect(errorHandlerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'getFlag',
-          errorType: 'ValidationException',
-          isRetryable: false,
-        })
-      );
+      await expect(client.getFlag('invalid-flag')).rejects.toThrow('Request validation failed');
+      
+      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
+        operation: 'getFlag',
+        errorType: 'ValidationException',
+        isRetryable: false
+      }));
     });
 
     it('should handle ThrottlingException', async () => {
@@ -85,17 +77,13 @@ describe('DynamoDbClient Error Handling Integration', () => {
       throttlingError.name = 'ThrottlingException';
       mockSend.mockRejectedValue(throttlingError);
 
-      await expect(client.getFlag('test-flag')).rejects.toThrow(
-        'Service temporarily unavailable: Request rate exceeded'
-      );
-
-      expect(errorHandlerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'getFlag',
-          errorType: 'ThrottlingException',
-          isRetryable: true,
-        })
-      );
+      await expect(client.getFlag('test-flag')).rejects.toThrow('DynamoDB request rate exceeded');
+      
+      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
+        operation: 'getFlag',
+        errorType: 'ThrottlingException',
+        isRetryable: true
+      }));
     });
   });
 
@@ -113,17 +101,13 @@ describe('DynamoDbClient Error Handling Integration', () => {
         createdAt: '2025-01-01T00:00:00Z',
       };
 
-      await expect(client.createFlag(flagData)).rejects.toThrow(
-        'Condition check failed: Resource already exists or has been modified'
-      );
-
-      expect(errorHandlerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'createFlag',
-          flagKey: 'existing-flag',
-          errorType: 'ConditionalCheckFailedException',
-        })
-      );
+      await expect(client.createFlag(flagData)).rejects.toThrow('Resource already exists or condition not met');
+      
+      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
+        operation: 'createFlag',
+        flagKey: 'existing-flag',
+        errorType: 'ConditionalCheckFailedException'
+      }));
     });
 
     it('should handle ProvisionedThroughputExceededException', async () => {
@@ -140,18 +124,14 @@ describe('DynamoDbClient Error Handling Integration', () => {
         createdAt: '2025-01-01T00:00:00Z',
       };
 
-      await expect(client.createFlag(flagData)).rejects.toThrow(
-        'Service temporarily unavailable: Request rate exceeded'
-      );
-
-      expect(errorHandlerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'createFlag',
-          errorType: 'ProvisionedThroughputExceededException',
-          isRetryable: true,
-          httpStatusCode: 400,
-        })
-      );
+      await expect(client.createFlag(flagData)).rejects.toThrow('DynamoDB request rate exceeded');
+      
+      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
+        operation: 'createFlag',
+        errorType: 'ProvisionedThroughputExceededException',
+        isRetryable: true,
+        httpStatusCode: 400
+      }));
     });
   });
 
@@ -321,15 +301,13 @@ describe('DynamoDbClient Error Handling Integration', () => {
       unknownError.name = 'UnknownServiceError';
       mockSend.mockRejectedValue(unknownError);
 
-      await expect(client.getFlag('test-flag')).rejects.toThrow(unknownError);
-
-      expect(errorHandlerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'getFlag',
-          errorType: 'UnknownServiceError',
-          isRetryable: false,
-        })
-      );
+      await expect(client.getFlag('test-flag')).rejects.toThrow('Unexpected DynamoDB error');
+      
+      expect(errorHandlerSpy).toHaveBeenCalledWith(expect.objectContaining({
+        operation: 'getFlag',
+        errorType: 'UnknownServiceError',
+        isRetryable: false
+      }));
     });
   });
 });
