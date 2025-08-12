@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   Card, 
   Table, 
@@ -14,7 +14,8 @@ import {
   Row,
   Col,
   Dropdown,
-  message
+  message,
+  Tooltip
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -41,6 +42,8 @@ const FlagList: React.FC = () => {
   const [editingFlag, setEditingFlag] = useState<FeatureFlagsTable | null>(null);
   const [searchText, setSearchText] = useState('');
   const [filterEnabled, setFilterEnabled] = useState<boolean | undefined>(undefined);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [toggleLoadingFlags, setToggleLoadingFlags] = useState<Set<string>>(new Set());
   
   const [form] = Form.useForm<FlagFormData>();
 
@@ -49,17 +52,19 @@ const FlagList: React.FC = () => {
   const updateFlagMutation = useUpdateFlag();
   const deleteFlagMutation = useDeleteFlag();
 
-  // Filter flags based on search and filter
-  const filteredFlags = flags.filter(flag => {
-    const matchesSearch = !searchText || 
-      flag.flagKey.toLowerCase().includes(searchText.toLowerCase()) ||
-      flag.description.toLowerCase().includes(searchText.toLowerCase()) ||
-      flag.owner.toLowerCase().includes(searchText.toLowerCase());
-    
-    const matchesFilter = filterEnabled === undefined || flag.defaultEnabled === filterEnabled;
-    
-    return matchesSearch && matchesFilter;
-  });
+  // Memoized filter function for better performance
+  const filteredFlags = useMemo(() => {
+    return flags.filter(flag => {
+      const matchesSearch = !searchText || 
+        flag.flagKey.toLowerCase().includes(searchText.toLowerCase()) ||
+        flag.description.toLowerCase().includes(searchText.toLowerCase()) ||
+        flag.owner.toLowerCase().includes(searchText.toLowerCase());
+      
+      const matchesFilter = filterEnabled === undefined || flag.defaultEnabled === filterEnabled;
+      
+      return matchesSearch && matchesFilter;
+    });
+  }, [flags, searchText, filterEnabled]);
 
   const handleCreateFlag = () => {
     setEditingFlag(null);
@@ -94,6 +99,7 @@ const FlagList: React.FC = () => {
 
   const handleModalOk = async () => {
     try {
+      setModalLoading(true);
       const values = await form.validateFields();
       const formData = {
         ...values,
@@ -102,24 +108,29 @@ const FlagList: React.FC = () => {
 
       if (editingFlag) {
         // Update existing flag
-        updateFlagMutation.mutate({
+        await updateFlagMutation.mutateAsync({
           flagKey: editingFlag.flagKey as any,
           updates: formData,
         });
       } else {
         // Create new flag
-        createFlagMutation.mutate(formData);
+        await createFlagMutation.mutateAsync(formData);
       }
       
       setIsModalVisible(false);
+      setModalLoading(false);
     } catch (error) {
       console.error('Validation failed:', error);
+      setModalLoading(false);
     }
   };
 
   const handleModalCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
+    if (!modalLoading) {
+      setIsModalVisible(false);
+      form.resetFields();
+      setModalLoading(false);
+    }
   };
 
   const columns: ColumnsType<FlagRecord> = [
@@ -150,21 +161,42 @@ const FlagList: React.FC = () => {
       dataIndex: 'defaultEnabled',
       key: 'defaultEnabled',
       width: 120,
-      render: (enabled: boolean, record: FlagRecord) => (
-        <Switch
-          checked={enabled}
-          onChange={(checked) => {
-            // Update flag enabled state
-            updateFlagMutation.mutate({
-              flagKey: record.flagKey as any,
-              updates: { defaultEnabled: checked },
-            });
-          }}
-          loading={updateFlagMutation.isPending}
-          size="small"
-          data-testid="flag-toggle-switch"
-        />
-      ),
+      render: (enabled: boolean, record: FlagRecord) => {
+        const isLoading = toggleLoadingFlags.has(record.flagKey);
+        return (
+          <Tooltip title={`クリックして${enabled ? '無効' : '有効'}にする`}>
+            <Switch
+              checked={enabled}
+              onChange={async (checked) => {
+                // Add optimistic loading state
+                setToggleLoadingFlags(prev => new Set(prev).add(record.flagKey));
+                
+                try {
+                  await updateFlagMutation.mutateAsync({
+                    flagKey: record.flagKey as any,
+                    updates: { defaultEnabled: checked },
+                  });
+                  message.success(`フラグ "${record.flagKey}" を${checked ? '有効' : '無効'}にしました`);
+                } catch (error) {
+                  console.error('Failed to update flag:', error);
+                  message.error(`フラグの更新に失敗しました: ${error.message || 'Unknown error'}`);
+                } finally {
+                  setToggleLoadingFlags(prev => {
+                    const next = new Set(prev);
+                    next.delete(record.flagKey);
+                    return next;
+                  });
+                }
+              }}
+              loading={isLoading}
+              size="small"
+              data-testid="flag-toggle-switch"
+              checkedChildren="有効"
+              unCheckedChildren="無効"
+            />
+          </Tooltip>
+        );
+      },
       filters: [
         { text: '有効', value: true },
         { text: '無効', value: false },
@@ -262,8 +294,10 @@ const FlagList: React.FC = () => {
                 allowClear
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
+                onSearch={value => setSearchText(value)}
                 style={{ width: 300 }}
                 prefix={<SearchOutlined />}
+                loading={isLoading}
               />
               <Button
                 icon={<FilterOutlined />}
@@ -312,11 +346,13 @@ const FlagList: React.FC = () => {
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={handleModalCancel}
-        confirmLoading={createFlagMutation.isPending || updateFlagMutation.isPending}
+        confirmLoading={modalLoading || createFlagMutation.isPending || updateFlagMutation.isPending}
         okText={editingFlag ? '更新' : '作成'}
         cancelText="キャンセル"
         width={600}
         data-testid="create-flag-modal"
+        maskClosable={!modalLoading}
+        closable={!modalLoading}
       >
         <Form
           form={form}

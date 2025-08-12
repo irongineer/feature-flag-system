@@ -60,4 +60,3 @@ export interface EnvironmentPolicy {
     auditLevel: 'basic' | 'detailed' | 'comprehensive';
 }
 export declare const ENVIRONMENT_POLICIES: Record<Environment, EnvironmentPolicy>;
-//# sourceMappingURL=environment.d.ts.map

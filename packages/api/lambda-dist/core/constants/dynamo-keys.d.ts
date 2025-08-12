@@ -24,4 +24,3 @@ export declare class DynamoKeyBuilder {
     static emergencyKey(flagKey?: string): string;
     static compositeKey(primaryKey: string, sortKey: string): string;
 }
-//# sourceMappingURL=dynamo-keys.d.ts.map

@@ -54,7 +54,13 @@
       "Bash(npm run:*)",
       "Bash(kill:*)",
       "Bash(gh pr view:*)",
-      "Bash(gh pr checks:*)"
+      "Bash(gh pr checks:*)",
+      "Bash(aws dynamodb list-tables:*)",
+      "Bash(timeout 90 npx playwright test:*)",
+      "Bash(timeout 60 npx playwright test e2e/simple-ui-test.spec.ts --timeout=30000)",
+      "Bash(timeout 45 npx playwright test e2e/debug-console.spec.ts --timeout=30000)",
+      "Bash(timeout 30 npx playwright test e2e/debug-console.spec.ts --timeout=20000)",
+      "Bash(timeout 60 npx playwright test e2e/final-verification.spec.ts --timeout=30000)"
     ],
     "deny": []
   }

@@ -82,4 +82,3 @@ export declare class AnalyticsEngine {
     private applyTrendAdjustment;
     private calculateConfidence;
 }
-//# sourceMappingURL=index.d.ts.map

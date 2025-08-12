@@ -20,6 +20,22 @@ import {
   TableInUseException
 } from '@aws-sdk/client-dynamodb';
 
+// Table type imports
+import { FeatureFlagsTable, TenantOverridesTable, EmergencyControlTable } from '../models';
+
+// Custom exception types that might not be directly exported
+export interface AccessDeniedException extends Error {
+  name: 'AccessDeniedException';
+}
+
+export interface ValidationException extends Error {
+  name: 'ValidationException';
+}
+
+export interface ServiceUnavailableException extends Error {
+  name: 'ServiceUnavailableException';
+}
+
 // AWS SDK v3 DynamoDB エラー型の統合インターフェース
 export interface AWSError extends Error {
   name: string;
@@ -313,10 +329,10 @@ export const enhancedErrorHandler: ErrorHandler = (
  */
 export const defaultErrorHandler: ErrorHandler = (
   errorInfo: string | StructuredError,
-  _error?: Error
+  error?: Error
 ) => {
   if (typeof errorInfo === 'string') {
-    console.error(errorInfo);
+    console.error(errorInfo, error);
   } else {
     console.error(`[${errorInfo.operation}] Error in feature flag evaluation:`, {
       ...errorInfo,

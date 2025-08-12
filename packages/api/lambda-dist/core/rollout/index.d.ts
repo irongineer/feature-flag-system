@@ -31,4 +31,3 @@ export declare class RolloutEngine {
     private evaluatePercentage;
     private generateUserHash;
 }
-//# sourceMappingURL=index.d.ts.map

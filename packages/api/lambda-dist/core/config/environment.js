@@ -69,14 +69,17 @@ function getEnvironmentConfig(environment) {
     const config = {
         ...baseConfig,
         tableName: process.env[`FEATURE_FLAGS_TABLE_NAME_${environment.toUpperCase()}`] || baseConfig.tableName,
-        region: process.env[`AWS_REGION_${environment.toUpperCase()}`] || process.env.AWS_REGION || baseConfig.region,
+        region: process.env[`AWS_REGION_${environment.toUpperCase()}`] ||
+            process.env.AWS_REGION ||
+            baseConfig.region,
         endpoint: process.env[`DYNAMODB_ENDPOINT_${environment.toUpperCase()}`] || baseConfig.endpoint,
     };
     // 開発環境での特別な設定
     if (environment === models_1.ENVIRONMENTS.DEVELOPMENT) {
-        config.endpoint = process.env.DYNAMODB_ENDPOINT || process.env.IS_OFFLINE === 'true'
-            ? 'http://localhost:8000'
-            : config.endpoint;
+        config.endpoint =
+            process.env.DYNAMODB_ENDPOINT || process.env.IS_OFFLINE === 'true'
+                ? 'http://localhost:8000'
+                : config.endpoint;
     }
     return config;
 }
