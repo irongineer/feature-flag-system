@@ -22,7 +22,7 @@ class FeatureFlagHttpClient {
             const requestPayload = {
                 tenantId: context.tenantId,
                 flagKey,
-                environment: context.environment || 'production'
+                environment: context.environment || 'production',
             };
             // オプショナルフィールドをundefinedの場合は送信しない
             if (context.userId)
@@ -49,7 +49,7 @@ class FeatureFlagHttpClient {
             }
             const requestPayload = {
                 tenantId: context.tenantId,
-                environment: context.environment || 'production'
+                environment: context.environment || 'production',
             };
             // オプショナルフィールドを条件付きで追加
             if (context.userId)
@@ -72,8 +72,8 @@ class FeatureFlagHttpClient {
         const url = `${this.options.apiUrl}${endpoint}`;
         const headers = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.options.apiKey}`,
-            'User-Agent': 'FeatureFlagClient/1.0.0'
+            Authorization: `Bearer ${this.options.apiKey}`,
+            'User-Agent': 'FeatureFlagClient/1.0.0',
         };
         let lastError = null;
         for (let attempt = 0; attempt <= this.options.retries; attempt++) {
@@ -84,7 +84,7 @@ class FeatureFlagHttpClient {
                     method: 'POST',
                     headers,
                     body: JSON.stringify(payload),
-                    signal: controller.signal
+                    signal: controller.signal,
                 });
                 clearTimeout(timeoutId);
                 if (!response.ok) {

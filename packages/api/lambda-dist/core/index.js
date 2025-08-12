@@ -18,4 +18,8 @@ __exportStar(require("./models"), exports);
 __exportStar(require("./cache"), exports);
 __exportStar(require("./evaluator"), exports);
 __exportStar(require("./evaluator/dynamo-client"), exports);
+__exportStar(require("./client/http-client"), exports);
+__exportStar(require("./analytics-engine"), exports);
+__exportStar(require("./rollout"), exports);
+__exportStar(require("./ab-test"), exports);
 //# sourceMappingURL=index.js.map

@@ -85,4 +85,3 @@ export declare class ABTestAnalytics {
         improvement: number;
     };
 }
-//# sourceMappingURL=index.d.ts.map

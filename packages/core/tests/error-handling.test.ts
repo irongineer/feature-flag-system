@@ -51,7 +51,7 @@ describe('Error Handling Improvement Specification', () => {
           const result = await evaluatorWithMockClient.isEnabled(context, FEATURE_FLAGS.BILLING_V2);
 
           // Then: Should use error handler instead of console.error
-          expect(errorHandler).toHaveBeenCalledWith('Kill-switch check failed:', expect.any(Error));
+          expect(errorHandler).toHaveBeenCalledWith(expect.stringMatching(/^Kill-switch check failed:/));
           expect(result).toBe(false); // Safe fallback
         });
       });

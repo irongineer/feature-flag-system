@@ -58,12 +58,10 @@ class AnalyticsEngine {
             // These features will be added in future iterations
             const context = record.context;
             if (context.region) {
-                regionalDistribution[context.region] =
-                    (regionalDistribution[context.region] || 0) + 1;
+                regionalDistribution[context.region] = (regionalDistribution[context.region] || 0) + 1;
             }
             if (context.userCohort) {
-                userCohorts[context.userCohort] =
-                    (userCohorts[context.userCohort] || 0) + 1;
+                userCohorts[context.userCohort] = (userCohorts[context.userCohort] || 0) + 1;
             }
         }
         return {
@@ -94,7 +92,7 @@ class AnalyticsEngine {
         const seasonalAdjustment = this.applySeasonalAdjustment(basePrediction, seasonality, hoursAhead);
         const trendAdjustment = this.applyTrendAdjustment(seasonalAdjustment, trend, hoursAhead);
         return {
-            predictedLoad: Math.max(0, trendAdjustment),
+            predictedLoad: Math.max(0, Math.round(trendAdjustment * 100) / 100), // 小数点2桁で丸め
             confidence: this.calculateConfidence(history, hourlyData),
             trend,
             seasonality,
@@ -117,20 +115,19 @@ class AnalyticsEngine {
                 priority: 'high',
                 expectedImprovement: 0.6,
                 description: 'レスポンス時間が100msを超えています。キャッシュTTLを延長することで改善が期待できます。',
-                implementation: 'FeatureFlagCache の TTL を 300秒から 600秒に延長'
+                implementation: 'FeatureFlagCache の TTL を 300秒から 600秒に延長',
             });
         }
         // 地域分散最適化
         const totalEvaluations = Object.values(pattern.regionalDistribution).reduce((a, b) => a + b, 0);
-        const dominantRegion = Object.entries(pattern.regionalDistribution)
-            .sort(([, a], [, b]) => b - a)[0];
+        const dominantRegion = Object.entries(pattern.regionalDistribution).sort(([, a], [, b]) => b - a)[0];
         if (dominantRegion && dominantRegion[1] > totalEvaluations * 0.7) {
             recommendations.push({
                 type: 'regional_deployment',
                 priority: 'medium',
                 expectedImprovement: 0.3,
                 description: `${dominantRegion[0]}地域からのアクセスが70%を超えています。地域特化デプロイメントを検討してください。`,
-                implementation: `${dominantRegion[0]}地域にエッジキャッシュを配置`
+                implementation: `${dominantRegion[0]}地域にエッジキャッシュを配置`,
             });
         }
         // ロールアウト戦略最適化
@@ -141,7 +138,7 @@ class AnalyticsEngine {
                 priority: 'low',
                 expectedImprovement: 0.2,
                 description: `現在の有効化率は${(metrics.enabledRate * 100).toFixed(1)}%です。段階的ロールアウトを検討してください。`,
-                implementation: `目標有効化率: ${(targetRate * 100).toFixed(0)}%への段階的移行`
+                implementation: `目標有効化率: ${(targetRate * 100).toFixed(0)}%への段階的移行`,
             });
         }
         return recommendations.sort((a, b) => {
@@ -161,13 +158,13 @@ class AnalyticsEngine {
     generateStatsSummary() {
         const allMetrics = Array.from(this.metricsData.entries());
         const totalEvaluations = allMetrics.reduce((sum, [, metrics]) => sum + metrics.evaluationCount, 0);
-        const averageResponseTime = allMetrics.reduce((sum, [, metrics]) => sum + metrics.avgResponseTime, 0) / allMetrics.length || 0;
+        const averageResponseTime = allMetrics.reduce((sum, [, metrics]) => sum + metrics.avgResponseTime, 0) /
+            allMetrics.length || 0;
         const topFlags = allMetrics
             .sort(([, a], [, b]) => b.evaluationCount - a.evaluationCount)
             .slice(0, 5)
             .map(([flagKey, metrics]) => ({ flagKey, evaluationCount: metrics.evaluationCount }));
-        const systemHealth = averageResponseTime < 50 ? 'excellent' :
-            averageResponseTime < 100 ? 'good' : 'poor';
+        const systemHealth = averageResponseTime < 50 ? 'excellent' : averageResponseTime < 100 ? 'good' : 'poor';
         return {
             totalEvaluations,
             averageResponseTime,
@@ -188,7 +185,7 @@ class AnalyticsEngine {
         const count = metrics.evaluationCount;
         if (count === 0)
             return newResponseTime;
-        return ((currentAvg * (count - 1)) + newResponseTime) / count;
+        return (currentAvg * (count - 1) + newResponseTime) / count;
     }
     aggregateHourlyData(history) {
         const hourlyData = {};
@@ -243,7 +240,7 @@ class AnalyticsEngine {
                 const targetHour = (new Date().getHours() + hoursAhead) % 24;
                 const distanceFromPeak = Math.abs(targetHour - pattern.peak);
                 const normalizedDistance = Math.min(distanceFromPeak, 24 - distanceFromPeak) / 12;
-                adjustment *= 1 + (pattern.amplitude * (1 - normalizedDistance));
+                adjustment *= 1 + pattern.amplitude * (1 - normalizedDistance);
             }
         }
         return basePrediction * adjustment;

@@ -49,6 +49,14 @@ export class DatabaseStack extends cdk.Stack {
       nonKeyAttributes: ['flagKey', 'description', 'defaultEnabled', 'owner', 'createdAt', 'expiresAt'],
     });
 
+    // GSI4: 環境横断フラグ一覧用
+    this.featureFlagsTable.addGlobalSecondaryIndex({
+      indexName: 'GSI4-GLOBAL-INDEX',
+      partitionKey: { name: 'GSI4PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'GSI4SK', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     // 監査ログテーブル
     const auditLogTable = new dynamodb.Table(this, 'AuditLogTable', {
       tableName: `feature-flags-audit-${this.stackName.toLowerCase()}`,

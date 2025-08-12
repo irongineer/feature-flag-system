@@ -30,4 +30,3 @@ export declare class FeatureFlagHttpClient {
     private getDefaultValue;
     setDefaultValue(flagKey: string, defaultValue: boolean): void;
 }
-//# sourceMappingURL=http-client.d.ts.map

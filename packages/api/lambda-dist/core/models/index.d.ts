@@ -5,15 +5,23 @@ export interface FeatureFlagsTable {
     description: string;
     defaultEnabled: boolean;
     owner: string;
+    environment: Environment;
     createdAt: string;
     expiresAt?: string;
     GSI1PK?: string;
     GSI1SK?: string;
+    GSI2PK?: string;
+    GSI2SK?: string;
+    GSI3PK?: string;
+    GSI3SK?: string;
+    GSI4PK?: string;
+    GSI4SK?: string;
 }
 export interface TenantOverridesTable {
     PK: string;
     SK: string;
     enabled: boolean;
+    environment: Environment;
     updatedAt: string;
     updatedBy: string;
     GSI1PK: string;
@@ -23,6 +31,7 @@ export interface EmergencyControlTable {
     PK: string;
     SK: string;
     enabled: boolean;
+    environment: Environment;
     reason: string;
     activatedAt: string;
     activatedBy: string;
@@ -46,9 +55,28 @@ export interface CacheEntry {
     timestamp: number;
     ttl: number;
 }
+export type Environment = 'development' | 'staging' | 'production';
+export declare const ENVIRONMENTS: {
+    readonly DEVELOPMENT: "development";
+    readonly STAGING: "staging";
+    readonly PRODUCTION: "production";
+};
 export interface FeatureFlagContext {
     tenantId: string;
     userId?: string;
-    environment?: string;
+    userRole?: string;
+    plan?: string;
+    environment?: Environment;
     metadata?: Record<string, any>;
+}
+export interface EnvironmentConfig {
+    environment: Environment;
+    tableName: string;
+    region: string;
+    endpoint?: string;
+    features?: {
+        cacheEnabled: boolean;
+        debugLogging: boolean;
+        metricsEnabled: boolean;
+    };
 }

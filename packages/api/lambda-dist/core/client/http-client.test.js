@@ -1,0 +1,230 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const http_client_1 = require("./http-client");
+const models_1 = require("../models");
+// Fetch のモック
+global.fetch = jest.fn();
+const mockFetch = fetch;
+describe('FeatureFlagHttpClient', () => {
+    let client;
+    beforeEach(() => {
+        client = new http_client_1.FeatureFlagHttpClient({
+            apiUrl: 'https://api.example.com',
+            apiKey: 'test-key',
+            timeout: 1000,
+            retries: 1,
+        });
+        jest.clearAllMocks();
+    });
+    describe('Context Flexibility', () => {
+        it('should work with minimal context (tenantId only)', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+            });
+            const result = await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(result).toBe(true);
+            expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/evaluate', expect.objectContaining({
+                body: JSON.stringify({
+                    tenantId: 'tenant-123',
+                    flagKey: 'new_dashboard_enable',
+                    environment: 'production',
+                }),
+            }));
+        });
+        it('should include userId when provided', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+                userId: 'user-456',
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+            });
+            await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/evaluate', expect.objectContaining({
+                body: JSON.stringify({
+                    tenantId: 'tenant-123',
+                    userId: 'user-456',
+                    flagKey: 'new_dashboard_enable',
+                    environment: 'production',
+                }),
+            }));
+        });
+        it('should include userRole when provided', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+                userRole: 'admin',
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+            });
+            await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/evaluate', expect.objectContaining({
+                body: JSON.stringify({
+                    tenantId: 'tenant-123',
+                    userRole: 'admin',
+                    flagKey: 'new_dashboard_enable',
+                    environment: 'production',
+                }),
+            }));
+        });
+        it('should include plan when provided', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+                plan: 'enterprise',
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+            });
+            await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/evaluate', expect.objectContaining({
+                body: JSON.stringify({
+                    tenantId: 'tenant-123',
+                    plan: 'enterprise',
+                    flagKey: 'new_dashboard_enable',
+                    environment: 'production',
+                }),
+            }));
+        });
+        it('should include all optional fields when provided', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+                userId: 'user-456',
+                userRole: 'admin',
+                plan: 'enterprise',
+                environment: 'staging',
+                metadata: {
+                    region: 'us-east-1',
+                    experimentGroup: 'variant-A',
+                },
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+            });
+            await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/evaluate', expect.objectContaining({
+                body: JSON.stringify({
+                    tenantId: 'tenant-123',
+                    userId: 'user-456',
+                    userRole: 'admin',
+                    plan: 'enterprise',
+                    flagKey: 'new_dashboard_enable',
+                    environment: 'staging',
+                    metadata: {
+                        region: 'us-east-1',
+                        experimentGroup: 'variant-A',
+                    },
+                }),
+            }));
+        });
+        it('should NOT include undefined optional fields', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+                userId: undefined,
+                userRole: undefined,
+                plan: undefined,
+                metadata: undefined,
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+            });
+            await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+            expect(callBody).toEqual({
+                tenantId: 'tenant-123',
+                flagKey: 'new_dashboard_enable',
+                environment: 'production',
+            });
+            expect(callBody).not.toHaveProperty('userId');
+            expect(callBody).not.toHaveProperty('userRole');
+            expect(callBody).not.toHaveProperty('plan');
+            expect(callBody).not.toHaveProperty('metadata');
+        });
+    });
+    describe('Error Handling', () => {
+        it('should return default value when tenantId is missing', async () => {
+            const context = {};
+            const result = await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(result).toBe(false);
+            expect(mockFetch).not.toHaveBeenCalled();
+        });
+        it('should return default value on network error', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+            };
+            mockFetch.mockRejectedValue(new Error('Network error'));
+            const result = await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(result).toBe(false);
+        });
+        it('should use custom default values', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+            };
+            client.setDefaultValue(models_1.FEATURE_FLAGS.NEW_DASHBOARD, true);
+            mockFetch.mockRejectedValue(new Error('Network error'));
+            const result = await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(result).toBe(true);
+        });
+        it('should retry on failure', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+            };
+            mockFetch.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ enabled: true, flagKey: 'new_dashboard_enable', reason: 'ENABLED' }),
+            });
+            const result = await client.isEnabled(models_1.FEATURE_FLAGS.NEW_DASHBOARD, context);
+            expect(result).toBe(true);
+            expect(mockFetch).toHaveBeenCalledTimes(2);
+        });
+    });
+    describe('getAllFlags', () => {
+        it('should work with minimal context', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    flags: {
+                        new_dashboard_enable: true,
+                        billing_v2_enable: false,
+                    },
+                }),
+            });
+            const result = await client.getAllFlags(context);
+            expect(result).toEqual({
+                new_dashboard_enable: true,
+                billing_v2_enable: false,
+            });
+        });
+        it('should include optional fields when provided', async () => {
+            const context = {
+                tenantId: 'tenant-123',
+                userId: 'user-456',
+                userRole: 'admin',
+            };
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ flags: {} }),
+            });
+            await client.getAllFlags(context);
+            const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+            expect(callBody).toEqual({
+                tenantId: 'tenant-123',
+                userId: 'user-456',
+                userRole: 'admin',
+                environment: 'production',
+            });
+        });
+    });
+});
+//# sourceMappingURL=http-client.test.js.map
