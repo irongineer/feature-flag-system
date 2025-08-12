@@ -160,7 +160,7 @@ export class DynamoDbClient {
       }
       return null;
     } catch (error) {
-      this.handleError('getFlag', error, { flagKey, environment: this.environment });
+      return this.handleError('getFlag', error, { flagKey, environment: this.environment });
     }
   }
 
@@ -185,7 +185,7 @@ export class DynamoDbClient {
       }
       return null;
     } catch (error) {
-      this.handleError('getTenantOverride', error, {
+      return this.handleError('getTenantOverride', error, {
         tenantId,
         flagKey,
         environment: this.environment,
@@ -215,7 +215,7 @@ export class DynamoDbClient {
       }
       return null;
     } catch (error) {
-      this.handleError('getKillSwitch', error, { flagKey, environment: this.environment });
+      return this.handleError('getKillSwitch', error, { flagKey, environment: this.environment });
     }
   }
 
