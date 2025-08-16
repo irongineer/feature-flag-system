@@ -6,8 +6,30 @@ import type {
   EmergencyControlTable,
 } from '@feature-flag/core';
 
-// API Base Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+// Environment-aware API configuration
+function getEnvironmentConfig() {
+  // 環境変数から直接指定されている場合
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // ホスト名から環境を判定
+  const hostname = window.location.hostname;
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // ローカル環境
+    return 'http://localhost:3001/api';
+  } else if (hostname.includes('dev-') || hostname.includes('-dev.')) {
+    // dev環境
+    return 'https://dev-api.feature-flags.example.com/api';
+  } else {
+    // prod環境
+    return 'https://api.feature-flags.example.com/api';
+  }
+}
+
+const API_BASE_URL = getEnvironmentConfig();
+console.log('🔧 Admin UI API Base URL:', API_BASE_URL);
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -70,7 +92,7 @@ export const featureFlagApi = {
     flagKey: FeatureFlagKey,
     updates: Partial<FeatureFlagsTable>
   ): Promise<FeatureFlagsTable> {
-    const response = await apiClient.put(`/flags/${flagKey}`, updates);
+    const response = await apiClient.put(`/flags/by-key/${flagKey}`, updates);
     return response.data;
   },
 

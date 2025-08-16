@@ -172,10 +172,11 @@ const FlagList: React.FC = () => {
                 setToggleLoadingFlags(prev => new Set(prev).add(record.flagKey));
                 
                 try {
-                  await updateFlagMutation.mutateAsync({
+                  const result = await updateFlagMutation.mutateAsync({
                     flagKey: record.flagKey as any,
                     updates: { defaultEnabled: checked },
                   });
+                  console.log('Flag update result:', result);
                   message.success(`フラグ "${record.flagKey}" を${checked ? '有効' : '無効'}にしました`);
                 } catch (error) {
                   console.error('Failed to update flag:', error);
