@@ -11,8 +11,6 @@ import {
   ItemCollectionSizeLimitExceededException,
   RequestLimitExceeded,
   InternalServerError,
-  ValidationException,
-  AccessDeniedException,
   ResourceInUseException,
   LimitExceededException,
   BackupNotFoundException,

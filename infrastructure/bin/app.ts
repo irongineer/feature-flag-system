@@ -52,7 +52,7 @@ const devMonitoringStack = new MonitoringStack(app, 'FeatureFlagDevMonitoringSta
 // 本番環境
 const prodDatabaseStack = new DatabaseStack(app, 'FeatureFlagProdDatabaseStack', {
   env: prodEnv,
-  stackName: 'Prod',
+  stackName: 'FeatureFlagProd',
   tags: {
     Environment: 'Production',
     Service: 'FeatureFlag',
@@ -61,7 +61,7 @@ const prodDatabaseStack = new DatabaseStack(app, 'FeatureFlagProdDatabaseStack',
 
 const prodLambdaStack = new LambdaStack(app, 'FeatureFlagProdLambdaStack', {
   env: prodEnv,
-  stackName: 'Prod',
+  stackName: 'FeatureFlagProdLambda',
   featureFlagsTable: prodDatabaseStack.featureFlagsTable,
   tags: {
     Environment: 'Production',
@@ -71,7 +71,7 @@ const prodLambdaStack = new LambdaStack(app, 'FeatureFlagProdLambdaStack', {
 
 const prodMonitoringStack = new MonitoringStack(app, 'FeatureFlagProdMonitoringStack', {
   env: prodEnv,
-  stackName: 'Prod',
+  stackName: 'FeatureFlagProdMonitoring',
   featureFlagsTable: prodDatabaseStack.featureFlagsTable,
   api: prodLambdaStack.api,
   tags: {
