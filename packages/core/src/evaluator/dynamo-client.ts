@@ -416,8 +416,11 @@ export class DynamoDbClient {
           ExpressionAttributeValues: {
             ':gsi3pk': gsi3pk,
           },
+          ExpressionAttributeNames: {
+            '#owner': 'owner',
+          },
           ProjectionExpression:
-            'flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
+            'flagKey, description, defaultEnabled, #owner, createdAt, expiresAt',
           ScanIndexForward: false, // 新しいフラグから順に取得
         })
       );
@@ -446,8 +449,11 @@ export class DynamoDbClient {
           ExpressionAttributeValues: {
             ':gsi2pk': gsi2pk,
           },
+          ExpressionAttributeNames: {
+            '#owner': 'owner',
+          },
           ProjectionExpression:
-            'flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
+            'flagKey, description, defaultEnabled, #owner, createdAt, expiresAt',
         })
       );
 
@@ -474,8 +480,11 @@ export class DynamoDbClient {
             ':pk': pkPrefix,
             ':sk': 'METADATA',
           },
+          ExpressionAttributeNames: {
+            '#owner': 'owner',
+          },
           ProjectionExpression:
-            'PK, SK, flagKey, description, defaultEnabled, owner, createdAt, expiresAt, environment',
+            'PK, SK, flagKey, description, defaultEnabled, #owner, createdAt, expiresAt',
         })
       );
 
