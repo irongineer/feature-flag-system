@@ -17,11 +17,16 @@
 ### 基本的な使い方
 
 ```typescript
-// 1. クライアントの初期化
-import { FeatureFlagClient } from '@your-org/feature-flag-client';
+// 1. 環境対応クライアントの初期化
+import { FeatureFlagClient, getCurrentEnvironment, loadEnvironmentConfig } from '@feature-flag/core';
+
+// 自動環境検出
+const environment = getCurrentEnvironment(); // 'local' | 'dev' | 'prod'
+const config = loadEnvironmentConfig(environment);
 
 const client = new FeatureFlagClient({
-  apiUrl: 'https://your-feature-flag-api.com',
+  apiUrl: config.api.baseUrl,        // 環境別URL自動選択
+  timeout: config.api.timeout,
   apiKey: 'your-api-key'
 });
 
@@ -37,7 +42,7 @@ const detailedContext = {
   userId: 'user-123',        // ユーザー固有の評価が必要な場合
   userRole: 'admin',         // 権限ベースの制御が必要な場合
   plan: 'enterprise',        // プランベースの機能制御が必要な場合
-  environment: 'production'  // 環境別の設定が必要な場合
+  environment: environment   // 環境コンテキスト（自動設定）
 };
 
 const isEnabled = await client.isEnabled('new-dashboard', detailedContext);
@@ -50,6 +55,11 @@ if (isEnabled) {
   // 従来の機能を表示
   showLegacyDashboard();
 }
+
+// 4. 環境別の挙動確認
+console.log(`Current environment: ${environment}`);
+console.log(`API endpoint: ${config.api.baseUrl}`);
+console.log(`Data source: ${config.useInMemoryFlags ? 'in-memory' : 'dynamodb'}`);
 ```
 
 ## 📚 学習パス
@@ -79,6 +89,12 @@ if (isEnabled) {
 4. [ベストプラクティス](./best-practices.md)
 
 ## 🔧 開発環境別ガイド
+
+### 🌍 マルチ環境開発
+- [環境設定ガイド](../environments/README.md) ⭐ 必読
+- [local/dev/prod環境の切り替え](./environment-switching.md)
+- [環境別フラグ評価の違い](./environment-differences.md)
+- [環境設定のトラブルシューティング](./environment-troubleshooting.md)
 
 ### フロントエンド開発者
 - [React統合ガイド](./frontend/react-integration.md)

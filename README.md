@@ -43,14 +43,38 @@ npm install
 npm run setup:local
 ```
 
+### 環境設定
+
+システムは3つの環境に対応し、環境ごとに適切なリソースを自動選択します：
+
+| 環境 | 説明 | データベース | 設定ファイル |
+|------|------|--------------|-------------|
+| **local** | ローカル開発 | インメモリ/DynamoDB Local | `config/environments.json` |
+| **dev** | 開発環境 | `feature-flags-dev` DynamoDB | AWS |
+| **prod** | 本番環境 | `feature-flags-prod` DynamoDB | AWS |
+
 ### 開発・テスト
 
 ```bash
 # 全体ビルド
 npm run build
 
-# テスト実行
+# ローカル環境でのテスト実行
 npm test
+
+# 環境別API起動
+cd packages/api
+
+# ローカル環境（インメモリ）
+NODE_ENV=local npm run dev
+
+# dev環境（AWS DynamoDB）
+NODE_ENV=development STAGE=dev USE_IN_MEMORY_FLAGS=false \
+FEATURE_FLAGS_TABLE_NAME=feature-flags-dev npm run dev
+
+# prod環境（AWS DynamoDB）
+NODE_ENV=production STAGE=prod USE_IN_MEMORY_FLAGS=false \
+FEATURE_FLAGS_TABLE_NAME=feature-flags-prod npm run dev
 
 # パフォーマンステスト
 npm run poc:performance
@@ -140,7 +164,7 @@ curl -X POST "https://api.example.com/v1/flags" \
 
 ## 📋 MVP スコープ (Phase 1)
 
-### ✅ 実装済み
+### ✅ 実装済み (Phase 1)
 
 - [x] **基本的なフラグ評価** - ON/OFF制御、デフォルト値
 - [x] **Kill-Switch機能** - 緊急停止機能
@@ -149,7 +173,15 @@ curl -X POST "https://api.example.com/v1/flags" \
 - [x] **モックDynamoDBクライアント** - ローカル開発対応
 - [x] **パフォーマンステスト** - 375,900 ops/sec 達成
 
-### 🔄 進行中 (Phase 1.5)
+### ✅ 実装済み (Phase 1.5 - マルチ環境対応)
+
+- [x] **環境分離システム** - local/dev/prod環境の完全分離
+- [x] **設定管理システム** - `/config/environments.json`による一元管理
+- [x] **DynamoDB統合** - 環境別テーブル自動切り替え
+- [x] **型安全性向上** - 環境設定の完全型安全化
+- [x] **包括的テスト** - 全環境でのCRUD操作・評価テスト完了
+
+### 🔄 進行中 (Phase 1.8)
 
 - [ ] **Lambda API実装** - 管理API handlers完成
 - [ ] **CLIツール完成** - 全コマンド実装

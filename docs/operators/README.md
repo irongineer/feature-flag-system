@@ -29,15 +29,28 @@
 3. [監視ダッシュボードの確認](#監視)
 4. [緊急時対応手順の確認](#緊急時対応)
 
-### 📊 管理画面
+### 📊 管理画面（環境別）
+
+**本番環境**
 ```
-https://your-feature-flag-admin.com/dashboard
+https://admin.feature-flags.example.com/dashboard
+```
+
+**開発環境**
+```
+https://dev-admin.feature-flags.example.com/dashboard
+```
+
+**ローカル環境**
+```
+http://localhost:3000/dashboard
+```
 
 ログイン情報:
 - 運用者用アカウント
 - 適切な権限設定
 - 二段階認証の設定
-```
+- 環境別アクセス権限
 
 ### 🔧 基本操作
 ```typescript
@@ -67,7 +80,7 @@ https://your-feature-flag-admin.com/dashboard
 1. [段階的ロールアウト](./gradual-rollout.md)
 2. [A/Bテスト管理](./ab-testing-operations.md)
 3. [カナリアリリース](./canary-release.md)
-4. [多環境管理](./multi-environment.md)
+4. [環境管理と切り替え](../runbooks/environment-management.md) ⭐ 必読
 
 ### 🚨 障害対応（推定時間: 2-3時間）
 1. [緊急時対応手順](./emergency-response.md)
