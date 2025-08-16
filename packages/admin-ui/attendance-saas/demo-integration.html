@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勤怠管理SaaS - フィーチャーフラグ実演</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .feature-flag {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            margin: 1rem 0;
+            border-radius: 6px;
+        }
+        .flag-enabled {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+        }
+        .flag-disabled {
+            background: #fff2f2;
+            border-left: 4px solid #dc3545;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .status-enabled {
+            background: #28a745;
+            color: white;
+        }
+        .status-disabled {
+            background: #dc3545;
+            color: white;
+        }
+        .controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .api-info {
+            background: #e3f2fd;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🕐 勤怠管理SaaS</h1>
+        <p>フィーチャーフラグシステム統合デモ</p>
+        <div class="api-info">
+            API URL: https://7wslqwkrvj.execute-api.ap-northeast-1.amazonaws.com/featureflagprodlambda/<br>
+            Tenant: attendance-tenant-001
+        </div>
+    </div>
+
+    <div class="controls">
+        <h3>🎛️ フィーチャーフラグ制御</h3>
+        <button onclick="loadFlags()">🔄 フラグ状態を更新</button>
+        <button onclick="clearCache()">🗑️ キャッシュクリア</button>
+        <button onclick="testBatchEvaluation()">📊 一括評価テスト</button>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <h3>📊 ダッシュボード</h3>
+            <div id="dashboard-content">
+                <div class="feature-flag" data-flag="attendance_new_dashboard">
+                    <div>
+                        <strong>新しいダッシュボード</strong><br>
+                        <small>モダンなUI/UXのダッシュボード</small>
+                    </div>
+                    <span class="status-badge status-disabled">無効</span>
+                </div>
+                <div id="new-dashboard" style="display: none;">
+                    <h4>🚀 新しいダッシュボードUI</h4>
+                    <p>グラフィカルな出勤状況、AIベースのインサイト、リアルタイム通知機能</p>
+                </div>
+                <div id="old-dashboard">
+                    <h4>📋 従来のダッシュボード</h4>
+                    <p>基本的な勤怠一覧、シンプルな統計表示</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📱 モバイルアプリ</h3>
+            <div class="feature-flag" data-flag="attendance_mobile_app">
+                <div>
+                    <strong>モバイルアプリ機能</strong><br>
+                    <small>スマートフォン対応機能</small>
+                </div>
+                <span class="status-badge status-disabled">無効</span>
+            </div>
+            <div id="mobile-features" style="display: none;">
+                <p>✅ GPS位置情報打刻</p>
+                <p>✅ プッシュ通知</p>
+                <p>✅ オフライン対応</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🤖 AI機能</h3>
+            <div class="feature-flag" data-flag="attendance_ai_suggestions">
+                <div>
+                    <strong>AI勤怠提案</strong><br>
+                    <small>機械学習による勤怠改善提案</small>
+                </div>
+                <span class="status-badge status-disabled">無効</span>
+            </div>
+            <div id="ai-features" style="display: none;">
+                <p>🧠 勤務パターン分析</p>
+                <p>💡 残業時間最適化提案</p>
+                <p>📈 生産性向上アドバイス</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔔 通知システム</h3>
+            <div class="feature-flag" data-flag="attendance_realtime_notifications">
+                <div>
+                    <strong>リアルタイム通知</strong><br>
+                    <small>即座のアラート配信</small>
+                </div>
+                <span class="status-badge status-enabled">有効</span>
+            </div>
+            <div id="notification-features">
+                <p>⚡ リアルタイム勤怠アラート</p>
+                <p>📧 メール・Slack連携</p>
+                <p>⏰ 自動リマインダー</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📈 高度なレポート</h3>
+            <div class="feature-flag" data-flag="attendance_advanced_reporting">
+                <div>
+                    <strong>詳細分析レポート</strong><br>
+                    <small>高度なデータ分析機能</small>
+                </div>
+                <span class="status-badge status-disabled">無効</span>
+            </div>
+            <div id="reporting-features" style="display: none;">
+                <p>📊 カスタムダッシュボード</p>
+                <p>📋 詳細CSV・PDFエクスポート</p>
+                <p>🔍 多次元データ分析</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>🔍 フラグ評価ログ</h3>
+        <div id="evaluation-log" style="font-family: monospace; background: #f8f9fa; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto;">
+            システム起動中...
+        </div>
+    </div>
+
+    <script src="feature-flag-integration/client/index.js"></script>
+    <script>
+        // フィーチャーフラグクライアント初期化
+        const flagClient = new FeatureFlagClient({
+            apiEndpoint: 'https://7wslqwkrvj.execute-api.ap-northeast-1.amazonaws.com/featureflagprodlambda',
+            tenantId: 'attendance-tenant-001',
+            cacheTTL: 2 * 60 * 1000 // 2分キャッシュ
+        });
+
+        const flagKeys = [
+            'attendance_new_dashboard',
+            'attendance_mobile_app', 
+            'attendance_ai_suggestions',
+            'attendance_realtime_notifications',
+            'attendance_advanced_reporting'
+        ];
+
+        function log(message) {
+            const logElement = document.getElementById('evaluation-log');
+            const timestamp = new Date().toLocaleTimeString('ja-JP');
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        async function updateFeatureFlag(flagKey, enabled) {
+            const flagElement = document.querySelector(`[data-flag="${flagKey}"]`);
+            const statusBadge = flagElement.querySelector('.status-badge');
+            
+            // UI更新
+            flagElement.className = `feature-flag ${enabled ? 'flag-enabled' : 'flag-disabled'}`;
+            statusBadge.className = `status-badge ${enabled ? 'status-enabled' : 'status-disabled'}`;
+            statusBadge.textContent = enabled ? '有効' : '無効';
+
+            // 機能表示/非表示
+            const featureElementIds = {
+                'attendance_new_dashboard': ['new-dashboard', 'old-dashboard'],
+                'attendance_mobile_app': ['mobile-features'],
+                'attendance_ai_suggestions': ['ai-features'],
+                'attendance_realtime_notifications': ['notification-features'],
+                'attendance_advanced_reporting': ['reporting-features']
+            };
+
+            const elementIds = featureElementIds[flagKey];
+            if (elementIds) {
+                elementIds.forEach((id, index) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        if (flagKey === 'attendance_new_dashboard') {
+                            // ダッシュボードは切り替え
+                            element.style.display = (enabled && index === 0) || (!enabled && index === 1) ? 'block' : 'none';
+                        } else {
+                            // その他は表示/非表示
+                            element.style.display = enabled ? 'block' : 'none';
+                        }
+                    }
+                });
+            }
+
+            log(`🎯 ${flagKey}: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+        }
+
+        async function loadFlags() {
+            log('🔄 フラグ状態を取得中...');
+            document.body.classList.add('loading');
+            
+            try {
+                for (const flagKey of flagKeys) {
+                    const enabled = await flagClient.isEnabled(flagKey);
+                    await updateFeatureFlag(flagKey, enabled);
+                }
+                log('✅ 全フラグの状態取得完了');
+            } catch (error) {
+                log(`❌ エラー: ${error.message}`);
+            } finally {
+                document.body.classList.remove('loading');
+            }
+        }
+
+        async function clearCache() {
+            flagClient.clearCache();
+            log('🗑️ キャッシュをクリアしました');
+        }
+
+        async function testBatchEvaluation() {
+            log('📊 一括評価テスト開始...');
+            try {
+                const results = await flagClient.evaluateMultiple(flagKeys);
+                log(`📋 一括評価結果: ${JSON.stringify(results, null, 2)}`);
+                
+                // UI更新
+                for (const [flagKey, enabled] of Object.entries(results)) {
+                    await updateFeatureFlag(flagKey, enabled);
+                }
+            } catch (error) {
+                log(`❌ 一括評価エラー: ${error.message}`);
+            }
+        }
+
+        // 初期ロード
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 勤怠管理SaaS フィーチャーフラグシステム起動');
+            log('🔗 本番API接続中...');
+            loadFlags();
+        });
+
+        // 定期的な状態更新（30秒ごと）
+        setInterval(() => {
+            log('⏰ 定期フラグ状態チェック');
+            loadFlags();
+        }, 30000);
+    </script>
+</body>
+</html>

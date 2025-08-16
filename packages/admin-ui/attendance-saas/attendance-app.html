@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勤怠管理システム - スタッフ用</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .clock-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .current-time {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .current-date {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        
+        .clock-in-btn, .clock-out-btn {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0 1rem;
+        }
+        
+        .clock-in-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .clock-in-btn:hover {
+            background: #218838;
+        }
+        
+        .clock-out-btn {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .clock-out-btn:hover {
+            background: #c82333;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .card h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .feature-disabled {
+            opacity: 0.6;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+        }
+        
+        .feature-enabled {
+            border-left: 4px solid #28a745;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .badge-enabled {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-disabled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .ai-suggestion {
+            background: #e3f2fd;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin: 1rem 0;
+        }
+        
+        .mobile-features {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .mobile-btn {
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .mobile-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .notification-center {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .notification {
+            background: #fff3cd;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .advanced-chart {
+            height: 200px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 2rem;
+        }
+        
+        .control-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .control-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .status-display {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+        
+        .gps-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: #e8f5e8;
+            border-radius: 6px;
+        }
+        
+        .loading {
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ヘッダー -->
+        <div class="header">
+            <div class="user-info">
+                <div class="avatar">田中</div>
+                <div>
+                    <h2>田中太郎</h2>
+                    <p>営業部 - 一般職</p>
+                </div>
+            </div>
+            <div>
+                <button class="control-btn" onclick="updateFlags()">🔄 機能更新</button>
+            </div>
+        </div>
+
+        <!-- フラグ制御パネル（開発用） -->
+        <div class="controls">
+            <h3>🎛️ フィーチャーフラグ制御パネル（開発・管理者用）</h3>
+            <button class="control-btn" onclick="toggleFlag('attendance_new_dashboard')">新ダッシュボード切替</button>
+            <button class="control-btn" onclick="toggleFlag('attendance_mobile_app')">モバイル機能切替</button>
+            <button class="control-btn" onclick="toggleFlag('attendance_ai_suggestions')">AI提案切替</button>
+            <button class="control-btn" onclick="toggleFlag('attendance_realtime_notifications')">通知切替</button>
+            <button class="control-btn" onclick="toggleFlag('attendance_advanced_reporting')">高度レポート切替</button>
+            <div class="status-display" id="flag-status">フラグ状態を読み込み中...</div>
+        </div>
+        
+        <!-- 打刻セクション -->
+        <div class="clock-section">
+            <div class="current-time" id="current-time">00:00:00</div>
+            <div class="current-date" id="current-date">2024年1月1日（月）</div>
+            
+            <!-- GPS位置情報機能（モバイルフラグで制御） -->
+            <div id="gps-section" style="display: none;">
+                <div class="gps-info">
+                    📍 位置情報: オフィス (35.6762°N, 139.6503°E)
+                    <span style="color: #28a745; font-weight: bold;">✓ 認証済み</span>
+                </div>
+            </div>
+            
+            <div>
+                <button class="clock-in-btn" onclick="clockIn()">🕐 出勤打刻</button>
+                <button class="clock-out-btn" onclick="clockOut()">🕕 退勤打刻</button>
+            </div>
+            
+            <!-- モバイル機能（フラグで制御） -->
+            <div id="mobile-features" style="display: none; margin-top: 1rem;">
+                <div class="mobile-features">
+                    <button class="mobile-btn" onclick="takePhoto()">📷 出勤写真</button>
+                    <button class="mobile-btn" onclick="voiceNote()">🎤 音声メモ</button>
+                    <button class="mobile-btn" onclick="emergencyCall()">🚨 緊急連絡</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- メインダッシュボード -->
+        <div class="dashboard-grid">
+            <!-- 旧ダッシュボード -->
+            <div class="card" id="old-dashboard">
+                <span class="status-badge badge-enabled">従来版</span>
+                <h3>📊 勤怠状況</h3>
+                <p><strong>今月の出勤日数:</strong> 18日</p>
+                <p><strong>今月の総労働時間:</strong> 152時間</p>
+                <p><strong>残業時間:</strong> 12時間</p>
+                <p><strong>有給残日数:</strong> 15日</p>
+            </div>
+            
+            <!-- 新ダッシュボード（フラグで制御） -->
+            <div class="card feature-disabled" id="new-dashboard" style="display: none;">
+                <span class="status-badge badge-enabled">新機能</span>
+                <h3>🚀 スマートダッシュボード</h3>
+                <div class="advanced-chart">
+                    📊 インタラクティブグラフ<br>
+                    📈 リアルタイム分析<br>
+                    🎯 パフォーマンス指標
+                </div>
+            </div>
+            
+            <!-- AI提案機能（フラグで制御） -->
+            <div class="card feature-disabled" id="ai-features" style="display: none;">
+                <span class="status-badge badge-enabled">AI機能</span>
+                <h3>🤖 AI勤怠アドバイザー</h3>
+                <div class="ai-suggestion">
+                    <strong>💡 今日のおすすめ:</strong><br>
+                    17:30の退勤で残業時間を削減できます。<br>
+                    明日の会議前に1時間の準備時間を確保しましょう。
+                </div>
+                <div class="ai-suggestion">
+                    <strong>📊 週間分析:</strong><br>
+                    今週の集中度が高い時間帯: 10:00-12:00<br>
+                    効率的なスケジュール調整を提案します。
+                </div>
+            </div>
+            
+            <!-- 通知センター（フラグで制御） -->
+            <div class="card" id="notification-center">
+                <span class="status-badge badge-disabled" id="notification-status">通知機能</span>
+                <h3>🔔 通知センター</h3>
+                <div class="notification-center" id="notifications">
+                    <div class="notification">基本的な勤怠アラートのみ表示されます</div>
+                </div>
+            </div>
+            
+            <!-- 高度なレポート（フラグで制御） -->
+            <div class="card feature-disabled" id="advanced-reporting" style="display: none;">
+                <span class="status-badge badge-enabled">高機能</span>
+                <h3>📈 詳細分析レポート</h3>
+                <div class="advanced-chart">
+                    📊 カスタムダッシュボード<br>
+                    📋 多次元データ分析<br>
+                    💾 PDF/CSV一括エクスポート
+                </div>
+                <button class="mobile-btn" onclick="generateReport()">📊 レポート生成</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="feature-flag-integration/client/index.js"></script>
+    <script>
+        // フィーチャーフラグクライアント初期化
+        const flagClient = new FeatureFlagClient({
+            apiEndpoint: 'https://7wslqwkrvj.execute-api.ap-northeast-1.amazonaws.com/featureflagprodlambda',
+            tenantId: 'attendance-tenant-001',
+            cacheTTL: 1 * 60 * 1000 // 1分キャッシュ
+        });
+
+        // 開発用フラグ状態シミュレーション
+        const mockFlags = {
+            'attendance_new_dashboard': false,
+            'attendance_mobile_app': false,
+            'attendance_ai_suggestions': false,
+            'attendance_realtime_notifications': true,
+            'attendance_advanced_reporting': false
+        };
+
+        // 現在時刻の更新
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = 
+                now.toLocaleTimeString('ja-JP', { hour12: false });
+            
+            document.getElementById('current-date').textContent = 
+                now.toLocaleDateString('ja-JP', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric', 
+                    weekday: 'long' 
+                });
+        }
+
+        // フラグ状態の更新
+        async function updateFlags() {
+            console.log('🔄 フラグ状態を更新中...');
+            document.body.classList.add('loading');
+            
+            try {
+                // 各フラグの状態を取得（実際のAPIを使用）
+                const flags = [
+                    'attendance_new_dashboard',
+                    'attendance_mobile_app',
+                    'attendance_ai_suggestions', 
+                    'attendance_realtime_notifications',
+                    'attendance_advanced_reporting'
+                ];
+
+                let statusText = 'フラグ状態 (本番API):\n';
+                
+                for (const flagKey of flags) {
+                    // まずは実際のAPIを試す
+                    let enabled = await flagClient.isEnabled(flagKey);
+                    
+                    // APIが無効化を返す場合、開発用モック値を使用
+                    if (!enabled) {
+                        enabled = mockFlags[flagKey];
+                        statusText += `${flagKey}: ${enabled ? '✅' : '❌'} (mock)\n`;
+                    } else {
+                        statusText += `${flagKey}: ${enabled ? '✅' : '❌'} (API)\n`;
+                    }
+                    
+                    await updateFeatureUI(flagKey, enabled);
+                }
+                
+                document.getElementById('flag-status').textContent = statusText;
+                console.log('✅ フラグ状態更新完了');
+                
+            } catch (error) {
+                console.error('❌ フラグ更新エラー:', error);
+                document.getElementById('flag-status').textContent = `エラー: ${error.message}`;
+            } finally {
+                document.body.classList.remove('loading');
+            }
+        }
+
+        // 開発用フラグ切り替え
+        async function toggleFlag(flagKey) {
+            mockFlags[flagKey] = !mockFlags[flagKey];
+            await updateFeatureUI(flagKey, mockFlags[flagKey]);
+            await updateFlags(); // 状態表示を更新
+            console.log(`🎯 ${flagKey} を ${mockFlags[flagKey] ? 'ON' : 'OFF'} に切り替え`);
+        }
+
+        // UI の機能表示/非表示を制御
+        async function updateFeatureUI(flagKey, enabled) {
+            switch (flagKey) {
+                case 'attendance_new_dashboard':
+                    const oldDash = document.getElementById('old-dashboard');
+                    const newDash = document.getElementById('new-dashboard');
+                    
+                    if (enabled) {
+                        oldDash.style.display = 'none';
+                        newDash.style.display = 'block';
+                        newDash.className = 'card feature-enabled';
+                    } else {
+                        oldDash.style.display = 'block';
+                        newDash.style.display = 'none';
+                    }
+                    break;
+                    
+                case 'attendance_mobile_app':
+                    const mobileFeatures = document.getElementById('mobile-features');
+                    const gpsSection = document.getElementById('gps-section');
+                    
+                    if (enabled) {
+                        mobileFeatures.style.display = 'block';
+                        gpsSection.style.display = 'block';
+                    } else {
+                        mobileFeatures.style.display = 'none';
+                        gpsSection.style.display = 'none';
+                    }
+                    break;
+                    
+                case 'attendance_ai_suggestions':
+                    const aiFeatures = document.getElementById('ai-features');
+                    
+                    if (enabled) {
+                        aiFeatures.style.display = 'block';
+                        aiFeatures.className = 'card feature-enabled';
+                    } else {
+                        aiFeatures.style.display = 'none';
+                    }
+                    break;
+                    
+                case 'attendance_realtime_notifications':
+                    const notificationStatus = document.getElementById('notification-status');
+                    const notifications = document.getElementById('notifications');
+                    
+                    if (enabled) {
+                        notificationStatus.textContent = '✅ リアルタイム通知';
+                        notificationStatus.className = 'status-badge badge-enabled';
+                        notifications.innerHTML = `
+                            <div class="notification">🚨 重要: 本日の会議が30分後に開始されます</div>
+                            <div class="notification">📊 週次レポートの提出期限は明日です</div>
+                            <div class="notification">⏰ 残業申請が承認されました</div>
+                        `;
+                    } else {
+                        notificationStatus.textContent = '❌ 基本通知のみ';
+                        notificationStatus.className = 'status-badge badge-disabled';
+                        notifications.innerHTML = `
+                            <div class="notification">基本的な勤怠アラートのみ表示されます</div>
+                        `;
+                    }
+                    break;
+                    
+                case 'attendance_advanced_reporting':
+                    const advancedReporting = document.getElementById('advanced-reporting');
+                    
+                    if (enabled) {
+                        advancedReporting.style.display = 'block';
+                        advancedReporting.className = 'card feature-enabled';
+                    } else {
+                        advancedReporting.style.display = 'none';
+                    }
+                    break;
+            }
+        }
+
+        // 勤怠機能
+        function clockIn() {
+            const time = new Date().toLocaleTimeString('ja-JP');
+            alert(`✅ 出勤打刻完了\n時刻: ${time}\n${mockFlags.attendance_mobile_app ? '📍 GPS位置確認済み' : ''}`);
+        }
+
+        function clockOut() {
+            const time = new Date().toLocaleTimeString('ja-JP');
+            alert(`🏁 退勤打刻完了\n時刻: ${time}\n${mockFlags.attendance_mobile_app ? '📱 モバイル機能で詳細記録' : ''}`);
+        }
+
+        // モバイル機能
+        function takePhoto() {
+            alert('📷 出勤写真を撮影しました\n（モバイル機能有効時のみ）');
+        }
+
+        function voiceNote() {
+            alert('🎤 音声メモを録音中...\n作業内容や特記事項を記録');
+        }
+
+        function emergencyCall() {
+            alert('🚨 緊急連絡機能\n管理者とHRに自動通知されました');
+        }
+
+        function generateReport() {
+            alert('📊 詳細分析レポートを生成中...\nPDF/CSV形式でダウンロード準備完了');
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 勤怠管理システム（エンドユーザー版）起動');
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // 初期フラグ状態を読み込み
+            await updateFlags();
+        });
+    </script>
+</body>
+</html>
