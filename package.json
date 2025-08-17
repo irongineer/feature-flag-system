@@ -43,7 +43,9 @@
     "deploy:dev": "cd infrastructure && npm run deploy:dev",
     "deploy:prod": "cd infrastructure && npm run deploy:prod",
     "poc:performance": "cd poc && npx tsx day1-performance-test.ts",
-    "monitor:health": "echo 'Health monitoring not implemented yet'"
+    "monitor:health": "echo 'Health monitoring not implemented yet'",
+    "docs:check": "node scripts/check-doc-links.js",
+    "docs:links": "npm run docs:check"
   },
   "keywords": [
     "feature-flag",
