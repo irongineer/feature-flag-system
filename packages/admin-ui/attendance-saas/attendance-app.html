@@ -270,14 +270,25 @@
             </div>
         </div>
 
-        <!-- フラグ制御パネル（開発用） -->
+        <!-- フラグ制御パネル（実際のフラグ管理） -->
         <div class="controls">
-            <h3>🎛️ フィーチャーフラグ制御パネル（開発・管理者用）</h3>
-            <button class="control-btn" onclick="toggleFlag('attendance_new_dashboard')">新ダッシュボード切替</button>
-            <button class="control-btn" onclick="toggleFlag('attendance_mobile_app')">モバイル機能切替</button>
-            <button class="control-btn" onclick="toggleFlag('attendance_ai_suggestions')">AI提案切替</button>
-            <button class="control-btn" onclick="toggleFlag('attendance_realtime_notifications')">通知切替</button>
-            <button class="control-btn" onclick="toggleFlag('attendance_advanced_reporting')">高度レポート切替</button>
+            <h3>🎛️ フィーチャーフラグ制御パネル（実際のフラグ管理）</h3>
+            <p><strong>📍 実際のフラグ管理:</strong> <a href="http://localhost:3000" target="_blank" style="color: #667eea;">管理画面を開く</a></p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 1rem 0;">
+                <button class="control-btn" onclick="createFlag('attendance_new_dashboard', '新しいダッシュボード機能')">新ダッシュボード作成</button>
+                <button class="control-btn" onclick="createFlag('attendance_mobile_app', 'モバイルアプリ機能')">モバイル機能作成</button>
+                <button class="control-btn" onclick="createFlag('attendance_ai_suggestions', 'AI勤怠提案機能')">AI提案作成</button>
+                <button class="control-btn" onclick="createFlag('attendance_realtime_notifications', 'リアルタイム通知機能')">通知機能作成</button>
+                <button class="control-btn" onclick="createFlag('attendance_advanced_reporting', '高度分析レポート機能')">高度レポート作成</button>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin: 1rem 0;">
+                <button class="control-btn" onclick="updateFlags()" style="background: #28a745;">🔄 最新フラグ状態を取得</button>
+                <button class="control-btn" onclick="openAdminPanel()" style="background: #007bff;">🔧 管理画面を開く</button>
+                <button class="control-btn" onclick="testAllFlags()" style="background: #6f42c1;">🧪 全フラグテスト</button>
+            </div>
+            
             <div class="status-display" id="flag-status">フラグ状態を読み込み中...</div>
         </div>
         
@@ -373,10 +384,46 @@
 
     <script src="feature-flag-integration/client/index.js"></script>
     <script>
-        // フィーチャーフラグクライアント初期化
+        // 環境設定の取得
+        function getEnvironmentConfig() {
+            // 環境の検出
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            
+            // ローカル環境の判定
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return {
+                    name: 'local',
+                    apiEndpoint: 'http://localhost:3001/api/evaluate',
+                    tenantId: 'attendance-tenant-001'
+                };
+            }
+            
+            // dev環境の判定
+            if (hostname.includes('dev-') || hostname.includes('-dev.')) {
+                return {
+                    name: 'dev',
+                    apiEndpoint: 'https://dev-api.feature-flags.example.com/api/evaluate',
+                    tenantId: 'attendance-tenant-dev'
+                };
+            }
+            
+            // prod環境（デフォルト）
+            return {
+                name: 'prod',
+                apiEndpoint: 'https://api.feature-flags.example.com/api/evaluate',
+                tenantId: 'attendance-tenant-prod'
+            };
+        }
+        
+        const envConfig = getEnvironmentConfig();
+        console.log('🔧 Environment detected:', envConfig.name);
+        console.log('🌐 API Endpoint:', envConfig.apiEndpoint);
+        
+        // フィーチャーフラグクライアント初期化（環境自動検出）
         const flagClient = new FeatureFlagClient({
-            apiEndpoint: 'https://7wslqwkrvj.execute-api.ap-northeast-1.amazonaws.com/featureflagprodlambda',
-            tenantId: 'attendance-tenant-001',
+            apiEndpoint: envConfig.apiEndpoint,
+            tenantId: envConfig.tenantId,
             cacheTTL: 1 * 60 * 1000 // 1分キャッシュ
         });
 
@@ -404,13 +451,82 @@
                 });
         }
 
-        // フラグ状態の更新
+        // 実際のフラグ作成
+        async function createFlag(flagKey, description) {
+            console.log(`🚀 フラグ作成: ${flagKey}`);
+            document.body.classList.add('loading');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/flags', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        flagKey: flagKey,
+                        description: description,
+                        defaultEnabled: false,
+                        owner: 'attendance-team',
+                        environment: 'production'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`✅ フラグ作成成功: ${flagKey}`, result);
+                    alert(`✅ フラグ "${flagKey}" を作成しました！\n管理画面で有効/無効を切り替えてください。`);
+                    await updateFlags(); // 状態を更新
+                } else {
+                    const error = await response.text();
+                    console.error(`❌ フラグ作成エラー: ${flagKey}`, error);
+                    alert(`❌ フラグ作成に失敗しました: ${error}`);
+                }
+                
+            } catch (error) {
+                console.error(`❌ フラグ作成エラー: ${flagKey}`, error);
+                alert(`❌ フラグ作成に失敗しました: ${error.message}\n\nローカルAPIサーバーが起動していることを確認してください。`);
+            } finally {
+                document.body.classList.remove('loading');
+            }
+        }
+
+        // 管理画面を開く
+        function openAdminPanel() {
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        // 全フラグテスト
+        async function testAllFlags() {
+            console.log('🧪 全フラグテスト開始');
+            const flags = [
+                'attendance_new_dashboard',
+                'attendance_mobile_app',
+                'attendance_ai_suggestions', 
+                'attendance_realtime_notifications',
+                'attendance_advanced_reporting'
+            ];
+            
+            let testResults = '🧪 フラグテスト結果:\n';
+            
+            for (const flagKey of flags) {
+                try {
+                    const enabled = await flagClient.isEnabled(flagKey);
+                    testResults += `${flagKey}: ${enabled ? '✅ 有効' : '❌ 無効'}\n`;
+                } catch (error) {
+                    testResults += `${flagKey}: ❌ エラー (${error.message})\n`;
+                }
+            }
+            
+            alert(testResults);
+            console.log(testResults);
+        }
+
+        // フラグ状態の更新（実際のAPIのみ使用）
         async function updateFlags() {
             console.log('🔄 フラグ状態を更新中...');
             document.body.classList.add('loading');
             
             try {
-                // 各フラグの状態を取得（実際のAPIを使用）
                 const flags = [
                     'attendance_new_dashboard',
                     'attendance_mobile_app',
@@ -419,21 +535,24 @@
                     'attendance_advanced_reporting'
                 ];
 
-                let statusText = 'フラグ状態 (本番API):\n';
+                let statusText = '📊 フラグ状態 (実際のフィーチャーフラグAPI):\n';
+                let hasRealFlags = false;
                 
                 for (const flagKey of flags) {
-                    // まずは実際のAPIを試す
-                    let enabled = await flagClient.isEnabled(flagKey);
-                    
-                    // APIが無効化を返す場合、開発用モック値を使用
-                    if (!enabled) {
-                        enabled = mockFlags[flagKey];
-                        statusText += `${flagKey}: ${enabled ? '✅' : '❌'} (mock)\n`;
-                    } else {
-                        statusText += `${flagKey}: ${enabled ? '✅' : '❌'} (API)\n`;
+                    try {
+                        // 実際のAPIでフラグ評価
+                        const enabled = await flagClient.isEnabled(flagKey);
+                        statusText += `${flagKey}: ${enabled ? '✅ 有効' : '❌ 無効'} (API)\n`;
+                        await updateFeatureUI(flagKey, enabled);
+                        hasRealFlags = true;
+                    } catch (error) {
+                        statusText += `${flagKey}: ❌ 未作成 (${error.message})\n`;
+                        await updateFeatureUI(flagKey, false);
                     }
-                    
-                    await updateFeatureUI(flagKey, enabled);
+                }
+                
+                if (!hasRealFlags) {
+                    statusText += '\n💡 フラグを作成するには上記のボタンを使用するか、\n   管理画面 (http://localhost:3000) でフラグを作成してください。';
                 }
                 
                 document.getElementById('flag-status').textContent = statusText;
@@ -441,7 +560,7 @@
                 
             } catch (error) {
                 console.error('❌ フラグ更新エラー:', error);
-                document.getElementById('flag-status').textContent = `エラー: ${error.message}`;
+                document.getElementById('flag-status').textContent = `❌ エラー: ${error.message}\n\nローカルAPIサーバーの起動確認をしてください。`;
             } finally {
                 document.body.classList.remove('loading');
             }

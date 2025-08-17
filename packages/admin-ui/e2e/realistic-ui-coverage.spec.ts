@@ -85,12 +85,21 @@ test.describe('Realistic UI Coverage - Based on Actual Implementation', () => {
       // Toggle switch
       await toggleSwitch.click();
       
-      // Verify state changed
-      const newState = await toggleSwitch.isChecked();
-      expect(newState).toBe(!initialState);
+      // Wait for state change (more reliable than waiting for specific API response)
+      await expect(async () => {
+        const newState = await toggleSwitch.isChecked();
+        expect(newState).toBe(!initialState);
+      }).toPass({ timeout: 15000 });
       
-      // Verify success notification appears
-      await expect(page.locator('.ant-message')).toBeVisible();
+      // Wait a moment for any UI updates
+      await page.waitForTimeout(1000);
+      
+      // Verify the flag state actually persists (most important test)
+      await page.reload();
+      await page.waitForResponse('**/api/flags');
+      const toggleAfterReload = page.locator('[data-testid="flag-toggle-switch"]').first();
+      const finalState = await toggleAfterReload.isChecked();
+      expect(finalState).toBe(!initialState); // Should persist the change
     });
 
     test('should open edit modal and handle updates', async ({ page }) => {

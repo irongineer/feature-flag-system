@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フラグ切り替えテスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .flag-item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .toggle-btn { padding: 5px 10px; margin-left: 10px; cursor: pointer; }
+        .enabled { background-color: #52c41a; color: white; }
+        .disabled { background-color: #ff4d4f; color: white; }
+        .loading { background-color: #ccc; color: white; }
+    </style>
+</head>
+<body>
+    <h1>フラグ切り替えテスト</h1>
+    <div id="flag-list"></div>
+    
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        
+        async function loadFlags() {
+            try {
+                const response = await fetch(`${API_BASE}/flags`);
+                const flags = await response.json();
+                displayFlags(flags);
+            } catch (error) {
+                console.error('Failed to load flags:', error);
+                document.getElementById('flag-list').innerHTML = '<p style="color: red;">フラグの読み込みに失敗しました</p>';
+            }
+        }
+        
+        function displayFlags(flags) {
+            const container = document.getElementById('flag-list');
+            container.innerHTML = flags.map(flag => `
+                <div class="flag-item">
+                    <strong>${flag.flagKey}</strong> - ${flag.description}
+                    <button id="toggle-${flag.flagKey}" 
+                            class="toggle-btn ${flag.defaultEnabled ? 'enabled' : 'disabled'}"
+                            onclick="toggleFlag('${flag.flagKey}', ${!flag.defaultEnabled})">
+                        ${flag.defaultEnabled ? '有効 (無効にする)' : '無効 (有効にする)'}
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        async function toggleFlag(flagKey, newState) {
+            const button = document.getElementById(`toggle-${flagKey}`);
+            const originalText = button.textContent;
+            
+            try {
+                button.className = 'toggle-btn loading';
+                button.textContent = '更新中...';
+                button.disabled = true;
+                
+                const response = await fetch(`${API_BASE}/flags/by-key/${flagKey}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ defaultEnabled: newState })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const updatedFlag = await response.json();
+                console.log('Flag updated:', updatedFlag);
+                
+                // Update UI
+                button.className = `toggle-btn ${newState ? 'enabled' : 'disabled'}`;
+                button.textContent = newState ? '有効 (無効にする)' : '無効 (有効にする)';
+                button.onclick = () => toggleFlag(flagKey, !newState);
+                
+                alert(`フラグ "${flagKey}" を${newState ? '有効' : '無効'}にしました！`);
+                
+            } catch (error) {
+                console.error('Failed to toggle flag:', error);
+                button.className = 'toggle-btn disabled';
+                button.textContent = originalText;
+                alert(`フラグの更新に失敗しました: ${error.message}`);
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        // Load flags on page load
+        window.onload = loadFlags;
+    </script>
+</body>
+</html>

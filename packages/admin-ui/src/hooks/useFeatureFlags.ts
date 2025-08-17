@@ -68,9 +68,18 @@ export const useUpdateFlag = () => {
       updates: Partial<FeatureFlagsTable>;
     }) => featureFlagApi.updateFlag(flagKey, updates),
     onSuccess: (data, variables) => {
+      // First update the cache directly with the returned data
+      queryClient.setQueryData(QUERY_KEYS.FLAGS, (oldData: FeatureFlagsTable[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(flag => 
+          flag.flagKey === data.flagKey ? { ...flag, ...data } : flag
+        );
+      });
+      
+      // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAGS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAG(variables.flagKey) });
-      message.success(`フラグ "${data.flagKey}" を更新しました`);
+      // Note: Success message is handled in the component for better UX control
     },
     onError: (error: any) => {
       message.error(`フラグの更新に失敗しました: ${error.message}`);
