@@ -60,7 +60,21 @@
       "Bash(timeout 60 npx playwright test e2e/simple-ui-test.spec.ts --timeout=30000)",
       "Bash(timeout 45 npx playwright test e2e/debug-console.spec.ts --timeout=30000)",
       "Bash(timeout 30 npx playwright test e2e/debug-console.spec.ts --timeout=20000)",
-      "Bash(timeout 60 npx playwright test e2e/final-verification.spec.ts --timeout=30000)"
+      "Bash(timeout 60 npx playwright test e2e/final-verification.spec.ts --timeout=30000)",
+      "Bash(python3:*)",
+      "Bash(AttributeName=PK,AttributeType=S )",
+      "Bash(AttributeName=SK,AttributeType=S )",
+      "Bash(AttributeName=PK,KeyType=HASH )",
+      "Bash(AttributeName=SK,KeyType=RANGE )",
+      "Bash(AttributeName=PK,AttributeType=S )",
+      "Bash(AttributeName=SK,AttributeType=S )",
+      "Bash(AttributeName=PK,KeyType=HASH )",
+      "Bash(AttributeName=SK,KeyType=RANGE )",
+      "Bash(NODE_ENV=development DYNAMODB_ENDPOINT=http://localhost:8000 FEATURE_FLAGS_TABLE_NAME=feature-flags npx tsx src/simple-server.ts)",
+      "Bash(timeout 60 npx playwright test:*)",
+      "Bash(NODE_ENV=development STAGE=dev USE_IN_MEMORY_FLAGS=false FEATURE_FLAGS_TABLE_NAME=feature-flags-dev npx tsx src/simple-server.ts)",
+      "Bash(aws dynamodb scan:*)",
+      "Bash(NODE_ENV=production STAGE=prod USE_IN_MEMORY_FLAGS=false FEATURE_FLAGS_TABLE_NAME=feature-flags-prod npx tsx src/simple-server.ts)"
     ],
     "deny": []
   }

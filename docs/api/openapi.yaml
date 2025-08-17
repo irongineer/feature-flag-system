@@ -12,10 +12,12 @@ info:
     name: MIT
 
 servers:
-  - url: https://api.example.com/v1
-    description: Production server
-  - url: https://dev-api.example.com/v1
-    description: Development server
+  - url: https://api.feature-flags.example.com/api
+    description: Production server (prod environment)
+  - url: https://dev-api.feature-flags.example.com/api
+    description: Development server (dev environment)  
+  - url: http://localhost:3001/api
+    description: Local development server (local environment)
 
 security:
   - BearerAuth: []
@@ -706,8 +708,9 @@ components:
           example: "user-456"
         environment:
           type: string
-          description: Environment context (optional)
-          example: "production"
+          description: Environment context (optional, auto-detected if not provided)
+          enum: ["local", "dev", "prod"]
+          example: "prod"
         metadata:
           type: object
           description: Additional context metadata (optional)
@@ -733,6 +736,20 @@ components:
           description: Reason for the evaluation result
           enum: ["default", "tenant_override", "kill_switch"]
           example: "tenant_override"
+        source:
+          type: string
+          description: Data source used for evaluation
+          enum: ["in-memory", "dynamodb"]
+          example: "dynamodb"
+        environment:
+          type: string
+          description: Environment where evaluation occurred
+          enum: ["local", "dev", "prod"]
+          example: "prod"
+        tenantId:
+          type: string
+          description: Tenant ID for the evaluation
+          example: "tenant-123"
         evaluatedAt:
           type: string
           format: date-time

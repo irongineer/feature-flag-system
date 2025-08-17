@@ -36,6 +36,13 @@ feature-flag-system/
 - **インフラ**: CDK TypeScript + DynamoDB
 - **開発環境**: ローカル統合テスト環境
 
+### ✅ Phase 1.5: マルチ環境対応完了 (2025-08-16)
+- **環境分離**: local/dev/prod環境の完全分離
+- **設定管理**: 一元化された環境設定システム
+- **DynamoDB統合**: 環境別テーブル自動切り替え
+- **型安全性**: TypeScript完全対応
+- **テスト検証**: 全環境でのE2Eテスト完了
+
 ### 🔄 データフロー
 ```typescript
 // 1. フラグ評価API
@@ -116,22 +123,46 @@ gh pr merge --squash
 
 ## 🔧 開発環境
 
+### 環境構成
+システムは3つの環境で動作し、環境ごとに適切なリソースを自動選択します：
+
+| 環境 | 説明 | データベース | 設定ファイル |
+|------|------|--------------|-------------|
+| **local** | ローカル開発 | インメモリ/DynamoDB Local | `config/environments.json` |
+| **dev** | 開発環境 | `feature-flags-dev` | AWS DynamoDB |
+| **prod** | 本番環境 | `feature-flags-prod` | AWS DynamoDB |
+
 ### ローカル開発
 ```bash
 # 1. 依存関係インストール
 npm install
 
-# 2. DynamoDB Local起動
+# 2. DynamoDB Local起動（オプション）
 ./scripts/start-local-aws.sh
 
-# 3. APIサーバー起動
-cd packages/api && npm run dev
+# 3. ローカル環境でAPIサーバー起動
+cd packages/api
+NODE_ENV=local npm run dev  # インメモリフラグ使用
 
 # 4. 管理画面起動
 cd packages/admin-ui && npm run dev
 
 # 5. E2Eテスト実行
 cd packages/admin-ui && npm run test:e2e
+```
+
+### 環境切り替え
+```bash
+# ローカル環境（インメモリ）
+NODE_ENV=local STAGE=local npm run dev
+
+# dev環境（AWS DynamoDB）
+NODE_ENV=development STAGE=dev USE_IN_MEMORY_FLAGS=false \
+FEATURE_FLAGS_TABLE_NAME=feature-flags-dev npm run dev
+
+# prod環境（AWS DynamoDB）
+NODE_ENV=production STAGE=prod USE_IN_MEMORY_FLAGS=false \
+FEATURE_FLAGS_TABLE_NAME=feature-flags-prod npm run dev
 ```
 
 ### デプロイ
@@ -217,23 +248,64 @@ test(scope): テスト追加 (#issue-number)
 
 ## 🗂️ データモデル
 
-### DynamoDB設計
+### 環境別DynamoDB設計
 ```typescript
-// FeatureFlags テーブル
+// 環境対応FeatureFlags テーブル
 interface FeatureFlagsTable {
-  PK: string;           // "FLAG#${flagKey}"
+  PK: string;           // "FLAG#{environment}#{flagKey}"
   SK: string;           // "METADATA"
+  environment: Environment; // 'development' | 'staging' | 'production'
   flagKey: string;
   description: string;
   defaultEnabled: boolean;
   owner: string;
   createdAt: string;
   expiresAt?: string;
+  
+  // GSI1: 有効期限でのクエリ用
+  GSI1PK?: string;      // "EXPIRES#{environment}"
+  GSI1SK?: string;      // expiresAt
+  
+  // GSI2: オーナー別フラグ一覧用
+  GSI2PK?: string;      // "OWNER#{environment}#{owner}"
+  GSI2SK?: string;      // "FLAG#{flagKey}"
+  
+  // GSI3: 全フラグ一覧効率化用
+  GSI3PK?: string;      // "FLAGS#{environment}"
+  GSI3SK?: string;      // "METADATA#{createdAt}"
 }
 
-// 評価API例
-const evaluator = new FeatureFlagEvaluator({ dynamoDbClient });
+// 環境対応評価API例
+const evaluator = new FeatureFlagEvaluator({ 
+  dynamoDbClient,
+  environment: 'staging' // local -> development, dev -> staging, prod -> production
+});
 const enabled = await evaluator.isEnabled(tenantId, flagKey);
+```
+
+### 環境設定
+```typescript
+// config/environments.json
+interface ApiEnvironmentConfig {
+  name: string;
+  api: {
+    baseUrl: string;
+    evaluateEndpoint: string;
+    timeout: number;
+  };
+  database: {
+    type: 'local' | 'dynamodb';
+    dynamodb: {
+      endpoint?: string;
+      region: string;
+      tableName: string;
+    };
+  };
+  useInMemoryFlags: boolean;
+  cors: {
+    origins: string[];
+  };
+}
 ```
 
 ## 🚨 重要なルール
@@ -280,5 +352,12 @@ const enabled = await evaluator.isEnabled(tenantId, flagKey);
 
 ---
 
-**最終更新**: 2025-07-21  
-**ステータス**: Phase 1 MVP完了 + TDD品質基準達成 ✅
+**最終更新**: 2025-08-16  
+**ステータス**: Phase 1.5 マルチ環境対応完了 + 型安全性100% ✅
+
+### 🎯 環境別テスト完了ステータス
+| 環境 | フラグ作成 | フラグ更新 | フラグ評価 | データ分離 |
+|------|-----------|-----------|-----------|-----------|
+| **local** | ✅ | ✅ | ✅ | ✅ |
+| **dev** | ✅ | ✅ | ✅ | ✅ |
+| **prod** | ✅ | ✅ | ✅ | ✅ |
