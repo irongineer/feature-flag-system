@@ -6,3 +6,4 @@ export * from './client/http-client';
 export * from './analytics-engine';
 export * from './rollout';
 export * from './ab-test';
+export * from './utils/config';

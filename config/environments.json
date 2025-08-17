@@ -1,0 +1,60 @@
+{
+  "local": {
+    "name": "local",
+    "api": {
+      "baseUrl": "http://localhost:3001",
+      "evaluateEndpoint": "http://localhost:3001/api/evaluate",
+      "timeout": 5000
+    },
+    "database": {
+      "type": "local",
+      "dynamodb": {
+        "endpoint": "http://localhost:8000",
+        "region": "ap-northeast-1",
+        "tableName": "feature-flags"
+      }
+    },
+    "useInMemoryFlags": true,
+    "cors": {
+      "origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:8080"]
+    }
+  },
+  "dev": {
+    "name": "dev",
+    "api": {
+      "baseUrl": "https://dev-api.feature-flags.example.com",
+      "evaluateEndpoint": "https://dev-api.feature-flags.example.com/api/evaluate",
+      "timeout": 10000
+    },
+    "database": {
+      "type": "dynamodb",
+      "dynamodb": {
+        "region": "ap-northeast-1",
+        "tableName": "feature-flags-dev"
+      }
+    },
+    "useInMemoryFlags": false,
+    "cors": {
+      "origins": ["https://dev-admin.feature-flags.example.com", "https://dev-attendance.example.com"]
+    }
+  },
+  "prod": {
+    "name": "prod",
+    "api": {
+      "baseUrl": "https://api.feature-flags.example.com",
+      "evaluateEndpoint": "https://api.feature-flags.example.com/api/evaluate",
+      "timeout": 10000
+    },
+    "database": {
+      "type": "dynamodb",
+      "dynamodb": {
+        "region": "ap-northeast-1",
+        "tableName": "feature-flags-prod"
+      }
+    },
+    "useInMemoryFlags": false,
+    "cors": {
+      "origins": ["https://admin.feature-flags.example.com", "https://attendance.example.com"]
+    }
+  }
+}

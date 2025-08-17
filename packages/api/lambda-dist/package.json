@@ -1,9 +1,0 @@
-{
-  "name": "feature-flag-lambda",
-  "version": "1.0.0",
-  "main": "handlers/evaluation.js",
-  "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.451.0",
-    "@aws-sdk/lib-dynamodb": "^3.451.0"
-  }
-}
