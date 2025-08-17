@@ -236,7 +236,7 @@ curl -X POST "https://api.example.com/v1/flags" \
 - [x] **Expert Review自動化** - DDD・アーキテクチャ・品質の自動レビュー  
 - [x] **カスタムコマンド** - プロジェクト特化の効率化コマンド
 - [x] **最新機能活用** - Plan Mode・Memory System・Visual Integration対応
-- [x] **開発効率向上** - 300%向上・Expert Review時間87.5%短縮
+- [x] **開発効率向上** - 大幅向上・Expert Review時間短縮
 
 ### 🔄 進行中 (Phase 1.8)
 

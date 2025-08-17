@@ -10,7 +10,7 @@
         "--network",
         "host",
         "-v",
-        "/Users/Daichi1021/workspace/feature-flag-system:/workspaces/projects",
+        "${PWD}:/workspaces/projects",
         "ghcr.io/oraios/serena:latest",
         "serena",
         "start-mcp-server",
