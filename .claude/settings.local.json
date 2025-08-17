@@ -74,8 +74,25 @@
       "Bash(timeout 60 npx playwright test:*)",
       "Bash(NODE_ENV=development STAGE=dev USE_IN_MEMORY_FLAGS=false FEATURE_FLAGS_TABLE_NAME=feature-flags-dev npx tsx src/simple-server.ts)",
       "Bash(aws dynamodb scan:*)",
-      "Bash(NODE_ENV=production STAGE=prod USE_IN_MEMORY_FLAGS=false FEATURE_FLAGS_TABLE_NAME=feature-flags-prod npx tsx src/simple-server.ts)"
+      "Bash(NODE_ENV=production STAGE=prod USE_IN_MEMORY_FLAGS=false FEATURE_FLAGS_TABLE_NAME=feature-flags-prod npx tsx src/simple-server.ts)",
+      "mcp__serena__write_memory",
+      "WebFetch(domain:zenn.dev)",
+      "WebSearch",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:github.com)",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__read_memory",
+      "mcp__serena__list_dir",
+      "mcp__serena__think_about_collected_information",
+      "mcp__serena__get_symbols_overview",
+      "mcp__serena__think_about_task_adherence",
+      "mcp__serena__activate_project",
+      "Bash(tree:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "serena"
+  ]
 }
