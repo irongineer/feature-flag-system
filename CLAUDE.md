@@ -98,15 +98,17 @@ DELETE /api/flags/:id   # フラグ削除
 - リファクタリング品質
 - **自動化**: `claude-code --agent tdd-quality-checker`
 
-### PRマージフロー (Sub agent統合)
+### PRマージフロー (DoD準拠 + Sub agent統合)
 ```bash
 # 1. ブランチ作成 + Issue分析
 git checkout -b feature/issue-number-description
 claude-code --agent feature-flag-architect "Issue #123 の実装計画作成"
 
-# 2. 実装・テスト
-npm test                # ユニットテスト
-npm run test:e2e       # E2Eテスト
+# 2. 実装・テスト (DoD基準)
+npm test                # ユニットテスト (90%カバレッジ必須)
+npm run test:e2e       # E2Eテスト (全通過必須)
+npm run lint           # コード品質チェック
+npm run typecheck      # TypeScript型安全性100%
 npm run build          # ビルド確認
 
 # 3. 事前レビュー (Sub agent)
@@ -117,9 +119,45 @@ claude-code --agent tdd-quality-checker "品質・テスト戦略評価"
 # 4. PR作成（日本語）
 gh pr create --title "feat: 機能名実装 (#issue-number)"
 
-# 5. Expert Review (自動化対応)
-# 6. GitHub経由でマージ
+# 5. 📋 DoD自動検証プロセス (必須)
+# - Claude Code Expert Review自動実行
+# - DoD Verification CI実行 (6項目自動チェック)
+# - PR Template DoD チェックリスト確認
+
+# 6. 🔍 レビュー対応プロセス (必須)
+# - Claude Code レビューコメント確認・対応
+# - Critical/High Priority指摘事項の即座修正
+# - DoD Compliance Report 100%達成確認
+
+# 7. ✅ マージ実行 (条件達成後のみ)
+# - DoD Verification CI: ✅ 通過
+# - Expert Review: 承認済み
+# - 全必須チェック: ✅ 通過
 gh pr merge --squash
+```
+
+### 🚨 DoD準拠マージプロセス
+
+#### 📋 必須検証項目
+1. **機能実装完了** - 要求機能の完全実装
+2. **テストカバレッジ90%以上** - 自動計測・検証
+3. **TypeScript型安全性100%** - コンパイルエラー0件
+4. **E2Eテスト通過** - 主要シナリオ全成功
+5. **Expert Review完了** - Claude Code自動レビュー対応
+6. **CI/CD全チェック通過** - lint・build・deploy成功
+
+#### 🔒 自動マージブロック
+以下の場合、**自動的にマージがブロック**されます：
+- ❌ DoD Verification CI が失敗
+- ❌ Claude Code Expert Review が変更要求中  
+- ❌ 必須ステータスチェックが未通過
+- ❌ DoD達成率が100%未満
+
+#### 📊 DoD進捗確認
+```bash
+# DoD Compliance Report で進捗確認
+# PR画面に自動投稿されるレポートで達成状況を把握
+# 未達成項目の修正 → Push → 自動再検証
 ```
 
 ## 📊 品質基準
