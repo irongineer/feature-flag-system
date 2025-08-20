@@ -1,24 +1,13 @@
-import { 
-  AuditEventType, 
-  ResourceType, 
-  AuditAction, 
-  AuditChanges 
-} from '../types';
+import { AuditEventType, ResourceType, AuditAction, AuditChanges } from '../types';
 
 /**
  * DynamoDB Streamイベントを解析して監査ログ情報を抽出するサービス
  */
 export class StreamEventParser {
-
   /**
    * ストリームレコードを解析してイベント情報を抽出
    */
-  parseStreamRecord(record: {
-    eventName: string;
-    Keys?: any;
-    NewImage?: any;
-    OldImage?: any;
-  }): {
+  parseStreamRecord(record: { eventName: string; Keys?: any; NewImage?: any; OldImage?: any }): {
     resourceType: ResourceType | null;
     resourceId: string;
     eventType: AuditEventType | null;
@@ -75,7 +64,11 @@ export class StreamEventParser {
   /**
    * リソースタイプとIDを判定
    */
-  private determineResourceType(Keys?: any, NewImage?: any, OldImage?: any): {
+  private determineResourceType(
+    Keys?: any,
+    NewImage?: any,
+    OldImage?: any
+  ): {
     resourceType: ResourceType;
     resourceId: string;
   } | null {
@@ -149,7 +142,7 @@ export class StreamEventParser {
         if (eventName === 'INSERT' || eventName === 'MODIFY') {
           const newEnabled = NewImage?.enabled?.BOOL;
           const oldEnabled = OldImage?.enabled?.BOOL;
-          
+
           if (newEnabled && !oldEnabled) {
             return 'kill_switch_activated';
           } else if (!newEnabled && oldEnabled) {

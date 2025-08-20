@@ -13,7 +13,7 @@ interface UpdateFlagOptions {
 
 export async function updateFlag(options: UpdateFlagOptions) {
   console.log(chalk.blue('🔄 Updating feature flag'));
-  
+
   try {
     // 対話式で不足している情報を取得
     const answers = await inquirer.prompt([
@@ -46,35 +46,35 @@ export async function updateFlag(options: UpdateFlagOptions) {
         when: !options.owner,
       },
     ]);
-    
+
     const flagKey = options.key || answers.key;
     const updates: any = {};
-    
+
     if (options.description || answers.description) {
       updates.description = options.description || answers.description;
     }
-    
+
     if (options.enabled !== undefined || answers.enabled !== undefined) {
       updates.defaultEnabled = options.enabled === 'true' || answers.enabled;
     }
-    
+
     if (options.owner || answers.owner) {
       updates.owner = options.owner || answers.owner;
     }
-    
+
     if (Object.keys(updates).length === 0) {
       console.log(chalk.yellow('No updates specified'));
       return;
     }
-    
+
     // API呼び出し
     const spinner = ora('Updating flag...').start();
     const apiClient = getApiClient();
-    
+
     await apiClient.updateFlag(flagKey, updates);
-    
+
     spinner.succeed(chalk.green('✅ Flag updated successfully'));
-    
+
     // 結果の表示
     console.log('');
     console.log(chalk.bold('Updated flag:'));
@@ -82,7 +82,6 @@ export async function updateFlag(options: UpdateFlagOptions) {
     Object.entries(updates).forEach(([key, value]) => {
       console.log(`  ${key}: ${value}`);
     });
-    
   } catch (error) {
     console.error(chalk.red('❌ Failed to update flag'));
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));

@@ -15,7 +15,7 @@ import {
   LimitExceededException,
   BackupNotFoundException,
   TableNotFoundException,
-  TableInUseException
+  TableInUseException,
 } from '@aws-sdk/client-dynamodb';
 
 // Table type imports
@@ -98,11 +98,14 @@ export function isLimitExceeded(error: unknown): error is LimitExceededException
   return error instanceof Error && error.name === 'LimitExceededException';
 }
 
-export function isThrottlingError(error: unknown): error is ProvisionedThroughputExceededException | RequestLimitExceeded | Error {
-  return error instanceof Error && (
-    error.name === 'ThrottlingException' ||
-    error.name === 'ProvisionedThroughputExceededException' ||
-    error.name === 'RequestLimitExceeded'
+export function isThrottlingError(
+  error: unknown
+): error is ProvisionedThroughputExceededException | RequestLimitExceeded | Error {
+  return (
+    error instanceof Error &&
+    (error.name === 'ThrottlingException' ||
+      error.name === 'ProvisionedThroughputExceededException' ||
+      error.name === 'RequestLimitExceeded')
   );
 }
 
@@ -125,49 +128,57 @@ export function isRetryableError(error: unknown): boolean {
 }
 
 export function isClientError(error: unknown): boolean {
-  return isValidationError(error) || isConditionalCheckFailed(error) || isResourceNotFound(error) || isAccessDenied(error);
+  return (
+    isValidationError(error) ||
+    isConditionalCheckFailed(error) ||
+    isResourceNotFound(error) ||
+    isAccessDenied(error)
+  );
 }
 
 /**
  * 運用者向けの詳細なエラーメッセージを生成
  */
-export function createOperationalErrorMessage(error: unknown, context?: { operation?: string; flagKey?: string; tenantId?: string; tableName?: string }): string {
+export function createOperationalErrorMessage(
+  error: unknown,
+  context?: { operation?: string; flagKey?: string; tenantId?: string; tableName?: string }
+): string {
   if (isResourceNotFound(error)) {
     return `DynamoDB resource not found. Please check: 1) Table '${context?.tableName || 'feature-flags'}' exists, 2) AWS region is correct, 3) Item with key '${context?.flagKey || context?.tenantId || 'unknown'}' exists`;
   }
-  
+
   if (isTableNotFound(error)) {
     return `DynamoDB table '${context?.tableName || 'feature-flags'}' does not exist. Please: 1) Deploy infrastructure using 'npm run deploy:dev', 2) Verify table name in environment variables, 3) Check AWS region configuration`;
   }
-  
+
   if (isAccessDenied(error)) {
     return `Access denied to DynamoDB. Please check: 1) IAM role/user has correct permissions, 2) AWS credentials are valid, 3) Table resource policies allow access`;
   }
-  
+
   if (isValidationError(error)) {
     return `Request validation failed. Please verify: 1) Required fields (flagKey, tenantId) are provided, 2) Field values match DynamoDB schema, 3) Data types are correct`;
   }
-  
+
   if (isConditionalCheckFailed(error)) {
     return `Resource already exists or condition not met. This might indicate: 1) Flag already exists (during creation), 2) Resource was modified concurrently, 3) Optimistic locking conflict`;
   }
-  
+
   if (isThrottlingError(error)) {
     return `DynamoDB request rate exceeded. Recommended actions: 1) Implement exponential backoff, 2) Check table read/write capacity, 3) Consider increasing provisioned throughput or using on-demand billing`;
   }
-  
+
   if (isTableInUse(error)) {
     return `Table is currently being modified. Please: 1) Wait for ongoing table operations to complete, 2) Check table status in AWS console, 3) Retry the operation after table becomes ACTIVE`;
   }
-  
+
   if (isLimitExceeded(error)) {
     return `AWS service limits exceeded. Please: 1) Check account limits in AWS Service Quotas, 2) Request limit increase if needed, 3) Optimize table design to reduce resource usage`;
   }
-  
+
   if (isInternalServerError(error)) {
     return `DynamoDB internal server error. This is a temporary AWS service issue. Please: 1) Retry with exponential backoff, 2) Check AWS service health dashboard, 3) Contact AWS support if persistent`;
   }
-  
+
   // 汎用メッセージ
   const err = error as Error;
   return `Unexpected DynamoDB error: ${err.message}. Operation: ${context?.operation || 'unknown'}. Please check application logs for detailed error information`;
@@ -219,7 +230,9 @@ export class FeatureFlagValidator {
     }
 
     if (!item.tenantId || typeof item.tenantId !== 'string') {
-      const error = new Error('Invalid tenant override: tenantId must be a non-empty string') as any;
+      const error = new Error(
+        'Invalid tenant override: tenantId must be a non-empty string'
+      ) as any;
       error.name = 'ValidationException';
       throw error;
     }
@@ -274,7 +287,7 @@ export function createStructuredError(
   context?: { tenantId?: string; flagKey?: string; environment?: string; [key: string]: any }
 ): StructuredError {
   const err = error as AWSError;
-  
+
   // HTTPステータスコードの決定
   let httpStatusCode = err.$metadata?.httpStatusCode;
   if (!httpStatusCode && isInternalServerError(error)) {

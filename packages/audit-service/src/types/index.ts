@@ -15,9 +15,9 @@ export interface AuditLogEntry {
 }
 
 // 監査イベントタイプ
-export type AuditEventType = 
+export type AuditEventType =
   | 'flag_created'
-  | 'flag_updated' 
+  | 'flag_updated'
   | 'flag_deleted'
   | 'tenant_override_set'
   | 'tenant_override_removed'
@@ -26,19 +26,10 @@ export type AuditEventType =
   | 'flag_evaluated';
 
 // リソースタイプ
-export type ResourceType = 
-  | 'feature_flag'
-  | 'tenant_override'
-  | 'kill_switch';
+export type ResourceType = 'feature_flag' | 'tenant_override' | 'kill_switch';
 
 // 監査アクション
-export type AuditAction = 
-  | 'CREATE'
-  | 'UPDATE'
-  | 'DELETE'
-  | 'READ'
-  | 'ACTIVATE'
-  | 'DEACTIVATE';
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'READ' | 'ACTIVATE' | 'DEACTIVATE';
 
 // 実行者情報
 export interface AuditActor {

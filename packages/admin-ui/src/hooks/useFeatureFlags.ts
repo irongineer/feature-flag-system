@@ -71,11 +71,9 @@ export const useUpdateFlag = () => {
       // First update the cache directly with the returned data
       queryClient.setQueryData(QUERY_KEYS.FLAGS, (oldData: FeatureFlagsTable[] | undefined) => {
         if (!oldData) return oldData;
-        return oldData.map(flag => 
-          flag.flagKey === data.flagKey ? { ...flag, ...data } : flag
-        );
+        return oldData.map(flag => (flag.flagKey === data.flagKey ? { ...flag, ...data } : flag));
       });
-      
+
       // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAGS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAG(variables.flagKey) });

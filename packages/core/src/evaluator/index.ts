@@ -1,4 +1,10 @@
-import { FeatureFlagKey, FeatureFlagContext, FEATURE_FLAGS, Environment, ENVIRONMENTS } from '../models';
+import {
+  FeatureFlagKey,
+  FeatureFlagContext,
+  FEATURE_FLAGS,
+  Environment,
+  ENVIRONMENTS,
+} from '../models';
 import { FeatureFlagCache } from '../cache';
 import { DynamoDbClient, DynamoDbClientConfig } from './dynamo-client';
 import { DynamoKeyBuilder } from '../constants/dynamo-keys';

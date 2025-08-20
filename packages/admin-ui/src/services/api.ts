@@ -12,10 +12,10 @@ function getEnvironmentConfig() {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  
+
   // ホスト名から環境を判定
   const hostname = window.location.hostname;
-  
+
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     // ローカル環境
     return 'http://localhost:3001/api';

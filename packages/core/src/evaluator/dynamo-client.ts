@@ -75,67 +75,74 @@ export class DynamoDbClient {
    * 構造化エラーハンドリング用のヘルパーメソッド
    * AWS SDK v3 特定エラー型を活用し、運用者向けメッセージを生成
    */
-  private handleError(operation: string, error: unknown, context?: { tenantId?: string; flagKey?: string; [key: string]: any }): never {
+  private handleError(
+    operation: string,
+    error: unknown,
+    context?: { tenantId?: string; flagKey?: string; [key: string]: any }
+  ): never {
     // 構造化エラー情報を作成してログ出力
     const errorContext = {
       ...context,
       environment: this.environment,
-      tableName: this.tableName
+      tableName: this.tableName,
     };
     const structuredError = createStructuredError(operation, error, errorContext);
     this.errorHandler(structuredError);
-    
+
     // 運用者向けの詳細メッセージを生成
     const operationalMessage = createOperationalErrorMessage(error, {
       operation,
       flagKey: context?.flagKey,
       tenantId: context?.tenantId,
-      tableName: this.tableName
+      tableName: this.tableName,
     });
-    
+
     // AWS SDK v3 特定エラー型による分類とビジネスロジック向けエラー
     if (isResourceNotFound(error)) {
       debugLog(this.environment, `Resource not found: ${operation}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     if (isTableNotFound(error)) {
       debugLog(this.environment, `Table not found: ${this.tableName}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     if (isAccessDenied(error)) {
       debugLog(this.environment, `Access denied to table: ${this.tableName}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     if (isConditionalCheckFailed(error)) {
       debugLog(this.environment, `Conditional check failed: ${operation}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     if (isValidationError(error)) {
       debugLog(this.environment, `Validation error: ${operation}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     if (isThrottlingError(error)) {
       debugLog(this.environment, `Throttling error: ${operation}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     if (isTableInUse(error)) {
       debugLog(this.environment, `Table in use: ${this.tableName}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     if (isLimitExceeded(error)) {
       debugLog(this.environment, `Limit exceeded: ${operation}`, errorContext);
       throw new Error(`${operationalMessage}`);
     }
-    
+
     // 一般的なエラー（予期しないもの）
-    debugLog(this.environment, `Unexpected error: ${operation}`, { ...errorContext, originalError: error });
+    debugLog(this.environment, `Unexpected error: ${operation}`, {
+      ...errorContext,
+      originalError: error,
+    });
     throw new Error(operationalMessage);
   }
 
@@ -143,16 +150,18 @@ export class DynamoDbClient {
   async getFlag(flagKey: string): Promise<FeatureFlagsTable | null> {
     try {
       const pk = `FLAG#${this.environment}#${flagKey}`;
-      
+
       debugLog(this.environment, `Getting flag: ${flagKey}`, { pk });
-      
-      const result = await this.dynamoDb.send(new GetCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: pk,
-          SK: 'METADATA',
-        },
-      }));
+
+      const result = await this.dynamoDb.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: pk,
+            SK: 'METADATA',
+          },
+        })
+      );
 
       // 型安全性の向上: レスポンスデータの検証
       if (result.Item) {
@@ -168,16 +177,18 @@ export class DynamoDbClient {
   async getTenantOverride(tenantId: string, flagKey: string): Promise<TenantOverridesTable | null> {
     try {
       const pk = `TENANT#${this.environment}#${tenantId}`;
-      
+
       debugLog(this.environment, `Getting tenant override: ${tenantId}/${flagKey}`, { pk });
-      
-      const result = await this.dynamoDb.send(new GetCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: pk,
-          SK: `FLAG#${flagKey}`,
-        },
-      }));
+
+      const result = await this.dynamoDb.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: pk,
+            SK: `FLAG#${flagKey}`,
+          },
+        })
+      );
 
       // 型安全性の向上: レスポンスデータの検証
       if (result.Item) {
@@ -198,16 +209,18 @@ export class DynamoDbClient {
     try {
       const pk = `EMERGENCY#${this.environment}`;
       const sk = flagKey ? `FLAG#${flagKey}` : 'GLOBAL';
-      
+
       debugLog(this.environment, `Getting kill switch: ${flagKey || 'GLOBAL'}`, { pk, sk });
-      
-      const result = await this.dynamoDb.send(new GetCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: pk,
-          SK: sk,
-        },
-      }));
+
+      const result = await this.dynamoDb.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: {
+            PK: pk,
+            SK: sk,
+          },
+        })
+      );
 
       // 型安全性の向上: レスポンスデータの検証
       if (result.Item) {

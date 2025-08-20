@@ -31,7 +31,12 @@ export class ApiClient {
     return this.dynamoClient.listTenantOverrides(tenantId);
   }
 
-  async setTenantOverride(tenantId: string, flagKey: FeatureFlagKey, enabled: boolean, updatedBy: string) {
+  async setTenantOverride(
+    tenantId: string,
+    flagKey: FeatureFlagKey,
+    enabled: boolean,
+    updatedBy: string
+  ) {
     return this.dynamoClient.setTenantOverride(tenantId, flagKey, enabled, updatedBy);
   }
 
@@ -40,7 +45,12 @@ export class ApiClient {
   }
 
   async deactivateKillSwitch(flagKey: FeatureFlagKey | null, deactivatedBy: string) {
-    return this.dynamoClient.setKillSwitch(flagKey, false, `Deactivated by ${deactivatedBy}`, deactivatedBy);
+    return this.dynamoClient.setKillSwitch(
+      flagKey,
+      false,
+      `Deactivated by ${deactivatedBy}`,
+      deactivatedBy
+    );
   }
 
   async evaluateFlag(tenantId: string, flagKey: FeatureFlagKey) {
@@ -48,15 +58,15 @@ export class ApiClient {
     const flag = await this.dynamoClient.getFlag(flagKey);
     const tenantOverride = await this.dynamoClient.getTenantOverride(tenantId, flagKey);
     const killSwitch = await this.dynamoClient.getKillSwitch(flagKey);
-    
+
     if (killSwitch && killSwitch.enabled) {
       return { enabled: false, reason: 'Kill-switch active' };
     }
-    
+
     if (tenantOverride) {
       return { enabled: tenantOverride.enabled, reason: 'Tenant override' };
     }
-    
+
     return { enabled: flag?.defaultEnabled || false, reason: 'Default value' };
   }
 }
