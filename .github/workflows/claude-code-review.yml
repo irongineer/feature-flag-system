@@ -27,6 +27,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
@@ -62,7 +63,8 @@ jobs:
           # プロジェクト特化ツール許可 - テスト・リント・型チェック実行可能
           allowed_tools: "Bash(npm test),Bash(npm run lint),Bash(npm run typecheck),Bash(npm run build),Read,Grep,Glob"
           
-          # レビュー実行条件 - [skip-review]タグがない限り実行
-          skip_if: |
-            contains(github.event.pull_request.title, '[skip-review]')
+# レビュー実行条件 - [skip-review]タグがない限り実行
+        # if文で条件制御（skip_ifパラメータは未サポートのため）
+        if: |
+          !contains(github.event.pull_request.title, '[skip-review]')
 
