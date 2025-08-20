@@ -14,7 +14,7 @@ let config;
 try {
   config = loadEnvironmentConfig(environment);
 } catch (error) {
-  console.warn(`⚠️ Failed to load config file, using defaults:`, error.message);
+  console.warn(`⚠️ Failed to load config file, using defaults:`, error instanceof Error ? error.message : String(error));
   // デフォルト設定を使用
   config = {
     name: environment,
@@ -284,7 +284,7 @@ app.put('/api/flags/by-key/:flagKey', async (req, res) => {
       res.json(updatedFlag);
     } else {
       // DynamoDB for dev/prod environments
-      const updateData = {};
+      const updateData: any = {};
       if (description) updateData.description = description;
       if (defaultEnabled !== undefined) updateData.defaultEnabled = defaultEnabled;
       if (owner) updateData.owner = owner;
