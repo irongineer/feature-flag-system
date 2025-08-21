@@ -54,13 +54,13 @@ jobs:
           
           # Core package tests
           cd packages/core
-          npm test -- --coverage --reporter=json-summary
+          npm test -- --coverage
           CORE_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
           echo "Core coverage: ${CORE_COVERAGE}%"
           
           # API package tests
           cd ../api
-          npm test -- --coverage --reporter=json-summary
+          npm test -- --coverage
           API_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
           echo "API coverage: ${API_COVERAGE}%"
           
