@@ -2,7 +2,7 @@ import { FeatureFlagKey, FeatureFlagContext } from '../models';
 
 /**
  * A/B Test Engine
- * 
+ *
  * A/Bテスト機能の実装 - Phase 2拡張機能
  * 複数バリエーションの配信制御とコンバージョン追跡
  */
@@ -83,14 +83,14 @@ export class ABTestEngine {
 
     // 5. バリアント選択（一貫したハッシュベース）
     const selectedVariant = this.selectVariant(context, flagKey, testConfig);
-    
+
     return {
       testId: testConfig.testId,
       variantId: selectedVariant.id,
       variantName: selectedVariant.name,
       config: selectedVariant.config,
       isControl: selectedVariant.id === 'control',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -103,19 +103,19 @@ export class ABTestEngine {
     experiments: Array<{ flagKey: FeatureFlagKey; testConfig: ABTestConfig }>
   ): Promise<ABTestResult[]> {
     const results: ABTestResult[] = [];
-    
+
     // 実験間の独立性を保証
     for (const { flagKey, testConfig } of experiments) {
       const result = await this.assignVariant(context, flagKey, testConfig);
       results.push(result);
-      
+
       // 次の実験のコンテキストに前の結果を反映
       context.previousVariants = {
         ...context.previousVariants,
-        [flagKey]: result.variantId
+        [flagKey]: result.variantId,
       };
     }
-    
+
     return results;
   }
 
@@ -138,26 +138,26 @@ export class ABTestEngine {
       userId,
       conversionValue,
       metadata,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     // デバッグログ（実際の実装では分析システムに送信）
     console.debug('A/B Test Conversion:', conversionEvent);
   }
 
   private isWithinTestPeriod(config: ABTestConfig, timestamp?: string): boolean {
     if (!timestamp) return true;
-    
+
     const now = new Date(timestamp);
-    
+
     if (config.startDate && now < new Date(config.startDate)) {
       return false;
     }
-    
+
     if (config.endDate && now > new Date(config.endDate)) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -168,10 +168,10 @@ export class ABTestEngine {
   ): boolean {
     if (trafficAllocation >= 100) return true;
     if (trafficAllocation <= 0) return false;
-    
+
     const hash = this.generateUserHash(context.userId || '', `${flagKey}-traffic`);
     const userPercentile = hash % 100;
-    
+
     return userPercentile < trafficAllocation;
   }
 
@@ -179,9 +179,9 @@ export class ABTestEngine {
     if (!targetSegments || targetSegments.length === 0) {
       return true;
     }
-    
+
     // ユーザーセグメント情報から判定
-    const userSegments = context.metadata?.segments as string[] || [];
+    const userSegments = (context.metadata?.segments as string[]) || [];
     return targetSegments.some(segment => userSegments.includes(segment));
   }
 
@@ -192,21 +192,21 @@ export class ABTestEngine {
   ): ABTestVariant {
     const hash = this.generateUserHash(context.userId || '', `${flagKey}-${testConfig.testId}`);
     const totalWeight = testConfig.variants.reduce((sum, v) => sum + v.weight, 0);
-    
+
     if (totalWeight === 0) {
       return this.getControlVariantFromConfig(testConfig);
     }
-    
+
     const target = hash % totalWeight;
     let currentWeight = 0;
-    
+
     for (const variant of testConfig.variants) {
       currentWeight += variant.weight;
       if (target < currentWeight) {
         return variant;
       }
     }
-    
+
     // フォールバック: 最初のバリアント
     return testConfig.variants[0] || this.getControlVariantFromConfig(testConfig);
   }
@@ -219,7 +219,7 @@ export class ABTestEngine {
       variantName: controlVariant.name,
       config: controlVariant.config,
       isControl: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -227,16 +227,16 @@ export class ABTestEngine {
     // コントロールバリアントを探す
     const controlVariant = testConfig.variants.find(v => v.id === 'control');
     if (controlVariant) return controlVariant;
-    
+
     // コントロールがない場合は最初のバリアント
     if (testConfig.variants.length > 0) return testConfig.variants[0];
-    
+
     // デフォルトコントロール
     return {
       id: 'control',
       name: 'Control',
       weight: 100,
-      config: {}
+      config: {},
     };
   }
 
@@ -245,14 +245,14 @@ export class ABTestEngine {
     const input = `${userId}-${seed}`;
     const FNV_OFFSET_BASIS = 2166136261;
     const FNV_PRIME = 16777619;
-    
+
     let hash = FNV_OFFSET_BASIS;
-    
+
     for (let i = 0; i < input.length; i++) {
       hash ^= input.charCodeAt(i);
       hash = (hash * FNV_PRIME) >>> 0;
     }
-    
+
     return hash;
   }
 }
@@ -278,13 +278,13 @@ export class ABTestAnalytics {
     const controlRate = controlMetrics.conversionRate;
     const variantRate = variantMetrics.conversionRate;
     const improvement = ((variantRate - controlRate) / controlRate) * 100;
-    
+
     // プレースホルダー実装（実際の統計計算は専門ライブラリが必要）
     return {
       pValue: 0.05, // プレースホルダー
       isSignificant: Math.abs(improvement) > 5, // 5%以上の改善で有意とする簡易判定
       confidenceInterval: [variantRate - 0.05, variantRate + 0.05], // プレースホルダー
-      improvement
+      improvement,
     };
   }
 }

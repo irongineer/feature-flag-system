@@ -33,23 +33,26 @@ export const useKillSwitch = () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/killswitches`);
-      
+
       if (response.ok) {
         const data = await response.json();
         setKillSwitches(data);
-        
+
         // Calculate stats
         const activeKillSwitches = data.filter((ks: KillSwitch) => ks.enabled);
         const globalKillSwitch = activeKillSwitches.find((ks: KillSwitch) => !ks.flagKey);
         const flagSpecific = activeKillSwitches.filter((ks: KillSwitch) => ks.flagKey);
-        
+
         setStats({
           totalActive: activeKillSwitches.length,
           globalKillSwitchActive: !!globalKillSwitch,
           flagSpecificKillSwitches: flagSpecific.length,
-          lastActivated: activeKillSwitches.length > 0 
-            ? Math.max(...activeKillSwitches.map((ks: KillSwitch) => new Date(ks.updatedAt).getTime())).toString()
-            : undefined,
+          lastActivated:
+            activeKillSwitches.length > 0
+              ? Math.max(
+                  ...activeKillSwitches.map((ks: KillSwitch) => new Date(ks.updatedAt).getTime())
+                ).toString()
+              : undefined,
         });
       } else {
         // If API doesn't exist, create mock data for demonstration
@@ -72,7 +75,7 @@ export const useKillSwitch = () => {
             updatedAt: new Date().toISOString(),
           },
         ];
-        
+
         setKillSwitches(mockData);
         setStats({
           totalActive: 0,
@@ -110,9 +113,14 @@ export const useKillSwitch = () => {
       if (!killSwitch) return;
 
       // Optimistically update UI
-      const updatedKillSwitches = killSwitches.map(ks => 
-        ks.id === id 
-          ? { ...ks, enabled: true, reason: reason || ks.reason, updatedAt: new Date().toISOString() }
+      const updatedKillSwitches = killSwitches.map(ks =>
+        ks.id === id
+          ? {
+              ...ks,
+              enabled: true,
+              reason: reason || ks.reason,
+              updatedAt: new Date().toISOString(),
+            }
           : ks
       );
       setKillSwitches(updatedKillSwitches);
@@ -139,10 +147,8 @@ export const useKillSwitch = () => {
   const deactivateKillSwitch = async (id: string) => {
     try {
       // Optimistically update UI
-      const updatedKillSwitches = killSwitches.map(ks => 
-        ks.id === id 
-          ? { ...ks, enabled: false, updatedAt: new Date().toISOString() }
-          : ks
+      const updatedKillSwitches = killSwitches.map(ks =>
+        ks.id === id ? { ...ks, enabled: false, updatedAt: new Date().toISOString() } : ks
       );
       setKillSwitches(updatedKillSwitches);
 

@@ -30,6 +30,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
+    # Build core package first for dependency resolution
+    - name: Build core package
+      run: cd packages/core && npm run build
+    
     - name: Run ESLint
       run: npm run lint
       continue-on-error: true

@@ -2,26 +2,17 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened, synchronize, reopened, ready_for_review]
+    # 全ファイル対象でレビュー実行
+    # paths制限なし - 全変更を対象
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
+    # 全PRで実行 - 作成者に関係なく自動レビュー
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write  # コメント投稿に必要
       issues: read
       id-token: write
     
@@ -36,6 +27,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
@@ -51,8 +43,8 @@ jobs:
             
             Be constructive and helpful in your feedback.
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
+          # sticky commentを有効化 - PR更新時に既存コメントを更新
+          use_sticky_comment: true
           
           # Optional: Customize review based on file types
           # direct_prompt: |
@@ -68,11 +60,11 @@ jobs:
           #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
           #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
           
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
+          # プロジェクト特化ツール許可 - テスト・リント・型チェック実行可能
+          allowed_tools: "Bash(npm test),Bash(npm run lint),Bash(npm run typecheck),Bash(npm run build),Read,Grep,Glob"
           
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+# レビュー実行条件 - [skip-review]タグがない限り実行
+        # if文で条件制御（skip_ifパラメータは未サポートのため）
+        if: |
+          !contains(github.event.pull_request.title, '[skip-review]')
 

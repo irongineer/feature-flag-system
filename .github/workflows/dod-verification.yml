@@ -1,0 +1,286 @@
+name: Definition of Done (DoD) Verification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  dod-verification:
+    name: DoD Compliance Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      statuses: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Build core first to ensure dependencies are available
+      - name: Build core package
+        run: |
+          cd packages/core
+          npm run build
+
+      # DoD Item 1: 機能実装完了
+      - name: Verify Implementation Completeness
+        id: implementation-check
+        run: |
+          echo "✓ Checking implementation completeness..."
+          # 基本的なビルド確認
+          npm run build
+          echo "implementation_complete=true" >> $GITHUB_OUTPUT
+
+      # DoD Item 2: テストカバレッジ90%以上
+      - name: Run Tests and Check Coverage
+        id: test-coverage
+        run: |
+          echo "✓ Running comprehensive test suite..."
+          
+          # Core package tests
+          cd packages/core
+          npm test -- --coverage
+          CORE_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "Core coverage: ${CORE_COVERAGE}%"
+          
+          # API package tests
+          cd ../api
+          npm test -- --coverage
+          API_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "API coverage: ${API_COVERAGE}%"
+          
+          # Calculate overall coverage
+          OVERALL_COVERAGE=$(echo "scale=2; ($CORE_COVERAGE + $API_COVERAGE) / 2" | bc)
+          echo "Overall coverage: ${OVERALL_COVERAGE}%"
+          
+          if (( $(echo "$OVERALL_COVERAGE >= 90" | bc -l) )); then
+            echo "✅ Test coverage meets DoD requirement (>= 90%)"
+            echo "coverage_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Test coverage below DoD requirement: ${OVERALL_COVERAGE}% < 90%"
+            echo "coverage_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      # DoD Item 3: TypeScript型安全性100%
+      - name: TypeScript Type Safety Check
+        id: type-safety
+        run: |
+          echo "✓ Checking TypeScript type safety..."
+          
+          # Check all packages for type errors
+          PACKAGES=("core" "api" "cli" "sdk")
+          TYPE_ERRORS=0
+          
+          for package in "${PACKAGES[@]}"; do
+            echo "Checking types in packages/${package}..."
+            cd "packages/${package}"
+            if ! npx tsc --noEmit --strict; then
+              TYPE_ERRORS=$((TYPE_ERRORS + 1))
+              echo "❌ Type errors found in ${package}"
+            else
+              echo "✅ No type errors in ${package}"
+            fi
+            cd ../..
+          done
+          
+          if [ $TYPE_ERRORS -eq 0 ]; then
+            echo "✅ TypeScript type safety: 100% (0 errors)"
+            echo "types_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ TypeScript type errors found in $TYPE_ERRORS packages"
+            echo "types_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      # DoD Item 4: E2Eテスト通過
+      - name: E2E Tests Verification
+        id: e2e-tests
+        run: |
+          echo "✓ Verifying E2E test status..."
+          
+          # Check if E2E tests exist and run if they do
+          if [ -d "packages/admin-ui/e2e" ]; then
+            echo "E2E tests directory found"
+            cd packages/admin-ui
+            
+            # Install E2E dependencies
+            npm ci
+            
+            # Run E2E tests (with timeout)
+            timeout 600 npm run test:e2e || {
+              echo "❌ E2E tests failed or timed out"
+              echo "e2e_passed=false" >> $GITHUB_OUTPUT
+              exit 1
+            }
+            
+            echo "✅ E2E tests passed"
+            echo "e2e_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ No E2E tests found, skipping"
+            echo "e2e_passed=true" >> $GITHUB_OUTPUT
+          fi
+
+      # DoD Item 5: Expert Review確認
+      - name: Verify Expert Review Status
+        id: expert-review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+            
+            // Get all reviews for this PR
+            const reviews = await github.rest.pulls.listReviews({
+              owner,
+              repo,
+              pull_number: number
+            });
+            
+            console.log(`Found ${reviews.data.length} reviews`);
+            
+            // Check for Claude Code review
+            const claudeReview = reviews.data.find(review => 
+              review.user.login === 'claude' || 
+              review.body.includes('Claude Code') ||
+              review.body.includes('Expert Review')
+            );
+            
+            if (claudeReview) {
+              console.log('✅ Expert Review (Claude Code) found');
+              core.setOutput('expert_review_passed', 'true');
+              
+              // Check if review requests changes
+              if (claudeReview.state === 'CHANGES_REQUESTED') {
+                console.log('⚠️ Expert Review requests changes');
+                core.setOutput('expert_review_status', 'changes_requested');
+              } else {
+                console.log('✅ Expert Review approved or commented');
+                core.setOutput('expert_review_status', 'approved');
+              }
+            } else {
+              console.log('❌ Expert Review not found');
+              core.setOutput('expert_review_passed', 'false');
+              core.setOutput('expert_review_status', 'missing');
+            }
+
+      # DoD Item 6: CI/CD全チェック通過
+      - name: Verify All CI Checks
+        id: ci-checks
+        run: |
+          echo "✓ Verifying CI/CD pipeline status..."
+          
+          # Run lint
+          npm run lint
+          
+          # Check build in all packages
+          PACKAGES=("core" "api" "cli" "sdk")
+          for package in "${PACKAGES[@]}"; do
+            echo "Building ${package}..."
+            cd "packages/${package}"
+            npm run build
+            cd ../..
+          done
+          
+          echo "✅ All CI/CD checks passed"
+          echo "ci_passed=true" >> $GITHUB_OUTPUT
+
+      # DoD Summary Report
+      - name: Generate DoD Compliance Report
+        id: dod-report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const implementation = '${{ steps.implementation-check.outputs.implementation_complete }}' === 'true';
+            const coverage = '${{ steps.test-coverage.outputs.coverage_passed }}' === 'true';
+            const types = '${{ steps.type-safety.outputs.types_passed }}' === 'true';
+            const e2e = '${{ steps.e2e-tests.outputs.e2e_passed }}' === 'true';
+            const expertReview = '${{ steps.expert-review.outputs.expert_review_passed }}' === 'true';
+            const expertStatus = '${{ steps.expert-review.outputs.expert_review_status }}';
+            const ci = '${{ steps.ci-checks.outputs.ci_passed }}' === 'true';
+            
+            const dodItems = [
+              { name: '機能実装完了', passed: implementation },
+              { name: 'テストカバレッジ90%以上', passed: coverage },
+              { name: 'TypeScript型安全性100%', passed: types },
+              { name: 'E2Eテスト通過', passed: e2e },
+              { name: 'Expert Review完了', passed: expertReview },
+              { name: 'CI/CD全チェック通過', passed: ci }
+            ];
+            
+            const passedCount = dodItems.filter(item => item.passed).length;
+            const totalCount = dodItems.length;
+            const dodCompliance = Math.round((passedCount / totalCount) * 100);
+            
+            let reportBody = `## 📋 Definition of Done (DoD) Compliance Report\n\n`;
+            reportBody += `**DoD達成率**: ${dodCompliance}% (${passedCount}/${totalCount})\n\n`;
+            
+            reportBody += `### ✅ DoD項目チェック結果\n\n`;
+            dodItems.forEach(item => {
+              const status = item.passed ? '✅' : '❌';
+              reportBody += `- ${status} **${item.name}**\n`;
+            });
+            
+            if (expertReview && expertStatus === 'changes_requested') {
+              reportBody += `\n⚠️ **Expert Reviewで変更要求あり** - 修正対応が必要です\n`;
+            }
+            
+            if (dodCompliance === 100 && expertStatus !== 'changes_requested') {
+              reportBody += `\n🎉 **マージ準備完了** - 全DoD項目達成済み！\n`;
+              core.setOutput('merge_ready', 'true');
+            } else {
+              reportBody += `\n⚠️ **マージ保留** - DoD未達成項目の修正が必要です\n`;
+              core.setOutput('merge_ready', 'false');
+            }
+            
+            reportBody += `\n---\n*🤖 DoD自動検証 by Claude Code Integration*`;
+            
+            // Post or update comment
+            const { owner, repo, number } = context.issue;
+            const comments = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: number
+            });
+            
+            const existingComment = comments.data.find(comment => 
+              comment.body.includes('Definition of Done (DoD) Compliance Report')
+            );
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingComment.id,
+                body: reportBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: reportBody
+              });
+            }
+
+      # Block merge if DoD not satisfied
+      - name: DoD Enforcement
+        if: steps.dod-report.outputs.merge_ready != 'true'
+        run: |
+          echo "❌ DoD要件が満たされていません。マージをブロックします。"
+          echo "修正が必要な項目を確認し、全てのDoD要件を満たしてください。"
+          exit 1

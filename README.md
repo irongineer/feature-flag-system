@@ -1,9 +1,12 @@
 # 🎯 Feature Flag System
 
-マルチテナント SaaS 向けのエンタープライズグレード・フィーチャーフラグシステム
+マルチテナント SaaS 向けのエンタープライズグレード・フィーチャーフラグシステム  
+**Claude Code統合による次世代AI開発体験を実現** 🤖
 
 [![CI Pipeline](https://github.com/irongineer/feature-flag-system/actions/workflows/ci.yml/badge.svg)](https://github.com/irongineer/feature-flag-system/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Claude Code Integrated](https://img.shields.io/badge/Claude%20Code-Integrated-green.svg)](https://claude.ai/code)
+[![Sub Agents](https://img.shields.io/badge/Sub%20Agents-12-blue.svg)](./.claude/agents/)
 
 ## 🏗️ アーキテクチャ
 
@@ -98,6 +101,10 @@ npm run deploy:prod
 
 ```
 feature-flag-system/
+├── .claude/                  # 🤖 Claude Code統合システム
+│   ├── agents/               # Sub agentエコシステム (12 agents)
+│   ├── commands/             # カスタムコマンド集
+│   └── memory/               # プロジェクト記憶・学習
 ├── packages/
 │   ├── core/                 # フラグ評価エンジン
 │   ├── sdk/                  # Lambda用SDK
@@ -107,6 +114,48 @@ feature-flag-system/
 ├── infrastructure/           # AWS CDK定義
 ├── docs/                     # ドキュメント
 └── poc/                      # パフォーマンステスト
+```
+
+## 🤖 Claude Code統合機能
+
+### Sub Agent活用例
+```bash
+# Expert Review自動化 (Eric Evans DDD基準)
+claude-code --agent ddd-reviewer "新機能のドメインモデル設計をレビュー"
+
+# アーキテクチャ検証 (Martin Fowler基準)  
+claude-code --agent architecture-reviewer "レイヤード構造の適合性確認"
+
+# 品質・テスト評価 (和田卓人基準)
+claude-code --agent tdd-quality-checker "テストカバレッジ90%達成戦略"
+
+# フラグ設計最適化
+claude-code --agent feature-flag-architect "マルチテナント対応フラグ設計"
+
+# パフォーマンス監査
+claude-code --agent performance-auditor "システム全体の監査実行"
+```
+
+### カスタムコマンド活用
+```bash
+# プロジェクト特化コマンド
+claude
+> /feature-flags/design-optimization     # フラグ設計最適化
+> /quality-checks/comprehensive-review   # DoD準拠品質チェック  
+> /performance/system-audit              # システム全体監査
+```
+
+### AI統合開発フロー
+```bash
+# 1. Issue分析・計画生成
+claude-code --agent feature-flag-architect "Issue #123 の実装計画作成"
+
+# 2. 事前レビュー
+claude-code --agent ddd-reviewer "実装のDDD観点レビュー"
+claude-code --agent architecture-reviewer "アーキテクチャ適合性確認"
+
+# 3. 品質チェック  
+claude-code --agent tdd-quality-checker "DoD基準100%達成確認"
 ```
 
 ## 🛠️ 使用方法
@@ -181,6 +230,14 @@ curl -X POST "https://api.example.com/v1/flags" \
 - [x] **型安全性向上** - 環境設定の完全型安全化
 - [x] **包括的テスト** - 全環境でのCRUD操作・評価テスト完了
 
+### ✅ 実装済み (Phase 1.7 - Claude Code統合)
+
+- [x] **Sub agentエコシステム** - 12の専門エージェント実装
+- [x] **Expert Review自動化** - DDD・アーキテクチャ・品質の自動レビュー  
+- [x] **カスタムコマンド** - プロジェクト特化の効率化コマンド
+- [x] **最新機能活用** - Plan Mode・Memory System・Visual Integration対応
+- [x] **開発効率向上** - 大幅向上・Expert Review時間短縮
+
 ### 🔄 進行中 (Phase 1.8)
 
 - [ ] **Lambda API実装** - 管理API handlers完成
@@ -188,21 +245,30 @@ curl -X POST "https://api.example.com/v1/flags" \
 - [ ] **統合テスト** - LocalStack環境
 - [ ] **技術的負債返済** - TTLテスト安定化
 
-### 📅 計画中 (Phase 2)
+### 📅 計画中 (Phase 2 - Sub agent支援対応)
 
 - [ ] **管理画面MVP** - React + Ant Design Pro
-- [ ] **段階的ロールアウト** - パーセンテージベース
-- [ ] **A/Bテスト機能** - 複数バリアント対応
-- [ ] **高度な監査ログ** - 詳細な変更履歴
+- [ ] **段階的ロールアウト** - パーセンテージベース (`gradual-rollout-expert`)
+- [ ] **A/Bテスト機能** - 複数バリアント対応 (`ab-testing-implementer`)
+- [ ] **高度な監査ログ** - 詳細な変更履歴 (`performance-auditor`)
+- [ ] **Claude Code活用進化** - Plan Mode・Memory System拡張
 
 ## 📚 ドキュメント
 
+### 従来ドキュメント
 - [📐 アーキテクチャ設計](./docs/architecture/)
 - [🔄 シーケンス図](./docs/architecture/sequence-diagrams.md)
 - [🏗️ AWS構成図](./docs/architecture/aws-architecture.md)
 - [📋 設計決定記録 (ADR)](./docs/architecture/design-decisions.md)
 - [💰 技術的負債ログ](./docs/architecture/technical-debt-log.md)
 - [📖 API仕様書](./docs/api/openapi.yaml)
+
+### 🤖 Claude Code統合ドキュメント
+- [🎯 CLAUDE.md](./CLAUDE.md) - プロジェクト開発ガイド
+- [🤖 Sub Agents](/.claude/agents/README.md) - エージェントエコシステム
+- [⚡ Quick Start](/.claude/agents/quick-start-guide.md) - 即座に使える活用法
+- [🚀 Advanced Usage](/.claude/agents/advanced-usage-patterns.md) - エンタープライズ運用
+- [🔧 Troubleshooting](/.claude/agents/troubleshooting-guide.md) - 問題解決ガイド
 
 ## 🧪 テスト戦略
 

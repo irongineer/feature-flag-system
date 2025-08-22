@@ -1,10 +1,10 @@
-import { 
-  CloudWatchLogsClient, 
-  CreateLogStreamCommand, 
+import {
+  CloudWatchLogsClient,
+  CreateLogStreamCommand,
   PutLogEventsCommand,
   DescribeLogStreamsCommand,
   CreateLogGroupCommand,
-  ResourceAlreadyExistsException
+  ResourceAlreadyExistsException,
 } from '@aws-sdk/client-cloudwatch-logs';
 import { AuditLogEntry, LogsConfig } from '../types';
 
@@ -83,7 +83,6 @@ export class AuditLogger {
       this.sequenceToken = response.nextSequenceToken;
 
       console.log(`Successfully sent ${entries.length} log events to CloudWatch`);
-
     } catch (error) {
       console.error('Error sending logs to CloudWatch:', error);
       throw error;
@@ -168,7 +167,6 @@ export class AuditLogger {
 
       await this.client.send(createCommand);
       console.log(`Created log stream: ${this.logStreamName}`);
-
     } catch (error) {
       if (error instanceof ResourceAlreadyExistsException) {
         // ストリームが既に存在する場合は無視
@@ -190,7 +188,6 @@ export class AuditLogger {
 
       await this.client.send(command);
       console.log(`Created log group: ${this.config.logGroupName}`);
-
     } catch (error) {
       if (error instanceof ResourceAlreadyExistsException) {
         // ロググループが既に存在する場合は無視
@@ -210,10 +207,10 @@ export class AuditLogger {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    
+
     // Lambda実行コンテキストの識別子（擬似）
     const containerId = Math.random().toString(36).substr(2, 32);
-    
+
     return `${year}/${month}/${day}/[$LATEST]${containerId}`;
   }
 }

@@ -1,7 +1,9 @@
 import Joi from 'joi';
 import { FEATURE_FLAGS } from '@feature-flag/core';
 
-const flagKeySchema = Joi.string().valid(...Object.values(FEATURE_FLAGS)).required();
+const flagKeySchema = Joi.string()
+  .valid(...Object.values(FEATURE_FLAGS))
+  .required();
 
 export const flagRequestSchema = Joi.object({
   flagKey: flagKeySchema,

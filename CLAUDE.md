@@ -18,6 +18,10 @@ DevOps:   GitHub Actions + AWS CDK
 ### ディレクトリ構造
 ```
 feature-flag-system/
+├── .claude/          # Claude Code統合システム
+│   ├── agents/       # Sub agentエコシステム (12 agents)
+│   ├── commands/     # カスタムコマンド集
+│   └── memory/       # プロジェクト記憶・学習
 ├── packages/
 │   ├── core/         # フラグ評価エンジン
 │   ├── api/          # Lambda API + Express wrapper
@@ -42,6 +46,13 @@ feature-flag-system/
 - **DynamoDB統合**: 環境別テーブル自動切り替え
 - **型安全性**: TypeScript完全対応
 - **テスト検証**: 全環境でのE2Eテスト完了
+
+### ✅ Phase 1.7: Claude Code統合完了 (2025-08-17)
+- **Sub agentエコシステム**: 12の専門エージェント実装
+- **Expert Review自動化**: DDD・アーキテクチャ・品質の自動レビュー
+- **カスタムコマンド**: プロジェクト特化の効率化コマンド
+- **最新機能活用**: Plan Mode・Memory System・Visual Integration
+- **開発効率**: 大幅向上・Expert Review時間短縮
 
 ### 🔄 データフロー
 ```typescript
@@ -68,38 +79,85 @@ DELETE /api/flags/:id   # フラグ削除
 - **レビュー**: Expert Review必須（2名以上Approve）
 - **DoD**: Definition of Done達成確認
 
-### Expert Review体制
-#### Eric Evans (DDD観点)
+### Expert Review体制 (Sub agent自動化対応)
+#### Eric Evans (DDD観点) - `ddd-reviewer`
 - ドメインモデルの適切性
 - 境界コンテキストの明確性
 - ユビキタス言語の一貫性
+- **自動化**: `claude-code --agent ddd-reviewer`
 
-#### Martin Fowler (アーキテクチャ観点)
+#### Martin Fowler (アーキテクチャ観点) - `architecture-reviewer`
 - レイヤードアーキテクチャ準拠
 - 責務分離の適切性
 - 拡張性・保守性の考慮
+- **自動化**: `claude-code --agent architecture-reviewer`
 
-#### 和田卓人 (品質・TDD観点)
+#### 和田卓人 (品質・TDD観点) - `tdd-quality-checker`
 - TDD実践状況
 - テストカバレッジ90%以上
 - リファクタリング品質
+- **自動化**: `claude-code --agent tdd-quality-checker`
 
-### PRマージフロー
+### PRマージフロー (DoD準拠 + Sub agent統合)
 ```bash
-# 1. ブランチ作成
+# 1. ブランチ作成 + Issue分析
 git checkout -b feature/issue-number-description
+claude-code --agent feature-flag-architect "Issue #123 の実装計画作成"
 
-# 2. 実装・テスト
-npm test                # ユニットテスト
-npm run test:e2e       # E2Eテスト
+# 2. 実装・テスト (DoD基準)
+npm test                # ユニットテスト (90%カバレッジ必須)
+npm run test:e2e       # E2Eテスト (全通過必須)
+npm run lint           # コード品質チェック
+npm run typecheck      # TypeScript型安全性100%
 npm run build          # ビルド確認
 
-# 3. PR作成（日本語）
+# 3. 事前レビュー (Sub agent)
+claude-code --agent ddd-reviewer "実装のDDD観点レビュー"
+claude-code --agent architecture-reviewer "アーキテクチャ適合性確認"
+claude-code --agent tdd-quality-checker "品質・テスト戦略評価"
+
+# 4. PR作成（日本語）
 gh pr create --title "feat: 機能名実装 (#issue-number)"
 
-# 4. Expert Review待ち
-# 5. GitHub経由でマージ
+# 5. 📋 DoD自動検証プロセス (必須)
+# - Claude Code Expert Review自動実行
+# - DoD Verification CI実行 (6項目自動チェック)
+# - PR Template DoD チェックリスト確認
+
+# 6. 🔍 レビュー対応プロセス (必須)
+# - Claude Code レビューコメント確認・対応
+# - Critical/High Priority指摘事項の即座修正
+# - DoD Compliance Report 100%達成確認
+
+# 7. ✅ マージ実行 (条件達成後のみ)
+# - DoD Verification CI: ✅ 通過
+# - Expert Review: 承認済み
+# - 全必須チェック: ✅ 通過
 gh pr merge --squash
+```
+
+### 🚨 DoD準拠マージプロセス
+
+#### 📋 必須検証項目
+1. **機能実装完了** - 要求機能の完全実装
+2. **テストカバレッジ90%以上** - 自動計測・検証
+3. **TypeScript型安全性100%** - コンパイルエラー0件
+4. **E2Eテスト通過** - 主要シナリオ全成功
+5. **Expert Review完了** - Claude Code自動レビュー対応
+6. **CI/CD全チェック通過** - lint・build・deploy成功
+
+#### 🔒 自動マージブロック
+以下の場合、**自動的にマージがブロック**されます：
+- ❌ DoD Verification CI が失敗
+- ❌ Claude Code Expert Review が変更要求中  
+- ❌ 必須ステータスチェックが未通過
+- ❌ DoD達成率が100%未満
+
+#### 📊 DoD進捗確認
+```bash
+# DoD Compliance Report で進捗確認
+# PR画面に自動投稿されるレポートで達成状況を把握
+# 未達成項目の修正 → Push → 自動再検証
 ```
 
 ## 📊 品質基準
@@ -334,26 +392,34 @@ interface ApiEnvironmentConfig {
 - `/docs/architecture/` - アーキテクチャ設計
 - `/docs/runbooks/` - 運用手順書
 - `/docs/api/` - API仕様書
+- `/.claude/agents/` - Sub agentエコシステム
+- `/.claude/commands/` - カスタムコマンド集
 
 ## 💡 次のステップ
 
-### Phase 2: 拡張機能
-- [ ] 段階的ロールアウト（パーセンテージ配信）
-- [ ] A/Bテスト機能
-- [ ] リアルタイムメトリクス
-- [ ] 高度な監査・分析
-- [ ] Next.js管理画面への移行
+### Phase 2: 拡張機能 (Sub agent支援対応)
+- [ ] 段階的ロールアウト（パーセンテージ配信） - `gradual-rollout-expert`
+- [ ] A/Bテスト機能 - `ab-testing-implementer`
+- [ ] リアルタイムメトリクス - `performance-auditor`
+- [ ] 高度な監査・分析 - `performance-auditor` + `dynamodb-specialist`
+- [ ] Next.js管理画面への移行 - `architecture-reviewer`
 
-### 運用改善
-- [ ] モニタリング・アラート強化
-- [ ] 自動デプロイパイプライン
-- [ ] パフォーマンス最適化
-- [ ] セキュリティ強化
+### 運用改善 (Sub agent自動化)
+- [ ] モニタリング・アラート強化 - `performance-auditor`
+- [ ] 自動デプロイパイプライン - `ci-cd-optimizer`
+- [ ] パフォーマンス最適化 - `performance-auditor` + `dynamodb-specialist`
+- [ ] セキュリティ強化 - `architecture-reviewer`
+
+### Claude Code活用進化
+- [ ] Plan Mode完全統合 - 複雑機能の計画生成
+- [ ] Memory System拡張 - プロジェクト学習蓄積
+- [ ] Visual Integration - UI実装効率化
+- [ ] Community Contribution - Sub agentパターン汎用化
 
 ---
 
-**最終更新**: 2025-08-16  
-**ステータス**: Phase 1.5 マルチ環境対応完了 + 型安全性100% ✅
+**最終更新**: 2025-08-17  
+**ステータス**: Phase 1.7 Claude Code統合完了 + Sub agentエコシステム稼働 ✅
 
 ### 🎯 環境別テスト完了ステータス
 | 環境 | フラグ作成 | フラグ更新 | フラグ評価 | データ分離 |

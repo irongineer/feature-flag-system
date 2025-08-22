@@ -1,8 +1,6 @@
 import { DynamoDBStreamEvent, DynamoDBStreamHandler, Context } from 'aws-lambda';
 import { CloudWatchLogsClient } from '@aws-sdk/client-cloudwatch-logs';
-import { 
-  AuditLogEntry 
-} from '../types';
+import { AuditLogEntry } from '../types';
 import { FeatureFlagKey } from '../../../core/src/models';
 import { AuditLogger } from '../services/audit-logger';
 import { StreamEventParser } from '../services/stream-parser';
@@ -47,7 +45,7 @@ export const handler: DynamoDBStreamHandler = async (
 
       // ストリームレコードを監査ログエントリに変換
       const auditEntry = await convertStreamRecordToAuditEntry(record, context);
-      
+
       if (auditEntry) {
         auditEntries.push(auditEntry);
       }
@@ -58,10 +56,9 @@ export const handler: DynamoDBStreamHandler = async (
       await auditLogger.logBatch(auditEntries);
       console.log(`Successfully logged ${auditEntries.length} audit entries`);
     }
-
   } catch (error) {
     console.error('Error processing DynamoDB stream records:', error);
-    
+
     // 重要な監査ログの損失を防ぐため、エラーログも記録
     await auditLogger.logError({
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -69,7 +66,7 @@ export const handler: DynamoDBStreamHandler = async (
       recordCount: event.Records.length,
       requestId: context.awsRequestId,
     });
-    
+
     throw error;
   }
 };
@@ -131,7 +128,6 @@ async function convertStreamRecordToAuditEntry(
     };
 
     return auditEntry;
-
   } catch (error) {
     console.error('Error converting stream record to audit entry:', error);
     return null;
@@ -154,7 +150,7 @@ function extractTenantId(Keys?: any, NewImage?: any, OldImage?: any): string | u
   if (pk && pk.startsWith('TENANT#')) {
     return pk.replace('TENANT#', '');
   }
-  
+
   // その他のテーブルからテナント情報を抽出
   return NewImage?.tenantId?.S || OldImage?.tenantId?.S;
 }
@@ -168,7 +164,7 @@ function extractFlagKey(Keys?: any, NewImage?: any, OldImage?: any): string | un
   if (sk && sk.startsWith('FLAG#')) {
     return sk.replace('FLAG#', '');
   }
-  
+
   return NewImage?.flagKey?.S || OldImage?.flagKey?.S || Keys?.flagKey?.S;
 }
 

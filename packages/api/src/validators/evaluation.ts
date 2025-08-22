@@ -1,7 +1,9 @@
 import Joi from 'joi';
 import { FEATURE_FLAGS } from '@feature-flag/core';
 
-const flagKeySchema = Joi.string().valid(...Object.values(FEATURE_FLAGS)).required();
+const flagKeySchema = Joi.string()
+  .valid(...Object.values(FEATURE_FLAGS))
+  .required();
 
 export const evaluationRequestSchema = Joi.object({
   tenantId: Joi.string().min(1).max(100).required(),

@@ -13,7 +13,7 @@ interface SetTenantOverrideOptions {
 
 export async function setTenantOverride(options: SetTenantOverrideOptions) {
   console.log(chalk.blue('🎯 Setting tenant override'));
-  
+
   try {
     // 対話式で不足している情報を取得
     const answers = await inquirer.prompt([
@@ -21,7 +21,7 @@ export async function setTenantOverride(options: SetTenantOverrideOptions) {
         type: 'input',
         name: 'tenant',
         message: 'Enter tenant ID:',
-        validate: (input) => input.length > 0 || 'Tenant ID is required',
+        validate: input => input.length > 0 || 'Tenant ID is required',
         when: !options.tenant,
       },
       {
@@ -44,24 +44,24 @@ export async function setTenantOverride(options: SetTenantOverrideOptions) {
         type: 'input',
         name: 'user',
         message: 'Enter your username:',
-        validate: (input) => input.length > 0 || 'Username is required',
+        validate: input => input.length > 0 || 'Username is required',
         when: !options.user,
       },
     ]);
-    
+
     const tenantId = options.tenant || answers.tenant;
     const flagKey = options.key || answers.key;
     const enabled = options.enabled === 'true' || answers.enabled;
     const user = options.user || answers.user;
-    
+
     // API呼び出し
     const spinner = ora('Setting tenant override...').start();
     const apiClient = getApiClient();
-    
+
     await apiClient.setTenantOverride(tenantId, flagKey, enabled, user);
-    
+
     spinner.succeed(chalk.green('✅ Tenant override set successfully'));
-    
+
     // 結果の表示
     console.log('');
     console.log(chalk.bold('Tenant override set:'));
@@ -70,7 +70,6 @@ export async function setTenantOverride(options: SetTenantOverrideOptions) {
     console.log(`  Enabled: ${enabled ? chalk.green('true') : chalk.red('false')}`);
     console.log(`  Updated by: ${user}`);
     console.log(`  Timestamp: ${new Date().toISOString()}`);
-    
   } catch (error) {
     console.error(chalk.red('❌ Failed to set tenant override'));
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));

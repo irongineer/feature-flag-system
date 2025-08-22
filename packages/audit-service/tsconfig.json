@@ -5,9 +5,13 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": true
   },
   "include": [
     "src/**/*"
+  ],
+  "references": [
+    {"path": "../core"}
   ]
 }

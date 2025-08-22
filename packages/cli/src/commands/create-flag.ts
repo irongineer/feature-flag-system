@@ -14,9 +14,8 @@ interface CreateFlagOptions {
 
 export async function createFlag(options: CreateFlagOptions) {
   console.log(chalk.blue('🚀 Creating new feature flag'));
-  
+
   try {
-    
     // 対話式で不足している情報を取得
     const answers = await inquirer.prompt([
       {
@@ -33,7 +32,7 @@ export async function createFlag(options: CreateFlagOptions) {
         type: 'input',
         name: 'description',
         message: 'Enter flag description:',
-        validate: (input) => input.length > 0 || 'Description is required',
+        validate: input => input.length > 0 || 'Description is required',
         when: !options.description,
       },
       {
@@ -54,7 +53,7 @@ export async function createFlag(options: CreateFlagOptions) {
         type: 'input',
         name: 'expires',
         message: 'Enter expiration date (ISO format, optional):',
-        validate: (input) => {
+        validate: input => {
           if (!input) return true;
           try {
             new Date(input);
@@ -66,7 +65,7 @@ export async function createFlag(options: CreateFlagOptions) {
         when: !options.expires,
       },
     ]);
-    
+
     // オプションとプロンプトの回答をマージ
     const flagData = {
       flagKey: options.key || answers.key,
@@ -75,26 +74,27 @@ export async function createFlag(options: CreateFlagOptions) {
       owner: options.owner || answers.owner,
       expiresAt: options.expires || answers.expires || undefined,
     };
-    
+
     // API呼び出し
     const spinner = ora('Creating flag...').start();
     const apiClient = getApiClient();
-    
+
     await apiClient.createFlag(flagData);
-    
+
     spinner.succeed(chalk.green('✅ Flag created successfully'));
-    
+
     // 結果の表示
     console.log('');
     console.log(chalk.bold('Created flag:'));
     console.log(`  Key: ${chalk.cyan(flagData.flagKey)}`);
     console.log(`  Description: ${flagData.description}`);
-    console.log(`  Default Enabled: ${flagData.defaultEnabled ? chalk.green('true') : chalk.red('false')}`);
+    console.log(
+      `  Default Enabled: ${flagData.defaultEnabled ? chalk.green('true') : chalk.red('false')}`
+    );
     console.log(`  Owner: ${flagData.owner}`);
     if (flagData.expiresAt) {
       console.log(`  Expires: ${chalk.yellow(flagData.expiresAt)}`);
     }
-    
   } catch (error) {
     console.error(chalk.red('❌ Failed to create flag'));
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
