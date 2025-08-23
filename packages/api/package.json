@@ -9,6 +9,7 @@
     "dev": "tsx src/simple-server.ts",
     "start": "npm run dev",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage --reporter=basic",
     "test:watch": "vitest",
     "package": "npm run build && zip -r lambda-package.zip dist/ node_modules/"
   },
