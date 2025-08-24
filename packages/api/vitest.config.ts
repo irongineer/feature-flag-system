@@ -8,13 +8,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{js,ts}'],
       exclude: [
         'node_modules/',
         'dist/',
-        'tests/setup.ts',
+        'tests/',
         '**/*.d.ts',
+        '**/*.test.{js,ts}',
+        '**/*.spec.{js,ts}',
         'lambda-dist/',
-        'debug-server.js'
+        'debug-server.js',
+        'src/index.ts',
+        'src/local-server.ts',
+        'src/simple-server.ts'
       ],
       thresholds: {
         global: {
