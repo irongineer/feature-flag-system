@@ -54,19 +54,32 @@ jobs:
           
           # Core package tests
           cd packages/core
-          CORE_OUTPUT=$(npm test -- --coverage | grep "All files" | head -1)
-          CORE_COVERAGE=$(echo "$CORE_OUTPUT" | awk '{gsub(/\|/, ""); print $2}')
+          npm test -- --coverage > coverage_output.txt 2>&1
+          CORE_COVERAGE=$(grep "All files" coverage_output.txt | tail -1 | awk -F '|' '{gsub(/ /, "", $2); print $2}')
           echo "Core coverage: ${CORE_COVERAGE}%"
+          cat coverage_output.txt | grep "All files" | tail -1
           
           # API package tests  
           cd ../api
-          API_OUTPUT=$(npm test -- --coverage | grep "All files" | head -1)
-          API_COVERAGE=$(echo "$API_OUTPUT" | awk '{gsub(/\|/, ""); print $2}')
+          npm test -- --coverage > coverage_output.txt 2>&1
+          API_COVERAGE=$(grep "All files" coverage_output.txt | tail -1 | awk -F '|' '{gsub(/ /, "", $2); print $2}')
           echo "API coverage: ${API_COVERAGE}%"
+          cat coverage_output.txt | grep "All files" | tail -1
+          
+          # Validate coverage values
+          if [[ -z "$CORE_COVERAGE" ]] || [[ "$CORE_COVERAGE" == "" ]]; then
+            echo "❌ Failed to extract core coverage"
+            CORE_COVERAGE="0"
+          fi
+          
+          if [[ -z "$API_COVERAGE" ]] || [[ "$API_COVERAGE" == "" ]]; then
+            echo "❌ Failed to extract API coverage"  
+            API_COVERAGE="0"
+          fi
           
           # Calculate overall coverage
           OVERALL_COVERAGE=$(echo "scale=2; ($CORE_COVERAGE + $API_COVERAGE) / 2" | bc)
-          echo "Overall coverage: ${OVERALL_COVERAGE}%"
+          echo "Overall coverage: ${OVERALL_COVERAGE}% (Core: ${CORE_COVERAGE}%, API: ${API_COVERAGE}%)"
           
           if (( $(echo "$OVERALL_COVERAGE >= 90" | bc -l) )); then
             echo "✅ Test coverage meets DoD requirement (>= 90%)"
