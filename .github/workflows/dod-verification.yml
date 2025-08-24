@@ -54,14 +54,14 @@ jobs:
           
           # Core package tests
           cd packages/core
-          npm test -- --coverage
-          CORE_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          CORE_OUTPUT=$(npm test -- --coverage | grep "All files" | head -1)
+          CORE_COVERAGE=$(echo "$CORE_OUTPUT" | awk '{gsub(/\|/, ""); print $2}')
           echo "Core coverage: ${CORE_COVERAGE}%"
           
-          # API package tests
+          # API package tests  
           cd ../api
-          npm test -- --coverage
-          API_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          API_OUTPUT=$(npm test -- --coverage | grep "All files" | head -1)
+          API_COVERAGE=$(echo "$API_OUTPUT" | awk '{gsub(/\|/, ""); print $2}')
           echo "API coverage: ${API_COVERAGE}%"
           
           # Calculate overall coverage
