@@ -142,32 +142,39 @@ jobs:
           script: |
             const { owner, repo, number } = context.issue;
             
-            // Get all reviews for this PR
-            const reviews = await github.rest.pulls.listReviews({
+            // Get all comments for this PR (Claude Code posts as comments, not reviews)
+            const comments = await github.rest.issues.listComments({
               owner,
               repo,
-              pull_number: number
+              issue_number: number
             });
             
-            console.log(`Found ${reviews.data.length} reviews`);
+            console.log(`Found ${comments.data.length} comments`);
             
-            // Check for Claude Code review
-            const claudeReview = reviews.data.find(review => 
-              review.user.login === 'claude' || 
-              review.body.includes('Claude Code') ||
-              review.body.includes('Expert Review')
+            // Check for Claude Code expert review in comments
+            const claudeComment = comments.data.find(comment => 
+              comment.user.login === 'github-actions' && (
+                comment.body.includes('Claude finished') ||
+                comment.body.includes('PR Review Completed') ||
+                comment.body.includes('Expert Review') ||
+                comment.body.includes('Final Recommendation') ||
+                comment.body.includes('APPROVE')
+              )
             );
             
-            if (claudeReview) {
-              console.log('✅ Expert Review (Claude Code) found');
+            if (claudeComment) {
+              console.log('✅ Expert Review (Claude Code) found in comments');
               core.setOutput('expert_review_passed', 'true');
               
-              // Check if review requests changes
-              if (claudeReview.state === 'CHANGES_REQUESTED') {
+              // Check if review contains approval or requests changes
+              if (claudeComment.body.includes('❌') || claudeComment.body.includes('REJECT')) {
                 console.log('⚠️ Expert Review requests changes');
                 core.setOutput('expert_review_status', 'changes_requested');
+              } else if (claudeComment.body.includes('✅ APPROVE') || claudeComment.body.includes('Final Recommendation: **✅ APPROVE**')) {
+                console.log('✅ Expert Review approved');
+                core.setOutput('expert_review_status', 'approved');
               } else {
-                console.log('✅ Expert Review approved or commented');
+                console.log('✅ Expert Review completed');
                 core.setOutput('expert_review_status', 'approved');
               }
             } else {
