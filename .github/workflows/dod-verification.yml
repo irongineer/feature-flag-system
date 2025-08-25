@@ -125,16 +125,9 @@ jobs:
             
             console.log(`Found ${comments.data.length} comments`);
             
-            // Debug: log all comment users and first 100 chars of body
-            comments.data.forEach((comment, index) => {
-              console.log(`Comment ${index + 1}: User: ${comment.user.login}, Type: ${comment.user.type}, Body starts with: "${comment.body.substring(0, 100)}..."`);
-            });
-            
-            // Check for Claude Code expert review in comments (more flexible matching)
+            // Check for Claude Code expert review in comments  
             const claudeComments = comments.data.filter(comment => 
-              (comment.user.login === 'github-actions' || 
-               comment.user.login.includes('github-actions') ||
-               comment.user.type === 'Bot') && 
+              comment.user.login === 'github-actions[bot]' && 
               comment.body.includes('Claude finished')
             );
             
