@@ -1,18 +1,30 @@
 import { DynamoDbClient, FeatureFlagKey } from '@feature-flag/core';
 import { getConfig } from './config';
 
+export interface ApiClientConfig {
+  region?: string;
+  tableName?: string;
+  endpoint?: string;
+  environment?: string;
+}
+
 export class ApiClient {
   private dynamoClient: DynamoDbClient;
   private config: any;
 
-  constructor() {
-    this.config = getConfig();
-    this.dynamoClient = new DynamoDbClient({
-      region: this.config.region,
-      tableName: this.config.tableName,
-      endpoint: this.config.endpoint,
-      environment: this.config.environment || 'development',
-    });
+  constructor(configOverride?: ApiClientConfig, dynamoClientOverride?: DynamoDbClient) {
+    this.config = configOverride || getConfig();
+    
+    if (dynamoClientOverride) {
+      this.dynamoClient = dynamoClientOverride;
+    } else {
+      this.dynamoClient = new DynamoDbClient({
+        region: this.config.region,
+        tableName: this.config.tableName,
+        endpoint: this.config.endpoint,
+        environment: this.config.environment || 'development',
+      });
+    }
   }
 
   async createFlag(flagData: any) {

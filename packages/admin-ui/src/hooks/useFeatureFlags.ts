@@ -77,7 +77,7 @@ export const useUpdateFlag = () => {
       // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAGS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.FLAG(variables.flagKey) });
-      // Note: Success message is handled in the component for better UX control
+      message.success(`フラグ "${variables.flagKey}" を更新しました`);
     },
     onError: (error: any) => {
       message.error(`フラグの更新に失敗しました: ${error.message}`);

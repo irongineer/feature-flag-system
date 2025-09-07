@@ -1,4 +1,5 @@
 export { handler as evaluationHandler } from './handlers/evaluation';
+export { handler as batchEvaluationHandler } from './handlers/batch-evaluation';
 export { handler as managementHandler } from './handlers/management';
 export * from './validators/evaluation';
 export * from './validators/management';

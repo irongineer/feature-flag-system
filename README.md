@@ -24,6 +24,34 @@ AWS サーバーレスアーキテクチャによる高可用性・高性能な�
 - **100%** - キャッシュヒット率
 - **99.9%+** - 可用性目標
 
+## 📊 DynamoDB最適化
+
+**最新の最適化レポート**: [DYNAMODB_OPTIMIZATION_REPORT.md](./DYNAMODB_OPTIMIZATION_REPORT.md)
+
+### パフォーマンステスト実行
+
+```bash
+# DynamoDBベンチマークテスト (ローカル)
+cd performance-test
+npm install
+npm run benchmark
+
+# カスタム設定でテスト実行  
+npm run benchmark -- --iterations 5000 --tenants 50 --concurrency 8
+```
+
+### 最適化されたリポジトリ使用例
+
+```typescript
+import { OptimizedDynamoDBRepository } from './packages/core/src/repositories/optimized-dynamo-repository';
+
+// Single Table Design + 効率的なバッチ評価
+const repo = new OptimizedDynamoDBRepository(config);
+const result = await repo.batchEvaluateFlags(tenantId, flagKeys, environment);
+
+console.log(`${result.flagCount}フラグを${result.performance.totalLatency}msで評価完了`);
+```
+
 ## 🚀 クイックスタート
 
 ### 前提条件
