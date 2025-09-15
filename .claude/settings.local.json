@@ -90,7 +90,8 @@
       "mcp__serena__get_symbols_overview",
       "mcp__serena__think_about_task_adherence",
       "mcp__serena__activate_project",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(gh run view:*)"
     ],
     "deny": []
   },

@@ -1,19 +1,49 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { table } from 'table';
-import { getApiClient } from '../utils/api-client';
+import { getApiClient, ApiClient } from '../utils/api-client';
 
-interface ListFlagsOptions {
+export interface ListFlagsOptions {
   tenant?: string;
   format?: 'table' | 'json';
 }
 
-export async function listFlags(options: ListFlagsOptions) {
-  console.log(chalk.blue('📋 Listing feature flags'));
+export interface ListFlagsDependencies {
+  console?: {
+    log: typeof console.log;
+    error: typeof console.error;
+  };
+  ora?: typeof ora;
+  process?: {
+    exit: typeof process.exit;
+  };
+  apiClient?: ApiClient;
+  table?: typeof table;
+  Date?: DateConstructor;
+}
+
+const defaultDependencies: Required<ListFlagsDependencies> = {
+  console: {
+    log: console.log,
+    error: console.error,
+  },
+  ora: ora,
+  process: {
+    exit: process.exit,
+  },
+  apiClient: getApiClient(),
+  table: table,
+  Date: Date,
+};
+
+export async function listFlags(options: ListFlagsOptions, deps?: ListFlagsDependencies) {
+  const resolvedDeps = { ...defaultDependencies, ...deps };
+  
+  resolvedDeps.console.log(chalk.blue('📋 Listing feature flags'));
 
   try {
-    const spinner = ora('Fetching flags...').start();
-    const apiClient = getApiClient();
+    const spinner = resolvedDeps.ora('Fetching flags...').start();
+    const apiClient = deps?.apiClient || resolvedDeps.apiClient;
 
     const flags = await apiClient.listFlags();
 
@@ -25,16 +55,16 @@ export async function listFlags(options: ListFlagsOptions) {
     spinner.succeed(chalk.green(`✅ Found ${flags.length} flags`));
 
     if (options.format === 'json') {
-      console.log(JSON.stringify({ flags, tenantOverrides }, null, 2));
+      resolvedDeps.console.log(JSON.stringify({ flags, tenantOverrides }, null, 2));
       return;
     }
 
     // テーブル形式での表示
-    console.log('');
-    console.log(chalk.bold('Feature Flags:'));
+    resolvedDeps.console.log('');
+    resolvedDeps.console.log(chalk.bold('Feature Flags:'));
 
     if (flags.length === 0) {
-      console.log(chalk.yellow('No flags found'));
+      resolvedDeps.console.log(chalk.yellow('No flags found'));
       return;
     }
 
@@ -53,7 +83,7 @@ export async function listFlags(options: ListFlagsOptions) {
         flag.description.length > 40 ? flag.description.substring(0, 37) + '...' : flag.description,
         flag.defaultEnabled ? chalk.green('ON') : chalk.red('OFF'),
         flag.owner,
-        new Date(flag.createdAt).toLocaleDateString(),
+        new resolvedDeps.Date(flag.createdAt).toLocaleDateString(),
       ];
 
       if (options.tenant) {
@@ -68,8 +98,8 @@ export async function listFlags(options: ListFlagsOptions) {
       tableData.push(row);
     });
 
-    console.log(
-      table(tableData, {
+    resolvedDeps.console.log(
+      resolvedDeps.table(tableData, {
         border: {
           topBody: '─',
           topJoin: '┬',
@@ -91,11 +121,11 @@ export async function listFlags(options: ListFlagsOptions) {
     );
 
     if (options.tenant) {
-      console.log(chalk.gray(`Showing overrides for tenant: ${options.tenant}`));
+      resolvedDeps.console.log(chalk.gray(`Showing overrides for tenant: ${options.tenant}`));
     }
   } catch (error) {
-    console.error(chalk.red('❌ Failed to list flags'));
-    console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
-    process.exit(1);
+    resolvedDeps.console.error(chalk.red('❌ Failed to list flags'));
+    resolvedDeps.console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+    resolvedDeps.process.exit(1);
   }
 }

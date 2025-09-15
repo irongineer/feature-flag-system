@@ -274,7 +274,7 @@ describe('Feature Flag API Service Specification', () => {
             // Then: Should update flag successfully
             expect(result).toEqual(updatedFlag);
             expect(mockAxiosInstance.put).toHaveBeenCalledWith(
-              '/flags/billing_v2_enable',
+              '/flags/by-key/billing_v2_enable',
               updateData
             );
 

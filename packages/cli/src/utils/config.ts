@@ -2,14 +2,30 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const CONFIG_DIR = path.join(os.homedir(), '.feature-flag');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
-
 interface Config {
   region: string;
   tableName: string;
   endpoint?: string;
   profile?: string;
+}
+
+export interface FileSystemDeps {
+  existsSync: typeof fs.existsSync;
+  readFileSync: typeof fs.readFileSync;
+  writeFileSync: typeof fs.writeFileSync;
+  mkdirSync: typeof fs.mkdirSync;
+  unlinkSync: typeof fs.unlinkSync;
+}
+
+export interface SystemDeps {
+  homedir: typeof os.homedir;
+}
+
+export interface ConfigDependencies {
+  fs?: FileSystemDeps;
+  os?: SystemDeps;
+  configDir?: string;
+  configFile?: string;
 }
 
 const DEFAULT_CONFIG: Config = {
@@ -19,10 +35,35 @@ const DEFAULT_CONFIG: Config = {
   profile: 'default',
 };
 
-export function getConfig(): Config {
+// Default dependencies
+const defaultDeps: Required<ConfigDependencies> = {
+  fs: {
+    existsSync: fs.existsSync,
+    readFileSync: fs.readFileSync,
+    writeFileSync: fs.writeFileSync,
+    mkdirSync: fs.mkdirSync,
+    unlinkSync: fs.unlinkSync,
+  },
+  os: {
+    homedir: os.homedir,
+  },
+  configDir: '',
+  configFile: '',
+};
+
+function getConfigPaths(deps: Required<ConfigDependencies>) {
+  const configDir = deps.configDir || path.join(deps.os.homedir(), '.feature-flag');
+  const configFile = deps.configFile || path.join(configDir, 'config.json');
+  return { configDir, configFile };
+}
+
+export function getConfig(deps?: ConfigDependencies): Config {
+  const resolvedDeps = { ...defaultDeps, ...deps };
+  const { configFile } = getConfigPaths(resolvedDeps);
+
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const configData = fs.readFileSync(CONFIG_FILE, 'utf8');
+    if (resolvedDeps.fs.existsSync(configFile)) {
+      const configData = resolvedDeps.fs.readFileSync(configFile, 'utf8');
       const config = JSON.parse(configData);
       return { ...DEFAULT_CONFIG, ...config };
     }
@@ -33,8 +74,8 @@ export function getConfig(): Config {
   return DEFAULT_CONFIG;
 }
 
-export function setConfig(key: string, value: string) {
-  const config = getConfig();
+export function setConfig(key: string, value: string, deps?: ConfigDependencies) {
+  const config = getConfig(deps);
 
   // ネストされたキーをサポート
   const keys = key.split('.');
@@ -49,17 +90,20 @@ export function setConfig(key: string, value: string) {
 
   current[keys[keys.length - 1]] = value;
 
-  saveConfig(config);
+  saveConfig(config, deps);
 }
 
-export function saveConfig(config: Config) {
+export function saveConfig(config: Config, deps?: ConfigDependencies) {
+  const resolvedDeps = { ...defaultDeps, ...deps };
+  const { configDir, configFile } = getConfigPaths(resolvedDeps);
+
   try {
     // 設定ディレクトリが存在しない場合は作成
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    if (!resolvedDeps.fs.existsSync(configDir)) {
+      resolvedDeps.fs.mkdirSync(configDir, { recursive: true });
     }
 
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+    resolvedDeps.fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
   } catch (error) {
     throw new Error(
       `Could not save config: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -67,10 +111,13 @@ export function saveConfig(config: Config) {
   }
 }
 
-export function resetConfig() {
+export function resetConfig(deps?: ConfigDependencies) {
+  const resolvedDeps = { ...defaultDeps, ...deps };
+  const { configFile } = getConfigPaths(resolvedDeps);
+
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      fs.unlinkSync(CONFIG_FILE);
+    if (resolvedDeps.fs.existsSync(configFile)) {
+      resolvedDeps.fs.unlinkSync(configFile);
     }
   } catch (error) {
     throw new Error(

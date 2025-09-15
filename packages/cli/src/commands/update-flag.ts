@@ -2,21 +2,53 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { FEATURE_FLAGS } from '@feature-flag/core';
-import { getApiClient } from '../utils/api-client';
+import { getApiClient, ApiClient } from '../utils/api-client';
 
-interface UpdateFlagOptions {
+export interface UpdateFlagOptions {
   key?: string;
   description?: string;
   enabled?: string;
   owner?: string;
 }
 
-export async function updateFlag(options: UpdateFlagOptions) {
-  console.log(chalk.blue('🔄 Updating feature flag'));
+export interface UpdateFlagDependencies {
+  console?: {
+    log: typeof console.log;
+    error: typeof console.error;
+  };
+  inquirer?: {
+    prompt: typeof inquirer.prompt;
+  };
+  ora?: typeof ora;
+  process?: {
+    exit: typeof process.exit;
+  };
+  apiClient?: ApiClient;
+}
+
+const defaultDependencies: Required<UpdateFlagDependencies> = {
+  console: {
+    log: console.log,
+    error: console.error,
+  },
+  inquirer: {
+    prompt: inquirer.prompt,
+  },
+  ora: ora,
+  process: {
+    exit: process.exit,
+  },
+  apiClient: getApiClient(),
+};
+
+export async function updateFlag(options: UpdateFlagOptions, deps?: UpdateFlagDependencies) {
+  const resolvedDeps = { ...defaultDependencies, ...deps };
+  
+  resolvedDeps.console.log(chalk.blue('🔄 Updating feature flag'));
 
   try {
     // 対話式で不足している情報を取得
-    const answers = await inquirer.prompt([
+    const answers = await resolvedDeps.inquirer.prompt([
       {
         type: 'list',
         name: 'key',
@@ -55,7 +87,12 @@ export async function updateFlag(options: UpdateFlagOptions) {
     }
 
     if (options.enabled !== undefined || answers.enabled !== undefined) {
-      updates.defaultEnabled = options.enabled === 'true' || answers.enabled;
+      const enabledValue = options.enabled !== undefined ? options.enabled : answers.enabled;
+      if (typeof enabledValue === 'string') {
+        updates.defaultEnabled = enabledValue === 'true';
+      } else if (typeof enabledValue === 'boolean') {
+        updates.defaultEnabled = enabledValue;
+      }
     }
 
     if (options.owner || answers.owner) {
@@ -63,28 +100,28 @@ export async function updateFlag(options: UpdateFlagOptions) {
     }
 
     if (Object.keys(updates).length === 0) {
-      console.log(chalk.yellow('No updates specified'));
+      resolvedDeps.console.log(chalk.yellow('No updates specified'));
       return;
     }
 
     // API呼び出し
-    const spinner = ora('Updating flag...').start();
-    const apiClient = getApiClient();
+    const spinner = resolvedDeps.ora('Updating flag...').start();
+    const apiClient = deps?.apiClient || resolvedDeps.apiClient;
 
     await apiClient.updateFlag(flagKey, updates);
 
     spinner.succeed(chalk.green('✅ Flag updated successfully'));
 
     // 結果の表示
-    console.log('');
-    console.log(chalk.bold('Updated flag:'));
-    console.log(`  Key: ${chalk.cyan(flagKey)}`);
+    resolvedDeps.console.log('');
+    resolvedDeps.console.log(chalk.bold('Updated flag:'));
+    resolvedDeps.console.log(`  Key: ${chalk.cyan(flagKey)}`);
     Object.entries(updates).forEach(([key, value]) => {
-      console.log(`  ${key}: ${value}`);
+      resolvedDeps.console.log(`  ${key}: ${value}`);
     });
   } catch (error) {
-    console.error(chalk.red('❌ Failed to update flag'));
-    console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
-    process.exit(1);
+    resolvedDeps.console.error(chalk.red('❌ Failed to update flag'));
+    resolvedDeps.console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+    resolvedDeps.process.exit(1);
   }
 }

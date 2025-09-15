@@ -2,21 +2,55 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { FEATURE_FLAGS } from '@feature-flag/core';
-import { getApiClient } from '../utils/api-client';
+import { getApiClient, ApiClient } from '../utils/api-client';
 
-interface SetTenantOverrideOptions {
+export interface SetTenantOverrideOptions {
   tenant?: string;
   key?: string;
   enabled?: string;
   user?: string;
 }
 
-export async function setTenantOverride(options: SetTenantOverrideOptions) {
-  console.log(chalk.blue('🎯 Setting tenant override'));
+export interface SetTenantOverrideDependencies {
+  console?: {
+    log: typeof console.log;
+    error: typeof console.error;
+  };
+  inquirer?: {
+    prompt: typeof inquirer.prompt;
+  };
+  ora?: typeof ora;
+  process?: {
+    exit: typeof process.exit;
+  };
+  apiClient?: ApiClient;
+  Date?: DateConstructor;
+}
+
+const defaultDependencies: Required<SetTenantOverrideDependencies> = {
+  console: {
+    log: console.log,
+    error: console.error,
+  },
+  inquirer: {
+    prompt: inquirer.prompt,
+  },
+  ora: ora,
+  process: {
+    exit: process.exit,
+  },
+  apiClient: getApiClient(),
+  Date: Date,
+};
+
+export async function setTenantOverride(options: SetTenantOverrideOptions, deps?: SetTenantOverrideDependencies) {
+  const resolvedDeps = { ...defaultDependencies, ...deps };
+  
+  resolvedDeps.console.log(chalk.blue('🎯 Setting tenant override'));
 
   try {
     // 対話式で不足している情報を取得
-    const answers = await inquirer.prompt([
+    const answers = await resolvedDeps.inquirer.prompt([
       {
         type: 'input',
         name: 'tenant',
@@ -51,28 +85,36 @@ export async function setTenantOverride(options: SetTenantOverrideOptions) {
 
     const tenantId = options.tenant || answers.tenant;
     const flagKey = options.key || answers.key;
-    const enabled = options.enabled === 'true' || answers.enabled;
+    
+    // Handle enabled value - prioritize options over answers
+    let enabled: boolean;
+    if (options.enabled !== undefined) {
+      enabled = options.enabled === 'true';
+    } else {
+      enabled = answers.enabled;
+    }
+    
     const user = options.user || answers.user;
 
     // API呼び出し
-    const spinner = ora('Setting tenant override...').start();
-    const apiClient = getApiClient();
+    const spinner = resolvedDeps.ora('Setting tenant override...').start();
+    const apiClient = deps?.apiClient || resolvedDeps.apiClient;
 
     await apiClient.setTenantOverride(tenantId, flagKey, enabled, user);
 
     spinner.succeed(chalk.green('✅ Tenant override set successfully'));
 
     // 結果の表示
-    console.log('');
-    console.log(chalk.bold('Tenant override set:'));
-    console.log(`  Tenant: ${chalk.cyan(tenantId)}`);
-    console.log(`  Flag: ${chalk.cyan(flagKey)}`);
-    console.log(`  Enabled: ${enabled ? chalk.green('true') : chalk.red('false')}`);
-    console.log(`  Updated by: ${user}`);
-    console.log(`  Timestamp: ${new Date().toISOString()}`);
+    resolvedDeps.console.log('');
+    resolvedDeps.console.log(chalk.bold('Tenant override set:'));
+    resolvedDeps.console.log(`  Tenant: ${chalk.cyan(tenantId)}`);
+    resolvedDeps.console.log(`  Flag: ${chalk.cyan(flagKey)}`);
+    resolvedDeps.console.log(`  Enabled: ${enabled ? chalk.green('true') : chalk.red('false')}`);
+    resolvedDeps.console.log(`  Updated by: ${user}`);
+    resolvedDeps.console.log(`  Timestamp: ${new resolvedDeps.Date().toISOString()}`);
   } catch (error) {
-    console.error(chalk.red('❌ Failed to set tenant override'));
-    console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
-    process.exit(1);
+    resolvedDeps.console.error(chalk.red('❌ Failed to set tenant override'));
+    resolvedDeps.console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+    resolvedDeps.process.exit(1);
   }
 }
