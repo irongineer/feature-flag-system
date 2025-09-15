@@ -91,7 +91,8 @@
       "mcp__serena__think_about_task_adherence",
       "mcp__serena__activate_project",
       "Bash(tree:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)"
     ],
     "deny": []
   },
